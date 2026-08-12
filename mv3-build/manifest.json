@@ -1,0 +1,79 @@
+{
+  "name": "AutoControl: Keyboard shortcuts, Mouse gestures",
+  "short_name": "AutoControl",
+  "version": "2025.4.22",
+  "manifest_version": 3,
+  "description": "Customize keyboard shortcuts and hotkeys, Mouse gestures, Wheel gestures, Rocker gestures, Bookmark shortcuts, Joystick actions.",
+  "minimum_chrome_version": "140",
+  "homepage_url": "https://www.autocontrol.app",
+  "options_ui": {
+    "page": "main.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "sw.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["file42.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "unlimitedStorage",
+    "contextMenus",
+    "system.display",
+    "idle",
+    "scripting",
+    "alarms",
+    "favicon",
+    "tabs",
+    "offscreen",
+    "userScripts",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "optional_permissions": [
+    "bookmarks",
+    "sessions",
+    "notifications",
+    "downloads"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "AutoCtrl/logo16.png",
+      "24": "AutoCtrl/logo24.png",
+      "32": "AutoCtrl/logo32.png"
+    },
+    "default_title": "AutoControl Configuration"
+  },
+  "icons": {
+    "16": "AutoCtrl/logo16.png",
+    "48": "AutoCtrl/logo48.png",
+    "128": "AutoCtrl/logo128.png"
+  },
+  "offline_enabled": true,
+  "storage": {
+    "managed_schema": "AutoCtrl/policySchema.json"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["AutoCtrl/*", "res/*", "*.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "sandbox": {
+    "pages": ["file23.html"]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'",
+    "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval'; child-src 'self'"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz4DcQG+hEGsg+u0lDfiLTx0NkRvPdPw5j4eXjtF+qjJaX8Byw5cnziFhyeb9f0RcSkElVRFbAgXo/ZjPIvReAaj+k+2ocMO+eeRRQgCbghGzMQXS9K13YaDHcobBTUL5emu5441c6YIVWe/PCp1xzGt1FBXVC2QKXfqJVOf3LenSXs3NvPEdH3+ip5CR2ABl231XEt7UodvkIgz3PwANeoQtmGuAjRZt0rfhA74cGsX+LWZYsyA6lEpdXR4xxykBxCELJmu+d/hgN6xaqKh2cZOsrTXqqQ1s4oR0Xyxwmj9w0IbIkgwue83a6sJTu+jDIH/pR41hc/02VOsyUdWpPwIDAQAB"
+}

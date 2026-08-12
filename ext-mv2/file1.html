@@ -1,0 +1,18 @@
+<link rel="stylesheet" href="file35.css" type="text/css"> <import src="file68.js"></import> <template id=combinOptionsPane> <optPane combin> <div wildcard> <l>Wildcard:</l> <select><option value=2>No wildcard<option value=1>On other devices (*)<option value=0>On any device (**)</select> <h h=wildcard></h> <select env><option value=2>No wildcard<option value=1>On any device (*)</select> <h h=wcEnv></h></div> <div maxTime> <l>Timeout:</l> <input type=number step=0.1 min=0 max=60> secs <h h=maxTime></h></div> <div antiSeq> <label><input type=checkbox>Negate previous step</label> <h h=antiSeq></h></div> <div actions> <btn edit>Edit<br>Combination</btn><btn del>Delete<br>Combination</btn></div> </optPane> </template> <template id=eventOptionsPane> <optPane event> <noParams>No settings for<br>this element</noParams> <div variant> <l>Variant:</l> <select></select></div> <div joystick> <l>Joystick:</l> <select><option>1<option>2<option>3<option>4<option>5<option>6<option>7<option>8</select></div> <div action> <l>Action:</l> <select><option value=0>Press<option value=1>Release</select> <h h=act></h></div> <div horzDir> <l>Action:</l> <select><option value=1>Left<option value=0>Right</select> <h h=dir></h></div> <div vertDir> <l>Action:</l> <select><option value=1>Up<option value=0>Down</select> <h h=dir></h></div> <div state> <l>State:</l> <select><option value=0>Pressed<option value=1>Released<option toggle value=2>Toggled on<option toggle value=3>Toggled off</select> <h h=state></h><h h=locKSte></h></div> <div autoRep>	&nbsp; &nbsp; &nbsp; <label><input type=checkbox>No auto-repeat</label> <h h=autoRep></h></div> <div holdDown> <l>Hold down:</l> <input type=number step=0.1 min=0 max=60> secs <h h=holdDown></h></div> <div repeat> <l>Times:</l> <input type=number step=1 min=1 max=300> <h h=repeat></h></div> <div block> <l>Override:</l> <select><option value=0>No<option value=1>Simple<option value=2 full>Full</select> <h h=block h2=block2></h></div> <div actions> <btn editGest>Edit</btn><btn del>Delete element</btn></div> </optPane> </template> <template id=mouseGestureCanvas> <svg class=mouseGestureCanvas> <defs> <filter id="shadow" filterUnits="userSpaceOnUse"> <feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 9999 0"/> <feOffset dx="4" dy="6" result="res1"/> <feFlood class="shadowLayer"/> <feComposite in2="res1" operator="in"/> <feGaussianBlur stdDeviation="4"/> <feBlend in="SourceGraphic"/> </filter> </defs> <polyline _filter="url(#shadow)"/> </svg> </template> <template id=overrideReleaseWarning>
+	You are about to override the RELEASE of a ${keyName}. <hr b=3>
+	This is usually not necessary as most native actions are performed when <br>
+	a ${keyName} is pressed, not released (there are exceptions, though). <hr b=3>
+	It's also <u>not recommended</u> as it will make the operating system think <br>
+	that the ${keyName} was never released, leaving it <u>stuck in its pressed state</u>. <hr b>
+	To avoid this problem, choose <b>Full override</b> instead. 
+	
+</template> <template id=overrideLeftBtnWarning>
+	You are about to override your LEFT MOUSE BUTTON. <hr b=3>
+	This is OK if you plan to add a <c h=/triggers/mseOvr>mouse-over condition</c> right away. <br>
+	Otherwise, you won't be able to use the left button to click anywhere.
+	<hr b=3>
+	As a safeguard, however, the left button will never be overriden when <br> clicking inside this configuration page.
+	<hr b=2>
+	If you ever get yourself trapped unable to use the left button elsewhere, <br> you can hold down an innocuous key such as
+	<uc><u>caps lock</u></uc> or <uc><u>num lock</u></uc> <br> and then click.
+</template>

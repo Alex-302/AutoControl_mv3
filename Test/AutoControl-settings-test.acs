@@ -1,0 +1,1565 @@
+{
+    "advOpts": {
+        "ignInjInp": "all"
+    },
+    "customEntities": {
+        "menuSpec": [
+            [
+                "1",
+                {
+                    "name": "",
+                    "value": {
+                        "commonOptions": {
+                            "itemsDistrib": [
+                                null
+                            ]
+                        },
+                        "content": [
+                            {
+                                "commonOptions": {
+                                    "centerGroups": false,
+                                    "itemsDistrib": [
+                                        null
+                                    ]
+                                },
+                                "content": "pinnedTabs",
+                                "type": "TSE"
+                            }
+                        ],
+                        "rootOptions": {
+                            "alignHorz": 4,
+                            "alignVert": 16,
+                            "menuSystem": "std",
+                            "position": "window"
+                        },
+                        "type": "custom"
+                    }
+                }
+            ],
+            [
+                "3",
+                {
+                    "name": "",
+                    "value": {
+                        "commonOptions": {
+                            "itemsDistrib": [
+                                null
+                            ]
+                        },
+                        "content": [
+                            {
+                                "content": "23",
+                                "type": "action"
+                            },
+                            {
+                                "content": "27",
+                                "sepLine": true,
+                                "type": "action"
+                            },
+                            {
+                                "content": "25",
+                                "type": "action"
+                            },
+                            {
+                                "content": "33",
+                                "type": "action"
+                            },
+                            {
+                                "content": "37",
+                                "sepLine": true,
+                                "type": "action"
+                            },
+                            {
+                                "content": "29",
+                                "type": "action"
+                            },
+                            {
+                                "content": "35",
+                                "type": "action"
+                            },
+                            {
+                                "content": "21",
+                                "sepLine": true,
+                                "type": "action"
+                            },
+                            {
+                                "content": "22",
+                                "type": "action"
+                            },
+                            {
+                                "content": "15",
+                                "type": "action"
+                            },
+                            {
+                                "content": "28",
+                                "type": "action"
+                            },
+                            {
+                                "content": "31",
+                                "sepLine": true,
+                                "type": "action"
+                            },
+                            {
+                                "content": "26",
+                                "type": "action"
+                            },
+                            {
+                                "content": "36",
+                                "sepLine": true,
+                                "type": "action"
+                            },
+                            {
+                                "content": "38",
+                                "type": "action"
+                            }
+                        ],
+                        "rootOptions": {
+                            "alignHorz": 0,
+                            "alignVert": 0,
+                            "menuSystem": "std",
+                            "position": "mouse"
+                        },
+                        "type": "custom"
+                    }
+                }
+            ]
+        ],
+        "script": [
+            [
+                "4",
+                {
+                    "name": "FilteringLog",
+                    "value": {
+                        "mdTime": 1616199804797,
+                        "srcCode": "ACtl.include('<desktop>/adgext.css') ;"
+                    }
+                }
+            ]
+        ],
+        "tse": [
+            [
+                "1",
+                {
+                    "name": "",
+                    "value": [
+                        {
+                            "params": {
+                                "compOper": "starts",
+                                "refExpr": "https://github.com/AdguardTeam/AdguardFilters/pull/",
+                                "tgtExpr": "<url>"
+                            },
+                            "ufOper": "filter"
+                        },
+                        {
+                            "params": {
+                                "compOper": "equals",
+                                "refExpr": "false",
+                                "tgtExpr": "<pinned>"
+                            },
+                            "ufOper": "filter"
+                        }
+                    ]
+                }
+            ],
+            [
+                "6",
+                {
+                    "name": "",
+                    "value": [
+                        {
+                            "params": {
+                                "compOper": "starts",
+                                "refExpr": "https://github.com/AdguardTeam/AdguardFilters/issues/",
+                                "tgtExpr": "<url>"
+                            },
+                            "ufOper": "filter"
+                        },
+                        {
+                            "params": {
+                                "compOper": "equals",
+                                "refExpr": "false",
+                                "tgtExpr": "<pinned>"
+                            },
+                            "ufOper": "filter"
+                        }
+                    ]
+                }
+            ]
+        ]
+    },
+    "mouseGest": {
+        "display": {
+            "enabled": true,
+            "posRef": "M",
+            "size": 30
+        },
+        "params": {
+            "stepSize": 100
+        }
+    },
+    "scrtEdtr": {
+        "lint": false,
+        "lnWrap": true,
+        "theme": "default ACtrl-dark"
+    },
+    "sections": [
+        {
+            "id": 1,
+            "name": "Menu button"
+        }
+    ],
+    "toolbarBtns": {
+        "0": {
+            "icon": {
+                "color": "#000000",
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABjElEQVQ4T82TP0gCURzHv+88RTk60gbFqIyS9pYChwZBJBqkIIeoBqfkcG0XB4eDwK4/U4FjW9vR5iCcEUHgFA3ZP8jhiBSxrjTeXSKnVzn2m97du/d5v+/n3iMA6gA4/F1uAC+9nxEKuPdMcTbQoXX51Rs68TNAVVWuwbD66iEGOuq1ZcB4BuB5ng4n6eueLd71Digg/ODS5+RxDS4GWLi168+FgNYBWLV3MhAgGo0imUyaAOVyGdlstgtgWSOCVSUSCeyWrkHcwyB+L1qlSyhHImKx2OCA/aYd7PoqyNgotINjFJcjZsBvDmgHe89N2FaWwMxM42PnEMWtNTNg8dGQeEolEiBSMSSeTWigAOnqDmTEDeL34VO5gLKXGTxCKBSCKIpQFEWHBoNByLKMfD7fdUCK53jbFEwO2Y04HOltNAKzfW4LWgPx2pNZYuffz/uc+oKMswYa5PsgmSCSJEEQhP8CqFarHD1I4YoDbbQx5zUipJ112NGGx+Ppc5DL5ZBKpYwIA15ny7vwBbnaubLoQLCwAAAAAElFTkSuQmCC",
+                "symbol": "🏥"
+            },
+            "title": "Remote debugging"
+        },
+        "1": {
+            "icon": {
+                "color": "#2bff00",
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA1UlEQVQ4T2NkwAO01zvvZ/jH0HQ1eO9+XMoYcUmANDMyMjqA5P///e+EyxCsBiBrhlmAyxAMA7BpxmcIigH4NOMyBG4AMZqxGQI2AJfmMz5bwXpMtnhjhDUsTBjx2XzZfzeDxnoHBlYmVqyRBTKEUXudmxMj07+92FSADJBfY8nAx8qDPbb/MxyEeAGHIfOsexiSjpbg1HwlcI8DIhDxuAQzABgOgjSDxFGjkRhD/iM0YxiAzztgV6BpxmoATkOwaMZpAIYhODTjNQBuCOO/OliAYYsOABvce0zFHMjmAAAAAElFTkSuQmCC",
+                "symbol": "2"
+            },
+            "title": "Fiddler"
+        },
+        "2": {
+            "icon": {
+                "color": "#0037ff",
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACSklEQVQ4T2NkIBIo1mxUf/+boYpfVevT98unW15NjHoJ0spIjH75pm2GD3+wnmP48Z1BzcERrOXHixez/z24M4WgAbK1O2wf/2U+BNb16yeDqq093E7G37/P4zVAoma714u/zFvhOn79YFC1gbgABhgFqnf7fxCV2sDz5lXOl+0lsxjOnv0NkhSp2h7x5i/jcmTFHF8/Nsg4ejUwMjIw/P/PwACiGVk6zm34w8bmD1LI9vXLCp6rR8v+iEj6fuLgn8rAyATXz//vn9vHXu/dKms+/UdxgYhfEu8ns7SVvzi4PcFh+vfvR4aXD/kZfv5gYGBhY2BiZn4qwPDX8l1fwGOQRpVVn/6Dgx5kDMgFIEFxvVju98EZS39x8oFdAgZvnjGwPb+/6NePF6kMqxt+wYSVV6K5AGyqZy77IxGtpb/kNIIZeIXhZrB+/7zk98PdqQwLGn7ADViOZoB2wyq2mx9Ylv75/TeE4fdvBgZBsY8M/KL88FD+9+8526Obtj9nRdwFiSkt+4gaBsy5G1f+ZfwfBpJk/fd3LvvLm5W/lUxif/KK9SIHFvPbZ35/+702Ky1BM4AjZ53TDwbGvWzMDLG/JgYsZWBgBNvAWrQ9/beA5AxkQ5jevWiVN7asRokFlFSBxmHL3Rz9S1hmCVz41zcGRXUdFFUEkzJz5pqAv2JK68G6fn5jUNDQhRvw/+fXCwQNAKtOWmjJIKV1jOHbJwYFHWOw0I+3zxd+f3BmEnEGgHTETFVh5ZXcIqSos+PHha2TPi4rvAcSBgCSKd0uQiClYwAAAABJRU5ErkJggg==",
+                "symbol": "3"
+            },
+            "title": "Visual Studio Code"
+        },
+        "3": {
+            "icon": {
+                "color": "#000000",
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAO0lEQVQ4T2NkoBAwUqifAW6Ac+P//6QYtreeEayXegaQYjuyWuqFAcUuGA1EcoOQmgmJ4lgg1xMUp0QAk7cYEaYbC08AAAAASUVORK5CYII=",
+                "symbol": ""
+            },
+            "title": "Misc"
+        },
+        "4": {
+            "icon": {
+                "color": "#4381ff",
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABAUlEQVQ4T+2TsUoDURREz2QFG5FoYyNY2Bis0llG4yf4B5YWtgox+zYiKuQX/AK/IBBDCgsRrGxt7CxDEEmEfTes5AWNGmMp+KpbDOcOd+YJYLtmB2acZvOkZ+BasZL3GgWA9yzNQjwJMAe9S6fXLwHmWTDRFVR+ciJx1KyqnulGDoaAF4GbAnDYrOrsH/CXbmAh7hCvxNQxPqdGMRJ3wPxvAd3UWGk7dUrnthz1uAfyb+UZd1BObNeLGxk7wyZ2UqPQdnoKW7eObVWeW2DxE2AkSizOiX3fp9g60eN4pUvO1iJxLVH/UOUgLCe2N2M0Gk4P3/2HzZqt54yNq1gXmWYAwIupEWmgWYIAAAAASUVORK5CYII=",
+                "symbol": ""
+            },
+            "title": "Bookmarks"
+        },
+        "5": {
+            "icon": {
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAbxJREFUOE+lk01IVGEUhp8TRDpUpogkhVFMYosQFcQWgoiJpKC4ChUV/8BQUTcjY21qoc5AiFlUEoiLNoqYEogiIi7EkVnpcjYVCBqRtXCgnHvk3nH+cBzCvt39Lu9zPt7zvgKgvoECuPAMKAeSzbsExw8sgfFC7MNeORGvRwu3vyrvlmFmU9j/pdivQ3OJ0PkQUi+H0X4wikV9zjmgOnS9+1PIdyh/A0p/pVB0FybXlOkNuJkGniEhLQL5ZAIOQ9P/HEGNW/H4YP053LshFldVmPUoj0eVl01Cd0XkFSZAQ5/7v+GBUynPhTdtggT11tk7gNtdSmMJvG2L/IgBJHLuy3fI6VNaS2G85RyAV4vQO6lM9wu1hZFR//SCeS80v4b7WcqCQ7gateiEAMOAlR1oHFcyr8HiIGSkRBkDnAkwxXNbUDem5N6CpadCiu20S3EB5toGPhqMfobKAuF9B6RfiW/xKUAgAH1TwSS2l4GrXrBdOns/MUEyJ39YVZ5MKD2PwN0Qm4U4GH9MlL/9AHu3ogpF2ULSxXDGwtq8OzBSFzbSjLLVRKtMC16l2pW4ilX5MO+wAMEy/W+djwG2rrZdJUp5IwAAAABJRU5ErkJggg=="
+            }
+        },
+        "6": {
+            "icon": {
+                "color": "#000000",
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAj5JREFUOE9jZCASKNZsVH//m6GKT1n9/c9zp9pezoh7BdLKSIx++aZthg9/sJ5j+PGdQc3BEazlx4sXs/89uDOFoAGytTtsH/9lPgTW9esng6qNPcTa/wwMjL9/XcBrgETNdq8Xf5m3wl356weDqg3EBTDAKFC92/+DqNQGnjevcr5sL5nFcPbsb5CkSNX2iDd/GZcjK+b4+rFBxtGrAeYCEM3I0n5uwx92Nn+QQravX1bwXD1a9kdE0vcTB/9UBkYmuH7uf//cvvZ671ZZ8+k/igtE/JJ4P5mlrfzFwe0Jlvj77yPDi4f8DL9+MDCwsDEwMTM/FWD4a/muL+AxSFp5FZoBIEFxvVju98EZS39x8oFdAgZvnjGwPb+76NePV6kMqxt+wYSVV2IxQMUzl/2RiNbSX3IawQy8wnAzWL9/XvL74e5UhgUNP+AGLEczQKthFdutDyxL//z+G8Lw+zcDg6DYRwZ+UX54KP/795zt0U3bn7Mi7oLElJZ9RA0D5tz1K/8yMoaBJFn//Z3L/vJm5W8lk9ifvGK9yIHF/PaZ399+r81KS9AM4Mjb6Pjj3799bMwMsb8mBixlYGAE28BatD39t4DEDGRDmN69bJU3tqxGiQWUVIHGYcvdHP1LWGYJXPjXNwZFdR0UVQSTMnPmmoC/Ykrrwbp+fmNQ0NCFG/D/51f8SRmuMmmhJYOU1jGGb58YFHSMwcI/3j5f+P3BmUkEXQA3JGaqCiuv5BYhRZ0dPy5snfRxWeE9kBwAtcXdKsAFyxoAAAAASUVORK5CYII="
+            },
+            "title": "VSCode"
+        },
+        "7": {
+            "icon": {
+                "color": "#1794cf",
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAnZJREFUOE+lkktIlGEUht/3+8dJKZS8zEi6KLBFhanDBFlUBpES2cJutOmG5CUdLBAiCKaIChKiGS8EYQRhq6RQB8JAaq2OI+SiCy2KwX+y7KLmXP7/xKhjoxIEfctzzvec97znEP/5uPx/nieQH1WyLd0M+t65DoST83bvYKEYsVCoabueiC8BrH8wkPprOqMXwE5SNY+fL25NFOZ6/WVCPiYQjIlZOdHoCMZziwC7Z/gEFK8BKABgQvBQt1trcWxLpMDzdtVPTnlBOQtQE+ATqdx6/dbOeYBbLPbskX4AZXNUsjtirD7z1bXxR0LBHERNxRVVL8QCWoqxj+vuDWYbUdUJsHIh8Y1Cr7LGbgVrnDOLHrhF2XICbopcBJA2L1+u094RsCFmDoDYTPA5KFdE4ANwR28oubGgUOVmBW4K5XgYsscKthA4AsA3N4LdG9ggyjzJGdWiNxdNx90GLF1Q8iwcQUuqFU0iOG2YcmrC5XiZf/91ZnQ2eluU9KxYY0Ky7a5/B5W8ADkNQCTFKA3VON8vX/tfAfEusdlwl4DlAnkVnTIPTV5yfv8nQEb76No00+gWsBRAP2CWA2oEGg/qdUWhZMgKBbbW0VLCaAdQBJoezSKXjYh2AZSrAP2axnPBumL/ykt0i8rNHHSKZukDkAVhrz4xWQX33lhO28AaDRk+Ee6iMCI0DusNjj6AknSJQ5VQ6hGAdIJvRFihNxZ9SHTK6hjJsxgSP/NiQL6IYnWovuTpH4B32AuyAeBHWsyK8VrH2HLDclpHdyvEngDMBtGn51irFgFZbUObNGpHhej5nDTjUojQ1j5cqAy1HyK+cZdj7DforgAs8XmU1gAAAABJRU5ErkJggg==",
+                "symbol": "⚒"
+            },
+            "title": "Tools"
+        },
+        "8": {
+            "icon": {
+                "color": "#1794cf",
+                "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAALZJREFUOE9jZIAC8akXChn+/++D8XHSjIxFL7MN+mHyjKMGMIyGAQPtw+A/A5Il4ERHQkp8z8LLofrn84/bDAwMgvCkTZQBjAxvmFm4NJ+lq7+RmnlT5O+fb9cZ/jOIEOuC17/ZmYzepeo/gdkqNPuiDOvPf+cYGBhECXmh4j8ri9WrdN276LlRbOZlZcbff44xMDJ2YM2NYtMuxPxjYDz9Jkv/Jq6sLDLtojoTw3/TV1kGS2BqAMlylRHqa2y6AAAAAElFTkSuQmCC",
+                "symbol": "",
+                "trans": "0 "
+            },
+            "title": "Bookmarks"
+        }
+    },
+    "trigActList": [
+        [
+            "36",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "currentTab",
+                                    "tabPos": "after",
+                                    "url": "https://reports.adguard.com/en/settings/import.html?adblocking.enabled=true"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Import AdGuard settings",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "38",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "currentTab",
+                                    "tabPos": "after",
+                                    "url": "https://reports.adguard.com/en/settings/import.html?adblocking.enabled=true"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Import AdGuard settings TEST     .",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "34",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Switch tab MRU-2",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 0,
+                                "eventId": 1041,
+                                "preconds": [],
+                                "wildcard": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "31",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "lastTab",
+                                    "tabPos": "after",
+                                    "url": "chrome-extension://gfggjaccafhcbfogfkogggoepomehbjl/pages/options.html#filters"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "AdGuard filters"
+            }
+        ],
+        [
+            "26",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "lastTab",
+                                    "tabPos": "after",
+                                    "url": "chrome-extension://gfggjaccafhcbfogfkogggoepomehbjl/pages/fullscreen-user-rules.html?theme=light"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "AdGuard user filter",
+                "triggers": []
+            }
+        ],
+        [
+            "25",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "lastTab",
+                                    "tabPos": "after",
+                                    "url": "chrome://net-internals/#sockets"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "net-internals sockets",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "27",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "lastTab",
+                                    "tabPos": "after",
+                                    "url": "chrome://inspect/#devices"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Mobile dev tools",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "35",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "lastTab",
+                                    "tabPos": "after",
+                                    "url": "chrome://extensions/?id=hoklmmgfnpapgjgcpechhaamimifchmp"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "SimilarWeb ext",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "37",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "lastTab",
+                                    "tabPos": "after",
+                                    "url": "chrome://extensions/?id=gcknhkkoolaabfmlnjonogaaifnjlfnp"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "FoxyProxy ext",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "29",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "lastTab",
+                                    "tabPos": "after",
+                                    "url": "chrome://extensions/?id=bhchdcejhohfmigjafbampogmaanbfkg"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "User-Agent Switcher and Manager ext",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "33",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "lastTab",
+                                    "tabPos": "after",
+                                    "url": "chrome://net-internals/#dns"
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Chrome DNS",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "28",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "runCommand",
+                                "params": {
+                                    "cmd": "C:\\Program Files (x86)\\Fiddler\\Fiddler.exe"
+                                }
+                            }
+                        ],
+                        "targets": "allTabs"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Fiddler",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 2099,
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ],
+                        "preconds": {}
+                    }
+                ]
+            }
+        ],
+        [
+            "24",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "openMenu",
+                                "params": {
+                                    "alignHorz": 4,
+                                    "alignVert": 16,
+                                    "menuId": "menuSpec:3"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Other",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 2105,
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "30",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "openMenu",
+                                "params": {
+                                    "alignHorz": 4,
+                                    "alignVert": 16,
+                                    "menuId": "bookmarksTree",
+                                    "position": "screen",
+                                    "style": "std"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Bookmarks",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 2106,
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ],
+                        "preconds": {}
+                    }
+                ]
+            }
+        ],
+        [
+            "23",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "runCommand",
+                                "params": {
+                                    "cmd": "C:\\Windows\\explorer.exe E:\\Downloads"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Downloads"
+            }
+        ],
+        [
+            "22",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "runCommand",
+                                "params": {
+                                    "cmd": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "MS Edge",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "21",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "runCommand",
+                                "params": {
+                                    "cmd": "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Firefox",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "13",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "runCommand",
+                                "params": {
+                                    "cmd": "C:\\Program Files (x86)\\Fiddler\\Fiddler.exe"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Fiddler"
+            }
+        ],
+        [
+            "15",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "runCommand",
+                                "params": {
+                                    "cmd": "C:\\Program Files\\Google\\Chrome Dev\\Application\\chrome.exe"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Chrome Dev",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "32",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "runCommand",
+                                "params": {
+                                    "cmd": "C:\\Program Files\\Google\\Chrome Dev\\Application\\chrome.exe"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "sctnId": "1",
+                "title": "Chrome DNS",
+                "triggers": [
+                    {
+                        "combins": []
+                    }
+                ]
+            }
+        ],
+        [
+            "7",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "activateTabs",
+                                "params": {
+                                    "peek": true
+                                }
+                            }
+                        ],
+                        "targets": "prevUsedTabAnyWin"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Switch tab MRU-1",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": true,
+                                "eventId": 9,
+                                "preconds": [
+                                    {
+                                        "keyEvt": 17
+                                    }
+                                ],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "4",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "reloadTabs",
+                                "params": {
+                                    "force": 1
+                                }
+                            }
+                        ],
+                        "targets": "tse:6"
+                    },
+                    {
+                        "sequence": [
+                            {
+                                "action": "reloadTabs",
+                                "params": {
+                                    "force": 1
+                                }
+                            }
+                        ],
+                        "targets": "tse:1"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Refresh non-pinned GitHub issues/PRs",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "31",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "20",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "unloadTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currWinTabs"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Unload tabs",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "35",
+                                "preconds": [],
+                                "wildcard": 2
+                            },
+                            {
+                                "block": 1,
+                                "eventId": 88,
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "39",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "unloadTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Unload tabs",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "35",
+                                "preconds": [],
+                                "wildcard": 2
+                            },
+                            {
+                                "block": 0,
+                                "eventId": 1,
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "14",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "duplicate",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Duplicate tab",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 77,
+                                "preconds": [
+                                    {
+                                        "keyEvt": 17
+                                    }
+                                ],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "12",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "setVolume",
+                                "params": {
+                                    "mode": "down",
+                                    "target": ":sys",
+                                    "value": 5
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "disabled": true,
+                "title": "Global volume Down",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 512,
+                                "preconds": [
+                                    {
+                                        "keyEvt": 2
+                                    }
+                                ],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "11",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "setVolume",
+                                "params": {
+                                    "mode": "up",
+                                    "target": ":sys",
+                                    "value": 5
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "disabled": true,
+                "title": "Global volume Up",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 1536,
+                                "preconds": [
+                                    {
+                                        "keyEvt": 2
+                                    }
+                                ],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "10",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "loadUrls",
+                                "params": {
+                                    "refTab": "currentTab",
+                                    "tabPos": "after",
+                                    "url": "view-source:<url>",
+                                    "usesTabs": true
+                                }
+                            },
+                            {
+                                "action": "activateTabs",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "View page source",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 85,
+                                "preconds": [
+                                    {
+                                        "keyEvt": 17
+                                    },
+                                    {
+                                        "keyEvt": 160
+                                    }
+                                ],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "6",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "switchLeft",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "title": "Previous tab",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 1536,
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ],
+                        "preconds": {
+                            "mouseOver": [
+                                {
+                                    "oper": "or",
+                                    "region": 21
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 1536,
+                                "preconds": [
+                                    {
+                                        "keyEvt": 164
+                                    }
+                                ],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "5",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "switchRight",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "title": "Next tab",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 512,
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ],
+                        "preconds": {
+                            "mouseOver": [
+                                {
+                                    "oper": "or",
+                                    "region": 21
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "combins": [
+                            {
+                                "block": 1,
+                                "eventId": 512,
+                                "preconds": [
+                                    {
+                                        "keyEvt": 164
+                                    }
+                                ],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "19",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "reloadTabs",
+                                "params": {
+                                    "force": 1
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Reload current tab",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "51",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    },
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "15",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ],
+                        "preconds": {}
+                    }
+                ]
+            }
+        ],
+        [
+            "18",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "goForward",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Forward",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "3",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "17",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "goBack",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Back",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "7",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "16",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "openMenu",
+                                "params": {
+                                    "menuId": "menuSpec:1",
+                                    "style": "std"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "List of pinned tabs",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "8",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "9",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "openMenu",
+                                "params": {
+                                    "alignHorz": 4,
+                                    "alignVert": 0,
+                                    "menuId": "mruTabsCurrWin",
+                                    "position": "mouse",
+                                    "style": "std"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "List of all tabs",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "2",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "3",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "scrollWins",
+                                "params": {
+                                    "amount": 250,
+                                    "dir": "up"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Scroll up",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "1",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "2",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "scrollWins",
+                                "params": {
+                                    "amount": 250,
+                                    "dir": "down"
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Scroll down",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "5",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "8",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "pinTabs",
+                                "params": {
+                                    "mode": -1
+                                }
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Pin tab",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "6",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        [
+            "1",
+            {
+                "actions": [
+                    {
+                        "sequence": [
+                            {
+                                "action": "close",
+                                "params": {}
+                            }
+                        ],
+                        "targets": "currentTab"
+                    }
+                ],
+                "collapsed": true,
+                "title": "Close tab",
+                "triggers": [
+                    {
+                        "combins": [
+                            {
+                                "mouseMove": "4",
+                                "preconds": [],
+                                "wildcard": 2
+                            }
+                        ],
+                        "preconds": {
+                            "mouseOver": [
+                                {
+                                    "region": 1
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    ],
+    "userVars": {}
+}

@@ -1,0 +1,117 @@
+<!doctype html> <html class="fitToViewport" lang=en> <head> <link rel="stylesheet" href="file46.css" type="text/css"> <link rel="stylesheet" href="file60.css" type="text/css"> </head> <body> <script src="file67.js"></script> <script src="file91.js"></script> <script src="file10.js"></script> <script src="file32.js"></script> <script src="file17.js"></script> <script src="file13.js"></script> <script src="file56.js"></script> <script src="file57.js"></script> <script src="file24.js"></script> <script src="file78.js"></script> <script src="file87.js"></script> <script src="file0.js"></script> <script src="file12.js"></script> <script src="file30.js"></script> <script src="file75.js"></script> <import src="file92.html"></import> <import src="file4.html"></import> <import src="file54.html"></import> <import src="file96.js"></import> <import src="file1.html"></import> <import src="file2.js"></import> <style tbBtnIcons></style> <hiddenDoc></hiddenDoc> <tabs> <logo class="new2 notranslate"><a href="https://www.autocontrol.app"><c>A</c>uto<c>C</c>ontrol</a><hr></logo> <logoShw></logoShw> <tab pnlId=actions>Actions</tab> <sectns name=sections value=[]></sectns> <tab pnlId=options>Options</tab> <tab pnlId=help>Help</tab> <switches><tit>Switches <h h=swtLst></h></tit><cont></cont></switches> </tabs> <content></content> </body> </html> <template id=trigActsPanel> <header simple> <btn></btn> <btn newAction>New Action</btn> <btn newSectn><img src="/res/newSectn.svg">New Section</btn> <btn delSectn><img src="/res/delSectn.svg">Delete Section</btn> <btn select>Select</btn> <btn selected><c><num></num> actions<br>selected</c></btn> </header> <cont> <trigActList> <sep> <tip first> <svg viewBox="0 0 150 250" preserveAspectRatio=none> <path arrow d="M 0 25 L 20 0 L 40 25 M 20 0 Q 20 160 150 250" /> </svg> <p>Create your first action <br> or <br> <d initDemo>See a quick demo</d></p> </tip> <tip move>
+				Create or move actions here if the main section becomes too cluttered.
+				<video src="/res/moveTrigActs.mp4" preload=none></video> </tip> </sep> </trigActList> </cont> </template> <template id=trigActSelectMenu> <floatingMenu spacy> <item name=all>Select all</item> <item name=invert>Invert selection</item> <item name=named>Select named <h h=nmdAct></h></item> <hr> <item name=enbld>Select enabled</item> <item name=dsbld>Select disabled</item> <hr> <item name=colpsd>Select collapsed</item> <item name=unclsd>Select uncollapsed</item> </floatingMenu> </template> <template id=selectedTrigActMenu> <floatingMenu trigActVerbs> <item name=enable>Enable</item> <item name=disable>Disable</item> <item name=tgglEnbl>Toggle enable</item> <hr> <item name=collapse>Collapse</item> <item name=unclpse>Uncollapse</item> <hr x> <item name=duplcte>Duplicate</item> <item name=dupToSectn menu=tgtSctnMenu>Duplicate to</item> <hr x> <item name=import>Import</item> <item name=importTo menu=tgtSctnMenu>Import to</item> <hr y> <item name=export>Export to file</item> <hr> <item name=delete>Delete</item> </floatingMenu> </template> <template id=tgtSctnMenu> <floatingMenu> <item pnlId=new>(New section)</item> <hr> </floatingMenu> </template> <template id=tgtSttgsFileMenu> <floatingMenu> <item pnlId=new>(New file)</item> <hr> </floatingMenu> </template> <template id=optionsPanel> <section mouseGest name=mouseGest helpCtx=gest><h1>Mouse Gestures <btn></btn></h1></section> <section TBBtns name=toolbarBtns><h1>Custom Toolbar Buttons</h1> <div paragraph>
+			Add additional toolbar buttons next to the address bar and use them to trigger your actions.
+			<hr b=5> <TBBtnLst></TBBtnLst> <button installTbBtn>Install new button</button> <h h=tbBtns/inst></h> </div> <img src="/res/tbButtons.png"> </section> <section settgs helpCtx=settgs popupCntr><h1>Synchronize, Save, Restore settings</h1> <div> <div paragraph syncSettgs name=LOCAL></div> <colSep></colSep> <div paragraph>
+				You can save all your settings to a file or restore them from a previously saved file. <hr b=5> <button exportToFile>Save to file</button> <h h=exp></h> <button importFromFile>Restore from file</button> <h h=imp></h> <button openSttgsFile>View file</button> <h h=opn></h> </div> </div> </section>
+	${#uninstall}
+	<advOpts>Advanced options...</advOpts> </template> <template id=uninstall> <section installation><h1>Uninstall&nbsp;<c ACS>AutoControl</c></h1> <div paragraph>
+			To completely remove the extension from your system, you must also uninstall the native component. <hr b=5> <button uninstall>Uninstall native component</button> </div> </section> </template> <template id=helpPanel> <content> <wideDiv hlpBbl> <img src="/res/helpBubble.png" align=right>
+			AutoControl provides abundant help in the form of speech bubbles. <hr b=2>
+			Whenever you don't know what to do, look for the closest <h></h> icon and click on it to get an explanation of the nearby features.
+		</wideDiv> <wideDiv rldExt> <img src="/res/reloadExt.png" align=right>
+			If your shortcuts or anything else stop working for no apparent reason, <u>right click</u> on AutoControl's toolbar button and choose
+			<b>Emergency repair</b>. AutoControl will clean up its internal state to bring itself back to working order.
+			<note>
+			This is an emergency measure only. If you ever need to do this, <br> please report what went wrong at the <a href="${URLS.support}">Support Forum</a>.
+			</note> </wideDiv> <div various> <item>
+				Watch step by step demonstrations of how to define shortcuts and gestures. <hr b=4> <center><dem initDemo>Show demos</dem></center> </item> <item list> <ul> <li>Read more about AutoControl at <a href="${URLS.faq}">the FAQ</a>.
+				<li>Know what's new at the <a href="${URLS.updHist}">Update History</a>.
+				<li>Ask for help and report errors at the <a href="${URLS.support}">Support Forum</a>.
+				</ul> </item> </div> <div articles> <header>Learn more about:</header> <li><a href="${URLS.triggers}">AutoControl Triggers</a></li> <li><a href="${URLS.actions}">AutoControl Actions</a></li> <li><a href="${URLS.mruTabs}">Switch to last used tab with Ctrl+Tab</a></li> <li><a href="${URLS.omboxShrt}">Address bar shortcuts</a></li> <li><a href="${URLS.tbBtns}">Custom toolbar buttons</a></li> <li><a href="${URLS.domTabs}">Sort, group & close tabs by domain</a></li> <li><a href="${URLS.actMenu}">Action menus</a></li> <li><a href="${URLS.scrtDoc}">AutoControl Scripts</a></li> </div>
+		${#rateUs}
+	</content> </template> <template id=rateUs> <rateUs> <center> <row>Did you like ${EXT.alias}?<stars>&#9733;&#9733;&#9733;&#9733;&#9733;</stars></row>
+		Please rate and comment at the bottom of our <a href="${URLS.reviews}">Web Store page</a>.
+		</center> </rateUs> </template> <template id=installPane> <installWrap tabIndex=0> <installPane> <h1>One last step to complete installation</h1>
+			Click below to save and install the native component. It'll take just a second.
+			<install button>Install Native Component</install> <faq> <ques>Why is this installation necessary?</ques> <answ>
+					${EXT.alias} is what's known as a <b>native&nbsp;extension</b>.
+					Extensions of this kind are made up of a <u>web&nbsp;component</u>, which you already installed,
+					and also a <u>native&nbsp;component</u>, which you must install by clicking the yellow button above. <hr b=2>
+					The native component is a program that cooperates with the web component by providing capabilities
+					and functionality that are not possible on regular extensions. <hr b=2>
+					Thanks to this, ${EXT.alias} can offer unique features that you won't find anywhere else, such as customizing
+					the browser's native shortcuts, being able to work on ALL tabs, and much more.
+					
+					<c ACS><hr b=4> Learn more <a href="${URLS.faq}">here</a> about the advantages of native extensions.</c> <c extVar><hr b=4> Learn more <a href="${URLS.natComp}">here</a> about the benefits of the native component.</c> </answ> <ques help>I can't install the program. Help, please.</ques> <answ> <img src="res/defender.png" align=left width=44%>
+					On Windows 8 and 10 you'll see a message box like this one. You have to click on <b>More info</b> and then <b>Run anyway</b>. <br>
+					The message is rather alarming, but it makes sure you know you are about to run a native program.
+					There's nothing to worry about in this case.
+					<br clear=both> <hr b=8> <img src="res/showInFolder.png" align=right width=40%> <hr b=2>
+					It may happen sometimes that when you click on the program to run it, nothing happens.
+					You don't see a dialog box or any indication that the program started. This usually happens on Windows 8. <br>
+					If this happens to you, you must click on <b>Show in folder</b> and then double-click on the program inside its folder. 
+					<br clear=both> <hr b=8> <a href="${URLS.installer}" install>Native-Component.exe</a>
+					It may also happen that <b>Windows Defender</b> or your antivirus is blocking the program.
+					In that case try this alternative download button. <br>
+					If that still doesn't work, try updating Windows Defender's malware definitions as instructed
+					<a href="https://www.microsoft.com/en-us/wdsi/defenderupdates">here</a>. Sometimes the Native Component
+					is blocked by outdated definitions. <br>
+					If the problem persists after that, please try adding an exclusion to your malware protection or turning it off temporarily. <br>
+					More help on this <a href="${URLS.winSecExcl}">Microsoft Article</a>
+					and this <a href="https://www.wikihow.com/Turn-Off-Windows-Defender-in-Windows-10">wikiHow</a>.
+					<br clear=both> <hr b=2> <a href="${URLS.support}" askHelp>Ask For Help</a>
+					If you are still not able to install the native component, you can ask for help at the support forum.
+					Please describe which specific step doesn't produce the expected result and include a screenshot if possible.
+				</answ> </faq> </installPane> </installWrap> </template> <template id=runInstPane> <runInstPane> <hint> <cap>Run Installer</cap> <svg arrow viewBox="0 0 50 100" preserveAspectRatio="none"> <path head d="M 50,24 L 38,0, L 26,24 Z" /> <path tail d="M 38,24 Q 30 80, 0 100" /> </svg> </hint> </runInstPane> </template> <template id=unsupportedOS>
+	Unfortunately, your operating system is currently not supported. <hr b=3>
+	At the moment, ${EXT.alias} is supported on: <hr b> <li>Windows 7</li> <li>Windows 8/8.1</li> <li>Windows 10</li> <li>Windows 11</li> <hr b=4> <c ACS>Please read <a href="${URLS.faq}">the FAQ</a> to learn why this limitation exists.</c> </template> <template id=natHostNotFound> <msg>
+		Something went wrong. The native component is not working. <hr b=3>
+		It was either uninstalled or it's being blocked by Windows Defender or another <br> antivirus. <hr b>
+		You can try reloading the extension and see if that fixes the problem. Otherwise, <br> try installing the native component again. <hr b=3>
+		If the native component is already installed, then check if Windows Defender or <br> your antivirus is blocking a program in this folder: <hr b=3> <center style="font-family: monospace">C:\Users\&lt;user&gt;\AppData\Local\AutoControl\</center> <hr b=3>
+		See this <a href="${URLS.winSecExcl}">Microsoft Article</a> for a possible solution.
+		<hr b=4>
+		Also, make sure you are not affected by any of these <a href="${URLS.chromeBugs}">bugs in Google Chrome</a>.
+		<hr b=2> </msg> <actions> <button value=reload>Reload extension</button> <button value=reinstall>Reinstall native component</button> </actions> </template> <template id=installTrouble>
+	It seems you are having trouble installing the Native Component. <hr b=2>
+	The most common issue occurs when Windows Defender or another <br> antivirus blocks the program from being saved or executed. <hr b=3>
+	Read the help tips below for more details.
+</template> <template id=natHostInit> <center fntSz=5>Starting Native Component... <hr b=3> ${#busySign} </center> <hr b=3>
+	If this message doesn't go away after a few seconds, it means the Native Component <br> is unable to start.
+	<hr b=2>
+	It may be taking longer than usual for Windows Defender or your antivirus to check <br> and allow the program.
+	Reload the page after 30 seconds if nothing happens.
+	<hr b=3>
+	If the problem persists, the most probable cause is that your antivirus did not allow <br> the program.
+	Make sure executable files in this folder are allowed to run:
+	<hr b=3> <center style="font-family: 'courier new', monospace">C:\Users\&lt;user&gt;\AppData\Local\AutoControl\</center> <hr b=3>
+	Try the suggestions in the help tips below to solve this.
+	<hr b=4>
+	Also, make sure you are not affected by any of these <a href="${URLS.chromeBugs}">bugs in Google Chrome</a>.
+</template> <template id=noMoreTBBtns>
+	
+	There are no more toolbar buttons available in the Chrome Web Store. <hr b=3>
+	However, you can use one of the buttons to display a menu with many <br> more clickable actions. <hr b=2>
+	See an example at <a href="${URLS.actMenu}"><b>Action menus</b></a>.
+</template> <template id=addTBBtnMsg> <addTBBtnMsg ${attrs}> <instr>
+			Each new button is installed separately from the Web Store. <br> In the next page, click on <b><u>Add to Chrome</u></b> as usual.
+		</instr> <reason> <header>Note:</header>
+			It's necessary to install these buttons separately because the browser <br> allows only one toolbar button per extension. <hr b>
+			These button-only extensions do not require any special permissions <br> or data access.
+			They only insert a button in the toolbar and then they <br> are closed, without consuming any computer resources.
+		</reason> </addTBBtnMsg> </template> <template id=confirmSettgsOvrwrt> <msg>
+		Another AutoControl installation is already synchronizing its settings. <hr b=3>
+		You can use those external settings in here or you can use your current <br> settings as the new synchronized settings. <hr b=3>
+		The settings that you choose to keep will overwrite the others. <hr b> </msg> <actions> <button value=useSync>Use external settings</button> <button value=useCurr>Use current settings</button> <button value=cancel>Cancel</button> </actions> </template> <template id=askAddReplSettgs> <msg>
+		Choose what to do with the new settings. <hr b=3> <table> <tr><td valign=top align=right><b>Add:&nbsp;</b> <td>The new settings will be added to your existing settings <br> (no settings will be lost). <hr b=3> <tr><td valign=top><b>Replace:&nbsp;</b> <td>The new settings will replace your existing settings <br> (your existing settings will be lost).
+		</table> </msg> <actions> <button value=add>Add</button> <button value=replace>Replace</button> <button value=cancel>Cancel</button> </actions> </template> <template id=contribPanel> <div contribPanel> <img logo src="/AutoCtrl/logo128.png"> <hi>Hi there!</hi> <hr b=4>
+		Enjoying your new shortcuts? <emo>&#x1F609;</emo> <hr b=4>
+		
+		It's nice to see you in this part of the page. Not many end up over here, you know.
+		<hr b>
+		People must think the "<c spt>Support the Project</c>" button is just for decoration or something. <hr b>
+		Hopefully, you didn't get in here by accident. That would be a shame... <br>
+		because we need to have a chat... <hr b=2>
+		You know where this is going, right? <hr b=4>
+		THAT'S RIGHT, HAND OVER YOUR MONEY !!!<hr b=3> <c style="font-family: monospace">:P</c> <hr b=3>
+		In all seriousness, though, AutoControl is possible thanks to users like you who give <br> us a buck or two... or ten. <br>
+		The more the merrier, because almost nobody is willing to donate, believe it or not. <hr b>
+		By supporting us, you'll help us keep going with this endeavor that benefits tens of <br> thousands of people around the world by now. <br>
+		Otherwise, we might get depressed or the ground might swallow us up or something.
+		
+		<hr b=4>
+		So, you know what to do... Thank you!!
+		<donateBtns> <a paypal href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=G8TMRRCK8FCE6&source=url">Donate with <img src="/res/paypalLogo.svg"></a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a coffee href="https://www.buymeacoffee.com/AutoControl" style="width:200px; height:58px; background-image: url(https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)"></a> </donateBtns> </div> </template> <template id=demoPanel> <demoPanel class=menu> <header> <btn back>Back to <br> menu</btn> <dfltTit>Choose a demo to play</dfltTit> <tit></tit> <btn close></btn> </header> <content> <demoMenu> <ul> <li demoName=kbrdShrts><img src=/res/kbdKeys.png> <li demoName=mouseShrts><img src=/res/mouse.png> <li demoName=mouseGest><img src=/res/mseGest.png> </ul> </demoMenu> </content> </demoPanel> </template>

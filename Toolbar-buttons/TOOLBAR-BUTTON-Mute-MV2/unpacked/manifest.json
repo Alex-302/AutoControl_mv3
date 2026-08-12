@@ -1,0 +1,34 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+"name": "TOOLBAR BUTTON: Mute",
+
+"version": "2",
+"manifest_version":	2,
+
+"description": "Toolbar button and keyboard shortcut for muting and unmuting the current tab quickly.",
+
+"minimum_chrome_version": "49",
+
+"background": {"scripts": ["bgPage.js"], "persistent": false},
+
+"browser_action": {
+	"default_icon": {
+		"16": "logo16.png",
+		"32": "logo32.png",
+		"48": "logo48.png"
+	}
+},
+
+"icons": {
+	"16": "logo16.png",
+	"32": "logo32.png",
+	"48": "logo48.png",
+	"128": "logo128.png"
+},
+
+"offline_enabled": true,
+
+"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAulj58ion0TqFt6/LsRbWVPNUw9YnbnaB8HVArNAc0t6zUIqf9365z5DFqKguWhANOBOIhzOCPczor6dvCrtg3ZZFK9VDtT0TI9qGKbVikb6oE5XW1HH3LZ3O8yLKmdtmVCyo5zOpe28T5vS7PPUC0eXSc55Tkqq2gEXoG60MZWrV2gnpfEG+biEPx6G6OYo7FOP/PFQXbETOacc9XiI+QT4RPDQQbaEVimsHgYi2/XDwYzAHJV847mdCHN608ApGQq1AEQPuc5tPgtUDmpPgiC9URguGcvAjfi6kHIP7PmfwT45e3XLJNAwib3Dvc/N8mdCq/Dr7IfP8Wy8RSuJFbQIDAQAB"
+
+}

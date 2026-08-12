@@ -1,0 +1,16 @@
+{
+"type": "object",
+"properties": {
+	
+	"administrator_settings": {
+		"type": "string",
+		"title": "Full settings for the extension",
+		"description": "Either a full path to a file generated with the 'Save to file' button in the extension's Options or else the content of that file (which is a JSON string)."
+	},
+	"when_to_load": {
+		"type": "string",
+		"title": "When to load the administrator settings",
+		"description": "Zero or more of the following words (space-separated): install, startup, policyChange. That is, load at install time and/or at browser start-up and/or when 'administrator_settings' changes."
+	}
+}
+}

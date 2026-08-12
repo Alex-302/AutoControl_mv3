@@ -1,0 +1,56 @@
+{
+  "name": "AutoControl: Keyboard shortcuts, Mouse gestures",
+  "short_name": "AutoControl",
+  "version": "2025.4.22",
+  "manifest_version": 3,
+  "description": "Customize keyboard shortcuts and hotkeys, Mouse gestures, Wheel gestures, Rocker gestures, Bookmark shortcuts, Joystick actions.",
+  "minimum_chrome_version": "109",
+  "homepage_url": "https://www.autocontrol.app",
+  "options_page": "main.html",
+  "options_ui": {
+    "page": "main.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "sw.js"
+  },
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "unlimitedStorage",
+    "contextMenus",
+    "system.display",
+    "idle",
+    "scripting",
+    "alarms",
+    "favicon",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "optional_permissions": [
+    "bookmarks",
+    "sessions",
+    "background",
+    "notifications",
+    "downloads"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "AutoCtrl/logo16.png",
+      "24": "AutoCtrl/logo24.png",
+      "32": "AutoCtrl/logo32.png"
+    },
+    "default_title": "AutoControl Configuration"
+  },
+  "icons": {
+    "16": "AutoCtrl/logo16.png",
+    "48": "AutoCtrl/logo48.png",
+    "128": "AutoCtrl/logo128.png"
+  },
+  "offline_enabled": true,
+  "storage": {
+    "managed_schema": "AutoCtrl/policySchema.json"
+  }
+}
