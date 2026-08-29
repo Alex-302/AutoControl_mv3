@@ -8,7 +8,7 @@ Prism.hooks.add('wrap', env =>{
 		return ;
 	if((env.type=='method' || env.type=='constant') && mark){
 		env.tag = 'a' ;
-		env.attributes.href = './' + env.content ;
+		env.attributes.href = './' + env.content + '.htm' ;
 		env.attributes.acApi = '' ;
 	}
 

@@ -2,7 +2,7 @@ const SLIDES = [
 	{files:['img/previewSlide1.png'], html: (files)=> `<img src="${files[0]}"><a more href="triggers.htm">Learn more</a>`},
 	{files:['img/previewSlide2.png'], html: (files)=> `<img src="${files[0]}">`},
 	{files:['img/previewSlide3.png'], html: (files)=> `<img src="${files[0]}">`},
-	{files:['img/previewSlide4.png'], html: (files)=> `<img src="${files[0]}"><a more href="custom-toolbar-buttons">Learn more</a>`},
+	{files:['img/previewSlide4.png'], html: (files)=> `<img src="${files[0]}"><a more href="custom-toolbar-buttons.htm">Learn more</a>`},
 	{files:['img/previewSlide5.png'], html: (files)=> `<img src="${files[0]}"><a more href="switch-to-last-used-tab-in-chrome#tab-switcher" style="left: 40px">Learn more</a>`},
 ] ;
 
