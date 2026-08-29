@@ -1,0 +1,182 @@
+<html><head>
+	<title>ACtl.setClipboard - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.setClipboard</h1>
+			<hr b="">
+			<summary>
+	 Puts content in the clipboard in the specified format.
+</summary>
+				<signat sticktonext="">
+		<spec><c actl="">ACtl</c>.setClipboard(<arg><name>content</name></arg>)</spec>				<ioelem></ioelem>	</signat><signat sticktonext="">
+		<spec><c actl="">ACtl</c>.setClipboard(<arg>{<arg><name>image</name><colon>:</colon></arg>}</arg>)</spec>				<ioelem></ioelem>	</signat><signat>
+		<spec><c actl="">ACtl</c>.setClipboard(<arg>{<arg><name>html</name><colon>:</colon></arg><arg><m>[</m>,<name>sourceURL</name><colon>:</colon><m>]</m></arg>}</arg>)</spec>				<ioelem>		<hd><name>content</name></hd>
+		<desc>It can be any of the types below. Each type determines what data format is put in the clipboard.
+				<table saveconttypes="">
+				<tbody><tr><td> <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a>
+					</td><td> The string is put as plain text.
+				
+				</td></tr><tr><td> <a href="https://developer.mozilla.org/docs/Web/API/Element" target="_blank" extref="">Element</a><br> <a href="https://developer.mozilla.org/docs/Web/API/DocumentFragment" target="_blank" extref="">DocumentFragment</a>
+					</td><td> The HTML is put as formatted text.
+				
+				</td></tr><tr><td> <a href="https://developer.mozilla.org/docs/Web/API/HTMLImageElement" target="_blank" extref="">HTMLImageElement</a><br> <a href="https://developer.mozilla.org/docs/Web/API/SVGImageElement" target="_blank" extref="">SVGImageElement</a><br> <a href="https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement" target="_blank" extref="">HTMLCanvasElement</a><br> <a href="https://developer.mozilla.org/docs/Web/API/OffscreenCanvas" target="_blank" extref="">OffscreenCanvas</a> 
+					</td><td> The image content is put as a bitmap
+				
+				</td></tr><tr><td> <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a> of paths
+					</td><td> Each path is put as a file/folder. You must ensure these paths point to existing files/folders,
+							otherwise the operating system will complain when you try to paste them.
+				</td></tr></tbody></table>
+			</desc>
+	</ioelem><ioelem>		<hd><name>image</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>An image to put in the clipboard. It can be a <a href="https://developer.mozilla.org/docs/Web/HTTP/Basics_of_HTTP/Data_URIs" target="_blank" extref="">data URI</a> or a <a href="https://developer.mozilla.org/docs/Web/API/DOMString/Binary" target="_blank" extref="">binary string</a> in PNG, JPEG or BMP format.</desc>
+	</ioelem><ioelem>		<hd><name>html</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>HTML code to put in the clipboard as formatted text.</desc>
+	</ioelem><ioelem>		<hd><name>sourceURL</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>The URL from which the HTML was "copied" (figuratively speaking, of course,
+							as in this case the HTML is being put in the clipboard programmatically).</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with <hl>true</hl> if the content
+						was put in the clipboard successfully. <hl>false</hl> otherwise.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if the argument passed doesn't match any recognizable form.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+
+	Put plain text.
+	<pre class=" language-js"><code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setClipboard.htm" acapi="">setClipboard</a><span class="token punctuation">(</span><span class="token string">'Hello, world!'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Put formatted text.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//When you paste this text in any text field that supports</span>
+<span class="token comment">//formatted text, you'll get blue text in large Arial font.</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setClipboard.htm" acapi="">setClipboard</a><span class="token punctuation">(</span><span class="token punctuation">{</span><span class="token propLiteral">html</span><span class="token operator">:</span> <span class="token string">'&lt;font size=6 color=blue face=Arial&gt;Hello&lt;/font&gt;'</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Put an entire webpage in the clipboard as hypertext.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//This script must run in the page you want to copy</span>
+<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setClipboard.htm" acapi="">setClipboard</a><span class="token punctuation">(</span> <span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token property-access">body</span> <span class="token punctuation">)</span> <span class="token punctuation">)</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'Webpage copied successfully'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token keyword">else</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'Copy operation failed'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Put a file.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//This file can then be pasted in any place that accepts files,</span>
+<span class="token comment">//like a file explorer, a file editor, etc.</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setClipboard.htm" acapi="">setClipboard</a><span class="token punctuation">(</span><span class="token punctuation">[</span><span class="token string">'C:/Pictures/Photo.jpg'</span><span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Put two files and a folder.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">files</span> <span class="token operator">=</span> <span class="token punctuation">[</span>
+	<span class="token string">'C:/Pictures/Photo1.jpg'</span><span class="token punctuation">,</span>
+	<span class="token string">'C:/Pictures/Photo2.jpg'</span><span class="token punctuation">,</span>
+	<span class="token string">'C:/Pictures/Vacations'</span><span class="token punctuation">,</span>
+<span class="token punctuation">]</span> <span class="token punctuation">;</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setClipboard.htm" acapi="">setClipboard</a><span class="token punctuation">(</span><span class="token identifier">files</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Read an image file from disk and put the image content (not the file) in the clipboard.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the image file as a binary string</span>
+<span class="token keyword">let</span> <span class="token identifier">fileContent</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token string">'C:/Pictures/Photo.jpg'</span><span class="token punctuation">,</span> <span class="token string">'binary'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Put the file content as an image</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setClipboard.htm" acapi="">setClipboard</a><span class="token punctuation">(</span><span class="token punctuation">{</span><span class="token propLiteral">image</span><span class="token operator">:</span> <span class="token identifier">fileContent</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm" selected="">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

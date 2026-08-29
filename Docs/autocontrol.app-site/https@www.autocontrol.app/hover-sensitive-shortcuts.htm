@@ -1,0 +1,277 @@
+<html><head>
+	<title>Hover-sensitive shortcuts in Google Chrome - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer=""></script>
+	
+	
+	
+	
+
+	<script src="demoBuilder.min.js"></script><script src="jquery-2.2.4.min.js"></script></head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol><style>
+demo svg rect.ticker {stroke-width: 3px; stroke: hsl(25, 80%, 50%)}
+demo svg rect.closeBtn {stroke-dasharray: 1 4; fill: rgba(255, 0, 0, 0.12); stroke: hsl(0, 100%, 50%);}
+demo content > img {-webkit-filter: saturate(0.4)}
+</style>
+
+<tile highline="">
+
+	<h1>Hover-sensitive shortcuts for Google Chrome</h1>
+	<hr b="3">
+	<img src="img/mouseOverCond.png" align="right" style="margin-left: 32px">
+	<b>AutoControl</b> lets you define shortcuts that are sensitive to the element the mouse is hovering over. <hr b="3">
+	Such shortcuts will trigger their action only if the mouse is over specific elements of the browser window or specific menu items in an AutoControl menu.
+	<hr b="4">
+	Let's see some useful examples.
+	
+	<hr b="2">
+	<ol toc="">			<li><a href="#scrollwheel-on-tabs">Switch tabs when scrolling over the tab strip</a></li>
+					<li><a href="#custom-close-button">Customize the tab's close button</a></li>
+					<li><a href="#custom-newtab-page">Customize the URL of the new tab page</a></li>
+					<li><a href="#drag-to-pin">Pin a tab by dragging it to the left</a></li>
+					<li><a href="#custom-tab-menu">Custom context menu when middle-clicking a tab</a></li>
+		</ol>
+
+			<hr b="8">
+		<h2 orditem="" id="scrollwheel-on-tabs">Switch tabs when scrolling over the tab strip</h2>
+			On this example we'll use the scroll wheel to switch between the tabs in the current window, but only if the mouse is hovering over the tab strip.
+	<hr b="3"> <demo name="undefined" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/tabStrip.png">
+			  		<svg viewBox="0 0 393 133">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="6" y="11" width="326" height="40" rx="20" ry="20" class="dashed ticker" style=""></rect>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo> <hr b="3">
+
+	We need two shortcuts for this: <b>Scroll Up</b> will switch to the left tab and <b>Scroll Down</b> will switch to the right tab, as shown bellow.
+	<hr b="2"> <img src="img/scrollOnTabsToSwitch.png" center=""> <hr b="3">
+	Both shortcuts must have a <b>Mouse-over</b> condition set to <b>Browser tab</b>, as shown in the image. This will restrict the shortcuts to trigger their
+	action only if the mouse is hovering over any of the tabs in the tab strip.
+	 
+		<hr b="8">
+			<hr b="8">
+		<h2 orditem="" id="custom-close-button">Customize the tab's close button</h2>
+			When you close the active tab in a window, the browser must decide which tab to activate next.
+	In most cases that tab will be the one to the right of the tab being closed. <hr b="">
+	In this example we'll customize this by overriding the browser's native action when we click on a tab's close button.
+	<hr b="3"> <demo name="undefined" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/tabStrip.png">
+			  		<svg viewBox="0 0 393 133">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="93" y="22" width="18" height="18" rx="6" ry="6" class="dashed closeBtn" style=""></rect><rect x="197" y="22" width="18" height="18" rx="6" ry="6" class="dashed closeBtn" style=""></rect><rect x="300" y="22" width="18" height="18" rx="6" ry="6" class="dashed closeBtn" style=""></rect>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo> <hr b="2">
+
+	What we want is that the next tab to become active is the one we were using right before the tab being closed. i.e. the previously used tab. <hr b="">
+	To achieve this, we must override the pressing of the <b>Left mouse button</b> whenever the mouse is over a <b>tab's close button</b>.
+	And the action we'll do instead is to close the <b>hovered tab</b> and then switch to the <b>previous tab</b>.
+	<hr b="2"> <img src="img/customCloseBtn.png" center=""> <hr b="6">
+	The "<b>Mouse over</b>" condition shown in the above image (left side) plus the "<b>Hovered tab</b>" tab selection (right side) form a powerful combination
+	that allows us to intercept the browser's native click actions and replace them with our own actions.
+	
+		<hr b="8">
+			<hr b="8">
+		<h2 orditem="" id="custom-newtab-page">Customize the URL of the new tab page</h2>
+			When we click on the "New Tab Button", the default behavior is to open the New Tab Page (<a>chrome://newtab</a>)
+	in a new tab at the rightmost position in the window. <hr b="">
+	<hr b="3"> <demo name="undefined" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/tabStrip.png">
+			  		<svg viewBox="0 0 393 133">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="330" y="14" width="34" height="34" rx="10" ry="10" class="dashed closeBtn" style=""></rect><svg arrow="" x="347" y="55" width="16" height="65" overflow="visible">
+					<g transform="rotate(0)">
+						<path d="M-8,8 L0,0 L8,8 M0,4 L0,65" class="" style=""></path>
+					</g>
+				</svg>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo> <hr b="3">
+	In this example, we'll change that default behavior in two ways:
+	<ul simple="">
+	<li>The new tab will be opened to the right of the current tab
+	</li><li>The URL of the new tab will be: <a>http://example.com</a>
+	</li></ul>
+	<hr b="2">
+	As in the previous example, on the trigger side we have to <b>override the left mouse button</b>, but only when the mouse is over the <b>New Tab Button</b>. <hr b="">
+	Then, on the action side, the <actstep>Open URL</actstep> action will open the desired URL in a new inactive tab and then
+	<actstep>Activate tabs</actstep> will activate that new tab.
+
+	<hr b="3"> <img src="img/customNewTabBtn.png" center=""> <hr b="3">
+	
+		<hr b="8">
+			<hr b="8">
+		<h2 orditem="" id="drag-to-pin">Pin a tab by dragging it to the left</h2>
+			
+	On this example we'll take advantage of the following two features: <br>
+	<ul simple="">
+	<li>When a mouse gesture has a "<b>Mouse over</b>" condition, that condition applies to the point the mouse was when the gesture started.
+	</li><li>If an action is triggered by a mouse gesture, the "<b>Hovered element</b>" for that action will be the one the mouse was hovering when the gesture started.
+	</li></ul>
+	More info about this at <a b="" href="determining-hovered-element.htm#mouse-gesture">Determining the hovered element</a>. <hr b="3">
+		
+	So, let's go ahead and define the mouse gesture that's going to be our "drag to the left" action, as shown in the image bellow.
+	This gesture must perform its action only if done over a tab in the tab strip, so we must add the "<b>Mouse over browser tab</b>" condition.
+	
+	<hr b="3"> <img src="img/dragTabToPin.png" center=""> <hr b="4">
+	
+	And the action will be to pin the tab the mouse is hovering over. But since the action is triggered by a gesture,
+	that tab is going to be the one the mouse <u>was hovering over when the gesture started</u> instead of the tab the mouse is hovering when the gesture is finished.
+	<hr b="3">
+	Finally, here is the gesture being performed in live-action:
+	<hr b="2"> <img src="img/dragTabToPin.gif" center="" style="-webkit-filter: saturate(0.4) contrast(1.07); border-radius: 5px; box-shadow: 1px 1px 10px #929292;"> <hr b="3">
+	
+		<hr b="8">
+			<hr b="8">
+		<h2 orditem="" id="custom-tab-menu">Custom context menu when middle-clicking a tab</h2>
+			Analogous to the previous example, we'll now take advantage of another special feature:
+	<ul simple="">
+	<li>When an action is triggered from an AutoControl menu, the "<b>hovered element</b>" for that action is
+	the element the mouse was hovering over when the menu was open.
+	</li></ul>
+	More info about this feature at <a b="" href="determining-hovered-element.htm#menu-action">Determining the hovered element</a>.
+	<hr b="3">
+	We can use this to <b>open a menu of actions when hovering some element</b>. Then, when clicking on an action in the menu, that action will operate on
+	the element the mouse was hovering. <hr b="2">
+	So, let's define such a menu to perform some actions on a hovered tab, as shown in the following image.
+	
+	<style>
+	[tabMenu] {display: inline-block; position: relative}
+	[tabMenu] img {-webkit-filter: saturate(0.6)}
+	[tabMenu] menu {position: absolute; display: flex; flex-direction: column; border: 1px outset #C3C3C3; border-radius: 3px; background: #FFFFFF; box-shadow: 8px 8px 11px hsla(208, 100%, 10%, 0.15); padding: 2px; top: 21px; left: 167px;}
+	[tabMenu] it {display: flex; align-items: center; font: 12px/2 'segoe ui', tahoma, sans-serif; padding: 2px 15px 2px 5px; background: rgba(193, 193, 193, 0.29);}
+	[tabMenu] it::before {content: url(img/actionIcon.svg); width: 16px; height: 16px; margin-right: 4px; overflow: hidden;}
+	[tabMenu] svg {overflow: visible; transform: rotate(-24.3deg); transform-origin: 50% 0; -webkit-filter: drop-shadow(6px 7px 3px hsla(0,0%,0%,0.3)); width: 21px; height: 31px; position: absolute; top: 37px; left: 152px;}
+	[tabMenu] path {fill: white; stroke:#000000; stroke-width: 1.7px; stroke-linejoin: round; vector-effect: non-scaling-stroke;}
+	</style>
+	<center>
+		<div tabmenu="">
+			<img src="img/tabStrip.png">
+			<menu>
+				<it>Unload tab</it>
+				<it>Hide tab</it>
+				<it>Open in incognito</it>
+			</menu>
+			<svg viewBox="-50 0 100 100" preserveAspectRatio="none">
+				<path d="M0,0 L -50,75 -13,70 -13,100 13,100 13,70 50,75 z"></path>
+			</svg>
+		</div>
+	</center>
+	<hr b="4">
+	First, we must define the actions that will go in the menu. More info about creating action menus at <a b="" href="action-menus.htm">Create custom action menus</a>.
+	<hr b="">
+	Let's create the 3 actions shown below. Each action must be applied to the "<b>Hovered tab</b>". That way they will operate on the tab the mouse
+	was hovering when the menu was opened.
+	<hr b="3"> <img src="img/tabMenuActions.png" height="333" center=""> <hr b="5">
+	Now we have to define the shortcut for opening the menu when the mouse is hovering a tab. Let's use the middle mouse button for that. <br>
+	As shown in the image bellow, on the trigger side we enter <b>Middle Btn</b> with the condition "<b>Mouse over browser tab</b>".
+	That way the menu will appear only if we middle-click on a tab in the tab strip. <hr b="">
+	Then, on the action side, we must use the <actstep>Open menu</actstep> action and create our custom menu with the 3 actions defined above.
+	<hr b="3"> <img src="img/hvrdTabMenu.png" center=""> <hr b="4">
+	That's it, we're done. Now whenever we click on a tab with the middle button, our splendid menu will pop up for quick and easy access
+	of any custom action we want. <hr b="2">
+	Who needs lame shortcuts... menus for the win!
+	
+		<hr b="8">
+	</tile>
+
+</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

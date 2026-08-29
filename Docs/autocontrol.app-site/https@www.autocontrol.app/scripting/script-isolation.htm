@@ -1,0 +1,194 @@
+<html><head>
+	<title>Script Isolation - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol>
+			<h1>Script Isolation</h1>
+			<hr b="">
+			<summary></summary>
+			
+	An AutoControl script is isolated from the page it's running in and from other AutoControl scripts running in the same page.
+	This is desireable to avoid conflicts between variables and function names created by each script and by the page's own code. <br>
+	The way this isolation works and the methods to go around it are different in each case. Let's see them separately.
+	
+	<h5>Isolation from the page</h5>
+	
+	An AutoControl script and the page's own code run in different global contexts.
+	These two contexts have their own copy of the <a href="https://developer.mozilla.org/docs/Web/API/Window" target="_blank" extref="">window</a> global object and the entire <a href="https://developer.mozilla.org/docs/Web/API/Document_Object_Model/Introduction" target="_blank" extref="">DOM</a>.
+	<hr b="2">
+	A variable or property created in one context, like this <code class=" language-js"><span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access">myGlobalVar</span> <span class="token operator">=</span> <span class="token string">'Hi'</span></code> or like this <code class=" language-js"><span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token property-access">body</span><span class="token punctuation">.</span><span class="token property-access">myProperty</span> <span class="token operator">=</span> <span class="token string">'Bye'</span></code>,
+	will not be visible from the other context.
+	<hr b="3">
+	However, doing this <code class=" language-js"><span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token property-access">body</span><span class="token punctuation">.</span><span class="token property-access">innerHTML</span> <span class="token operator">=</span> <span class="token string">'Hello, world!'</span></code> will be visible from both contexts (including other scripts),
+	because this affects the rendering of the page, which can be manipulated from both contexts even though they have a separate copy of the DOM.
+	<hr b="2">
+	So, an AutoControl script has full access to the page and all its <a href="https://developer.mozilla.org/docs/Web/API" target="_blank" extref="">Web APIs</a> as usual, but it cannot directly access the
+	functions and variables created by the page's code. <br>
+	<hr b="2">
+	Let's see this isolation in action and then we'll see how to circumvent it.
+	<br>
+	We'll use the page your are reading right now as an example. If you see its source code, you'll find this code in it:
+	<hr b="">
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">var</span> <span class="token identifier">myGlobalVar</span> <span class="token operator">=</span> <span class="token string">"I'm in the page context."</span> <span class="token punctuation">;</span>
+<span class="token keyword">function</span> <span class="token function">myFunction</span><span class="token punctuation">(</span><span class="token parameter"><span class="token spread operator">...</span><span class="token identifier">args</span></span><span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token keyword">return</span> <span class="token identifier">myGlobalVar</span> <span class="token operator">+</span> <span class="token string">' Passed arguments are: '</span> <span class="token operator">+</span> <span class="token identifier">args</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+	
+	<hr b="2">
+	Now, if we use AutoControl to run the following script in this page:
+	
+	<pre class=" language-js"><code class=" language-js"><span class="token function">alert</span><span class="token punctuation">(</span> <span class="token function">myFunction</span><span class="token punctuation">(</span><span class="token string">'Hello!'</span><span class="token punctuation">)</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="2">
+	We'll get the error <err>ReferenceError: myFunction is not defined</err>, which shows that the script is indeed unable
+	to find a function with that name, let alone use it.
+	
+	<hr b="2">
+	In order to get around this isolation, AutoControl's scripting API provides the <a href="runInPageCtx.htm" apiref=""><o>ACtl</o><d>.</d>runInPageCtx</a> function which,
+	in its simplest form, can be used as follows:
+	<hr b="">
+	<pre class=" language-js"><code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInPageCtx.htm" acapi="">runInPageCtx</a><span class="token punctuation">(</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span> <span class="token function">myFunction</span><span class="token punctuation">(</span><span class="token string">'Hello!'</span><span class="token punctuation">)</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="">
+	Now the script runs as expected, with no errors. Go ahead and try it yourself on this page, it's a real example. <hr b="">
+	Also, in addition to just running code in the page context, <a href="runInPageCtx.htm" apiref=""><o>ACtl</o><d>.</d>runInPageCtx</a> can be used to pass variables from one context to another.
+	Learn how at the function's reference page.
+	
+	<!--
+	If we need to pass data to the page context and get a result back
+	<pre><code class="lang-js">
+	let param = 'Hello!' ;
+	let result = await ACtl.runInPageCtx( param, str =&gt; myFunction(str) ) ; 
+	alert(result) ;
+	</code></pre>
+	-->
+	
+	<hr b="3">
+	<h5>Isolation from other scripts</h5>
+	AutoControl scripts run all in the same global context, but each on its own local scope.
+	This way a script can define local variables that can only be seen by itself.
+	But they can also create global varibles that are visible to all AutoControl scripts running on the same page.
+	<hr b="2">
+	For example:
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">localVariable</span> <span class="token operator">=</span> <span class="token string">'No other script can see me'</span> <span class="token punctuation">;</span>
+<span class="token identifier">globalVariable</span> <span class="token operator">=</span> <span class="token string">'All scripts will see this'</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="">
+	The use of the <hl>let</hl> keyword (as well as <hl>var</hl>) creates the variable in the script's local scope,
+	whereas omitting <hl>let</hl> will create the variable in the global scope (unless the variable already exists in the local scope).
+	<!--<br>
+	This ensures that your variables won't be intermixed with other scripts, while at the same time you can share some variables others.-->
+	<hr b="3">
+	Likewise, we can do the same with functions:
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">function</span> <span class="token function">localFunction</span><span class="token punctuation">(</span><span class="token parameter"><span class="token spread operator">...</span><span class="token identifier">args</span></span><span class="token punctuation">)</span><span class="token punctuation">{</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span>
+<span class="token keyword">let</span> <span class="token function-variable function">alsoLocal</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter"><span class="token spread operator">...</span><span class="token identifier">args</span></span><span class="token punctuation">)</span><span class="token punctuation">{</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span> <span class="token punctuation">;</span>
+<span class="token function-variable function">globalFunction</span> <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token parameter"><span class="token spread operator">...</span><span class="token identifier">args</span></span><span class="token punctuation">)</span><span class="token punctuation">{</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="2">
+	Variables and functions have the same lifetime of the page the script is running in.
+	Once a tab is closed, reloaded or navigated to a different page, all variables and scripts running on that page disappear.
+	<br>
+	In order to keep data <u>persistently</u>, scripts can use <a href="var.htm" apiref=""><o>ACtl</o><d>.</d>var</a> for private variables accessible to the script only,
+	and <a href="pubVar.htm" apiref=""><o>ACtl</o><d>.</d>pubVar</a> for public variables accessible to all scripts.
+
+	<!--
+	- isolation from other instaces of the same script and different scripts
+	- However, ACtl.include evaluates the file in the global scope
+	-->	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" selected="" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

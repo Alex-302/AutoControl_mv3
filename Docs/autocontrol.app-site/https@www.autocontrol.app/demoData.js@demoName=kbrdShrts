@@ -1,0 +1,28 @@
+ _ = { 	kbrdShrts : {
+	title : 'Custom keyboard shortcuts',
+	baseDir : 'demos/kbrdShrts/',
+	steps:[
+		{img:'img1.png', title:'Create a new shortcut', elems:[
+			{type:'arrow', params:[[570,705], [561,250], '', 'anim']},
+			{type:'text', params:[[380,455], 'Click the New shortcut button to create a new shortcut', 'whtOutln backgr']}
+		]},
+		{img:'img2.png', title:'Press the key combination', elems:[
+			{type:'arrow', params:[[570,705], [570,340], '', 'anim']},
+			{type:'text', params:[[380,455], 'Press the key combination you want to use as the trigger', 'whtOutln backgr']}
+		]},
+		{img:'img3.png', title:'The keys are captured', elems:[
+			{type:'arrow', params:[[570,705], [570,339], '', 'anim']},
+			{type:'text', params:[[380,455], 'The keys are captured - Chrome itself will never see them', 'whtOutln backgr']}
+		]},
+		{img:'img4.png', title:'Choose the action', elems:[
+			{type:'arrow', params:[[570,705], [568,489], '', 'anim']},
+			{type:'text', params:[[380,455], 'Next, choose the action the shortcut will perform', 'whtOutln backgr']}
+		]},
+		{img:'img5.png', title:'The shortcut is ready', elems:[
+			{type:'arrow', params:[[570,705], [570,556], '', 'anim']},
+			{type:'text', params:[[380,455], 'Done! The new shortcut works on ALL tabs, even protected pages', 'whtOutln backgr']}
+		]},
+	]
+}
+ ,
+ }

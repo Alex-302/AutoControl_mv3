@@ -1,0 +1,211 @@
+<html><head>
+	<title>ACtl.on - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.on</h1>
+			<hr b="">
+			<summary>
+	 The purpose of this function is twofold: <hr b="">
+	 &nbsp; <b bb="">1.</b>&nbsp; It adds an event listener function for one or more event types <hr b="">
+	 &nbsp; <b bb="">2.</b>&nbsp; It waits until the first time an event happens
+	 <hr b="3">
+	 Use <a href="off.htm" apiref=""><o>ACtl</o><d>.</d>off</a> to remove event listeners.
+	 <hr b="4">
+</summary>
+				
+	<signat>
+		<spec><c actl="">ACtl</c>.on(<arg><name>eventTypes</name></arg><arg><m>[</m>,<name>tabSpec</name><m>]</m></arg><arg><m>[</m>,<name>listener</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>eventTypes</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>				One or more event types to listen for, separated by a space character. Valid event types are: <hr b="">
+				<table itemdesc="">
+				<tbody><tr><td> <hl>tabOpen</hl>			</td><td> A tab is opened
+				</td></tr><tr><td> <hl>tabClose</hl>			</td><td> A tab is closed
+				
+				</td></tr><tr><td> <hl>tabActivate</hl>		</td><td> A tab becomes the active one in its window
+				</td></tr><tr><td> <hl>tabDeactivate</hl>		</td><td> A tab becomes inactive in its window
+				</td></tr><tr><td> <hl>tabFocus</hl>			</td><td> A tab gains the system focus
+				</td></tr><tr><td> <hl>tabUnfocus</hl>		</td><td> A tab loses the system focus
+
+				</td></tr><tr><td> <hl>tabLoadBegin</hl>		</td><td> A tab begins loading a page
+				</td></tr><tr><td> <hl>tabLoadEnd</hl>		</td><td> A tab ends loading a page
+				</td></tr><tr><td> <hl>tabUnload</hl>			</td><td> A tab's content is unloaded
+				</td></tr><tr><td> <hl>tabUrlChange</hl>		</td><td> A tab's URL changes
+				
+				</td></tr><tr><td> <hl>tabAudioBegin</hl>		</td><td> A tab starts playing audio
+				</td></tr><tr><td> <hl>tabAudioEnd</hl>		</td><td> A tab stops playing audio
+				
+				</td></tr><tr><td> <hl>winOpen</hl>			</td><td> A window is opened
+				</td></tr><tr><td> <hl>winClose</hl>			</td><td> A window is closed
+				</td></tr><tr><td> <hl>winFocus</hl>			</td><td> A window is focused
+				</td></tr><tr><td> <hl>winUnfocus</hl>		</td><td> A window loses focus
+				</td></tr><tr><td> <hl>winMinimize</hl>		</td><td> A window is minimized
+				</td></tr><tr><td> <hl>winUnminimize</hl>		</td><td> A window is unminimized
+				
+				</td></tr><tr><td> <hl>clipboardChange</hl>	</td><td> The clipboard's content changes
+				</td></tr></tbody></table>
+			</desc>
+	</ioelem><ioelem>		<hd><name>tabSpec</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>One or more tabs on which to listen for the specified <arg>eventTypes</arg>. It can be either a <a href="tab-specifier.htm#tabId" locref="">tab ID</a>, a <a href="tab-specifier.htm#filterObj" locref="">filter object</a>, a <a href="tab-specifier.htm#presetTabSel" locref="">tab-selection name</a> or an <a href="tab-specifier.htm#arrayOf" locref="">array combining all that</a>. Full details at <a href="tab-specifier.htm" locref="">Tab Specifier</a>. <hr b="">
+						If omitted, the event types will be listened for on all tabs. This argument can be omitted even if <arg>listener</arg> is specified. <hr b="">
+						This argument is ignored on the following event types: <br> <hl>clipboardChange</hl>, <hl>tabOpen</hl>, <hl>winOpen</hl>, <hl>winClose</hl>.</desc>
+	</ioelem><ioelem>		<hd><name>listener</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Functions" target="_blank" extref="">Function</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>Function to call when any of the <arg>eventTypes</arg> occur on any of the tabs given by <arg>tabSpec</arg>. <hr b="">
+						The function is passed an <a href="#event">Event</a> object as only argument. <hr b="">
+						If you only need to listen for an event once, you can omit this argument and wait for the returned <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> instead (example below).</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a></attr> </hd>
+		<desc>					Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve the first time any of the <arg>eventTypes</arg> occur
+					on any of the tabs given by <arg>tabSpec</arg>. The resolved value will be an <a href="#event">Event</a> object. <hr b="">
+					You need to <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/await" target="_blank" extref="">await</a> for the promise to resolve only if you omit the <arg>listener</arg> argument.
+			</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if:
+						<ul simple="">
+						 <li> <arg>eventTypes</arg> contains an invalid event type.
+						 </li><li> <arg>tabSpec</arg> is not a valid <a href="tab-specifier.htm" locref="">Tab Specifier</a>.
+						 </li><li> <arg>listener</arg> is not a function.
+						</li></ul>
+						</desc>
+	</ioelem>	</signat>
+	<h4 id="event">Event object</h4>
+	The <hl>Event</hl> object contains information about an individual event. <hr b="3">
+	<table proplist="">
+	<tbody><tr><th>Property </th><th>Type </th><th>Description
+	</th></tr><tr><td><hl>type</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> </td><td> The type of event.</td></tr><tr><td><hl>tabId</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> ID of the tab on which the event occurred. <br>
+								For all window events, this is the ID of the active tab in the window. <br>
+								For the events <hl>winClose</hl> and <hl>clipboardChange</hl>, this property is not present.</td></tr><tr><td><hl>clipFormat</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> </td><td> The type of content in the clipboard. This property is only present if the event type is <hl>clipboardChange</hl>. <hr b="">
+									This is the same value returned by<code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getClipboard.htm" acapi="">getClipboard</a><span class="token punctuation">(</span><span class="token string">'format'</span><span class="token punctuation">)</span></code>.	</td></tr></tbody></table>
+	
+	<hr b="3">
+	<h4>Examples</h4>
+
+	Open a new page and wait for it to finish loading.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Open a url in a new tab</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token identifier">tabId</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="openURL.htm" acapi="">openURL</a><span class="token punctuation">(</span><span class="token string">'http://example.com'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Wait for the tab to finish loading. No need to pass a listener function</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="on.htm" acapi="">on</a><span class="token punctuation">(</span><span class="token string">'tabLoadEnd'</span><span class="token punctuation">,</span> <span class="token identifier">tabId</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Activate the tab</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token identifier">tabId</span><span class="token punctuation">,</span> <span class="token string">'active'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'DONE'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Whenever a Youtube URL is copied to the clipboard, open it in a new tab automatically.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Add a listener function for clipboard changes</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="on.htm" acapi="">on</a><span class="token punctuation">(</span><span class="token string">'clipboardChange'</span><span class="token punctuation">,</span> <span class="token keyword">async</span> <span class="token parameter"><span class="token identifier">event</span></span> <span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token comment">//If the clipboard contains text</span>
+	<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token identifier">event</span><span class="token punctuation">.</span><span class="token property-access">clipFormat</span> <span class="token operator">==</span> <span class="token string">'text'</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+		<span class="token comment">//Get the text from the clipboard</span>
+		<span class="token keyword">let</span> <span class="token identifier">clipContent</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getClipboard.htm" acapi="">getClipboard</a><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+		<span class="token comment">//If the text is a Youtube URL</span>
+		<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token identifier">clipContent</span><span class="token punctuation">.</span><span class="token method function property-access">startsWith</span><span class="token punctuation">(</span><span class="token string">'https://www.youtube.com'</span><span class="token punctuation">)</span> <span class="token punctuation">)</span>
+			<span class="token comment">//Open the URL</span>
+			<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="openURL.htm" acapi="">openURL</a><span class="token punctuation">(</span><span class="token identifier">clipContent</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Switch back to one specific tab whenever that tab emits sound.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the ID of the current tab</span>
+<span class="token keyword">let</span> <span class="token identifier">tabId</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getTabIds.htm" acapi="">gettabIds</a><span class="token punctuation">(</span><span class="token string">'#currentTab'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Listen for audio-begin events on that tab only</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="on.htm" acapi="">on</a><span class="token punctuation">(</span><span class="token string">'tabAudioBegin'</span><span class="token punctuation">,</span> <span class="token identifier">tabId</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token comment">//Activate the tab and focus its window</span>
+	<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token identifier">tabId</span><span class="token punctuation">,</span> <span class="token string">'active focused'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm" selected="">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

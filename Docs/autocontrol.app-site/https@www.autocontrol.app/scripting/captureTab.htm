@@ -1,0 +1,212 @@
+<html><head>
+	<title>ACtl.captureTab - Scripting API - AutoControl</title>
+
+
+
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+
+	<script src="../basics.js" defer=""></script>
+
+	
+	
+	
+
+	</head>
+	<body>
+
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+
+		<hr>
+	</header>
+	<logoshw></logoshw>
+
+	<content><centercol>
+	<script>
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+
+	<script src="../scripting.js" defer=""></script>
+
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.captureTab</h1>
+			<hr b="">
+			<summary>
+	Takes a screenshot of one or more tabs. The tab's containing window may be overlapped or offscreen entirely, but not minimized.
+	The captured area corresponds to the visible part of the page (a.k.a. the viewport), not the whole page. <hr b="2">
+</summary>
+
+	<signat>
+		<spec><c actl="">ACtl</c>.captureTab(<arg><m>[</m><name>tabSpec</name>,<m>]</m></arg><arg><m>[</m><name>returnType</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>tabSpec</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>One or more tabs to capture. It can be either a <a href="tab-specifier.htm#tabId" locref="">tab ID</a>, a <a href="tab-specifier.htm#filterObj" locref="">filter object</a>, a <a href="tab-specifier.htm#presetTabSel" locref="">tab-selection name</a> or an <a href="tab-specifier.htm#arrayOf" locref="">array combining all that</a>. Full details at <a href="tab-specifier.htm" locref="">Tab Specifier</a>. If omitted, it defaults to the tab the script is running in.</desc>
+	</ioelem><ioelem>		<hd><name>returnType</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr>  <attr>Default: <val>'dataUri'</val></attr> </hd>
+		<desc>How to return the images: <hr b="">
+						<table itemdesc="">
+						<tbody><tr><td> <hl>'binary'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/DOMString/Binary" target="_blank" extref="">binary string</a>
+						</td></tr><tr><td> <hl>'dataUri'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/HTTP/Basics_of_HTTP/Data_URIs" target="_blank" extref="">data URI</a> string
+						</td></tr><tr><td> <hl>'objectUrl'</hl>	</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/File/Using_files_from_web_applications#Using_object_URLs" target="_blank" extref="">object URL</a> string
+						</td></tr><tr><td> <hl>'base64'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Glossary/Base64" target="_blank" extref="">Base64</a> string
+						</td></tr><tr><td> <hl>'blob'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/Blob" target="_blank" extref="">Blob</a> object
+						</td></tr><tr><td> <hl>'image'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/HTMLImageElement" target="_blank" extref="">HTMLImageElement</a> object
+						</td></tr><tr><td> <hl>'canvas'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement" target="_blank" extref="">HTMLCanvasElement</a> object
+						</td></tr></tbody></table>
+						<hr b="2">
+						All return types are in PNG format, with the exception of <hl>'canvas'</hl> which doesn't need an encoding format.
+					</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with an object of <hl>[tabID, <arg>returnType</arg>]</hl> pairs
+						containing the captured images. <hr b="">
+						For example, if <arg>returnType</arg> is <hl>'dataUri'</hl>,
+						the content of the object will look like this: <hr b="">
+						<pre compact="" class=" language-js"><code class=" language-js"><span class="token punctuation">{</span>
+	<span class="token number">23</span><span class="token operator">:</span> <span class="token string">'data:image/png;base64,...'</span><span class="token punctuation">,</span>
+	<span class="token number">51</span><span class="token operator">:</span> <span class="token string">'data:image/png;base64,...'</span><span class="token punctuation">,</span>
+	<span class="token number">105</span><span class="token operator">:</span> <span class="token string">'data:image/png;base64,...'</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span></code></pre>
+						This object is iterable, so it can be <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment" target="_blank" extref="">destructured</a> like an array. See the examples below.
+						<hr b="2">
+						If a tab cannot be captured, it will not be added to the returned object. Reasons for this include:
+						<ul simple="">
+						<li> The given tab ID doesn't exist
+						</li><li> The tab contains a protected page
+						</li><li> The tab's containing window is minimized
+						</li><li> The browser is not <a href="https://frontendbabel.info/articles/webpage-rendering-101/default.htm" target="_blank" extref="">rendering</a> the tab due to it being discarded, unloaded or some other reason.
+						</li></ul></desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if any of the following happens:
+						<ul simple="">
+						<li> <arg>tabSpec</arg> is not a valid <a href="tab-specifier.htm" locref="">Tab Specifier</a>.
+						</li><li> <arg>returnType</arg> is not any of the supported return types.
+						</li><li> The function is called from a <a href="background-scripts.htm" locref="">background script</a> with no <arg>tabSpec</arg> argument.
+						</li></ul></desc>
+	</ioelem>	</signat>
+	<h4>Limitations</h4>
+	<fli>
+	This function can capture tabs in any window as long as <u>the window is not minimized</u>.
+	The window can be overlapped or even offscreen entirely. Also, for a tab to be captured, it must be the active tab in its window.
+	<u>If the tab is not active, the function will activate it</u> so it can be captured.
+	</fli>
+	<hr b="">
+	<fli>
+	If the <c arg="">tabSpec</c> argument speficies multiple tabs, they will be activated one at a time.
+	The speed at which this occurs depends on how fast your computer is (usually a small fraction of a second per tab).
+	The function <u>will not unminimize a window</u> or change its visibility state in any way. It will only change the active state of the given tabs.
+	</fli>
+	<hr b="4">
+	Due to security reasons enforced by the browser, this function cannot capture <a href="protected-pages.htm" locref="">protected pages</a>.
+
+	<hr b="2">
+	<h4>Examples</h4>
+
+	Capture the tab the script is running in and open the captured image in a new tab.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Capture the tab as a data-URI image</span>
+<span class="token comment">//We can destructure the returned object as if an array of [key,value] pairs</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token punctuation">[</span><span class="token punctuation">,</span> <span class="token identifier">pngDataUri</span><span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="captureTab.htm" acapi="">captureTab</a><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Open the data URI in a new tab to the right of the current tab</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="openURL.htm" acapi="">openURL</a><span class="token punctuation">(</span><span class="token identifier">pngDataUri</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">rightOf</span><span class="token operator">:</span> <span class="token string">'#currentTab'</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Capture the tab the script is running in and then insert the captured image into the same page.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Capture the tab as an &lt;img&gt; element</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token punctuation">[</span><span class="token punctuation">,</span> <span class="token identifier">imageElem</span><span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="captureTab.htm" acapi="">captureTab</a><span class="token punctuation">(</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token constant" href="TAB_ID.htm" acapi="">TAB_ID</a><span class="token punctuation">,</span> <span class="token string">'image'</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Add some CSS styles to the image</span>
+<span class="token identifier">imageElem</span><span class="token punctuation">.</span><span class="token property-access">style</span><span class="token punctuation">.</span><span class="token property-access">cssText</span> <span class="token operator">=</span> <span class="token string">'position: fixed; top: 10px; left: 10px; width: 50%'</span> <span class="token punctuation">;</span>
+<span class="token comment">//Insert the image into the page</span>
+<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token property-access">body</span><span class="token punctuation">.</span><span class="token method function property-access">appendChild</span><span class="token punctuation">(</span> <span class="token identifier">imageElem</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Capture all tabs in the current window and save the images to PNG files.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the tab captures as BLOBs</span>
+<span class="token keyword">let</span> <span class="token identifier">tabImages</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="captureTab.htm" acapi="">captureTab</a><span class="token punctuation">(</span><span class="token string">'#currWinTabs'</span><span class="token punctuation">,</span> <span class="token string">'blob'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//For each captured image</span>
+<span class="token keyword">for</span><span class="token punctuation">(</span> <span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token identifier">tabId</span><span class="token punctuation">,</span> <span class="token identifier">imageBlob</span><span class="token punctuation">]</span> <span class="token keyword">of</span> <span class="token identifier">tabImages</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token comment">//Save the image to a folder in the desktop</span>
+	<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="saveFile.htm" acapi="">saveFile</a><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">&lt;desktop&gt;/Tab Captures/Tab ID </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">tabId</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">.png</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">,</span> <span class="token identifier">imageBlob</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+
+	<hr b="4">
+	Capture the current tab, add a text label to the image and then save it to a file.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Capture the current tab as a canvas object</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token punctuation">[</span><span class="token punctuation">,</span> <span class="token identifier">canvas</span><span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="captureTab.htm" acapi="">captureTab</a><span class="token punctuation">(</span><span class="token string">'#currentTab'</span><span class="token punctuation">,</span> <span class="token string">'canvas'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token keyword">let</span> <span class="token identifier">ctx</span> <span class="token operator">=</span> <span class="token identifier">canvas</span><span class="token punctuation">.</span><span class="token method function property-access">getContext</span><span class="token punctuation">(</span><span class="token string">'2d'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Set text style</span>
+<span class="token identifier">ctx</span><span class="token punctuation">.</span><span class="token property-access">font</span> <span class="token operator">=</span> <span class="token string">'bold 20px arial'</span> <span class="token punctuation">;</span>
+<span class="token identifier">ctx</span><span class="token punctuation">.</span><span class="token property-access">fillStyle</span> <span class="token operator">=</span> <span class="token string">'blue'</span> <span class="token punctuation">;</span>
+<span class="token identifier">ctx</span><span class="token punctuation">.</span><span class="token property-access">textBaseline</span> <span class="token operator">=</span> <span class="token string">'top'</span> <span class="token punctuation">;</span>
+<span class="token comment">//Draw the text in the canvas at coordinates [5,5]</span>
+<span class="token identifier">ctx</span><span class="token punctuation">.</span><span class="token method function property-access">fillText</span><span class="token punctuation">(</span><span class="token string">'Hello, world!'</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Save the canvas to a PNG file in the desktop</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="saveFile.htm" acapi="">saveFile</a><span class="token punctuation">(</span><span class="token string">'&lt;desktop&gt;/tab-capture.png'</span><span class="token punctuation">,</span> <span class="token identifier">canvas</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm" selected="">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+
+	</centercol></content>
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+
+
+</body></html>

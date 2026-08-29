@@ -1,0 +1,100 @@
+<!doctype html>
+
+<style>
+*, *::before, *::after {box-sizing: border-box}
+body {margin: 0; overflow: hidden}
+
+hiliteBrd {position: absolute; border: 2px dotted rgb(255, 0, 0); border-radius: 5px; background: rgba(255, 0, 0, 0.1); visibility: hidden;
+			animation: hiliteBrdBlink 5.95s step-end infinite,
+					   hiliteBrdMorph 11.9s step-end infinite ;
+}
+@keyframes hiliteBrdBlink {
+	52.941176470588% {visibility: visible}
+	55.46218487395% {visibility: hidden}
+	57.983193277311% {visibility: visible}
+	60.504201680672% {visibility: hidden}
+	63.025210084034% {visibility: visible}
+	89.915966386555% {visibility: hidden}
+}
+@keyframes hiliteBrdMorph {
+	0% {left: 217px; top: 12px; width: 102px; height: 35px;} /*Inactive tab*/
+	50% {left: 25px; top: 105px; width: 173px; height: 143px;} /*Image*/
+}
+
+mouseCursor {position: absolute; left: 0px; top: 0px; animation: mouseCursorAnim 5.95s linear infinite}
+
+@keyframes mouseCursorAnim {
+	26.050420168067% {left: 0px; top: 0px}
+	34.453781512605% {left: 65px; top: 100px}
+	89.915966386555% {left: 65px; top: 100px}
+}
+
+mouseCursor > svg {overflow: visible; transform: translate(-50%) rotate(-23deg); transform-origin: 50% 0; -webkit-filter: drop-shadow(6px 7px 3px hsla(0,0%,0%,0.3)); width: 26px; height: 40px;}
+mouseCursor path {fill: white; stroke:#000000; stroke-width: 2px; stroke-linejoin: round; vector-effect: non-scaling-stroke;}
+
+pnt {position: absolute; border-radius: 100%; width: 50px; height: 50px; transform: scale(0);}
+pnt[begin] {background: rgba(203, 0, 0, 0.55); left: -25px; top: -24px; animation: pntBeginAnim 5.95s infinite step-end}
+
+@keyframes pntBeginAnim {
+	14.285714285714% {transform: scale(1.2); animation-timing-function: ease-in-out}
+	19.327731092437% {transform: scale(0.3);}
+	89.915966386555% {transform: scale(0);}
+}
+
+img[menu] {position: absolute; left: 0px; top: 0px; opacity: 0; box-shadow: 4px 4px 17px -2px hsla(208,40%,20%,0.3);
+			animation: menuVisibility 5.95s ease-in-out infinite}
+@keyframes menuVisibility {
+						  5.8823529411765%	{opacity: 0}
+	10.924369747899%	{opacity: 1}
+	45.882352941176%	{opacity: 1}
+	50.924369747899%	{opacity: 0}
+}
+hiliteBkgrd {position: absolute; left: 1px; width: 143px; height: 34px; opacity: 0; background: hsla(210,30%,30%,0.18);
+			 animation: hiliteBkgrTranspos 5.95s step-end infinite, hiliteBkgrBlink 5.95s step-end infinite}
+@keyframes hiliteBkgrTranspos {
+	26.72268907563% {top: 1px; opacity: 1}
+	29.747899159664% {top: 38px}
+	32.773109243697% {top: 75px}
+}
+@keyframes hiliteBkgrBlink {
+	42.352941176471%	{opacity: 0}
+	43.529411764706%	{opacity: 1}
+	44.705882352941%	{opacity: 0}
+	45.882352941176%	{opacity: 1}
+	47.058823529412%	{opacity: 0}
+}
+
+ctxMenu {position: absolute; animation: ctxMenuTranspos 11.9s linear infinite}
+@keyframes ctxMenuTranspos {
+										 0%	{left: 265px; top: 30px}
+	44.957983193277%	{left: 265px; top: 30px}
+	50%	{left: 155px; top: 170px}
+	94.957983193277%	{left: 155px; top: 170px}
+	100%	{left: 265px; top: 30px}
+}
+</style>
+
+<script>
+function adjustSize(){
+	if ( !frameElement ) return ;
+	frameElement.width = document.body.scrollWidth ;
+	frameElement.height = document.body.scrollHeight ;
+}
+</script>
+
+<img win src="img/brwrWinWithPage.png" onload=adjustSize()>
+<hiliteBrd></hiliteBrd>
+
+<ctxMenu>
+	<img menu src="img/customActlMenu.png" onload=adjustSize()>
+
+	<hiliteBkgrd></hiliteBkgrd>
+
+	<pnt begin></pnt>
+
+	<mouseCursor>
+		<svg mouseCursor viewBox="-50 0 100 100" preserveAspectRatio=none>
+			<path d="M0,0 L -50,75 -13,70 -13,100 13,100 13,70 50,75 z"/>
+		</svg>
+	</mouseCursor>
+</ctxMenu>

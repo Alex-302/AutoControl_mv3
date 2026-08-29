@@ -1,0 +1,111 @@
+<!doctype html>
+
+<style>
+*, *::before, *::after {box-sizing: border-box}
+body {margin: 0; overflow: hidden}
+
+img[win] {margin-right: 80px}
+
+gestPath {position: absolute; transform: rotate(46deg); animation: gestPathTranspos 13.35s linear infinite}
+@keyframes gestPathTranspos{
+														0%	{left: 250px; top: 15px; }
+	28.838951310861%	{left: 250px; top: 15px; }
+	33.333333333333%	{left: 120px; top: 180px; }
+	62.172284644195%	{left: 120px; top: 180px; }
+	66.666666666667%	{left: 380px; top: 193px; }
+	95.505617977528%	{left: 380px; top: 193px; }
+	100%	{left: 250px; top: 15px; }
+}
+
+hiliteBrd {position: absolute; border: 2px dotted rgb(255, 0, 0); border-radius: 5px; background: rgba(255, 0, 0, 0.1); visibility: hidden;
+			animation: hiliteBrdMorph 13.35s step-end infinite,
+					   hiliteBrdBlink 4.45s step-end infinite ;
+}
+@keyframes hiliteBrdMorph {
+	0% {left: 217px; top: 12px; width: 102px; height: 35px;} /*Inactive tab*/
+	33% {left: 25px; top: 105px; width: 173px; height: 143px;} /*Image*/
+	66% {left: 347px; top: 187px; width: 143px; height: 36px;} /*Menu item*/
+}
+@keyframes hiliteBrdBlink {
+	37.078651685393% {visibility: visible}
+	40.449438202247% {visibility: hidden}
+	43.820224719101% {visibility: visible}
+	47.191011235955% {visibility: hidden}
+	50.561797752809% {visibility: visible}
+	86.516853932584% {visibility: hidden}
+}
+
+[gesturePath] {overflow: visible; width: 130px; height: 100px;}
+[gesturePath] #mask > path {stroke-dasharray: 0 500; animation: mousePathAnim 4.45s linear infinite; stroke-width: 4px; stroke: white; vector-effect: non-scaling-stroke}
+@keyframes mousePathAnim {
+	15.730337078652% {stroke-dasharray: 0 500}
+	29.213483146067% {stroke-dasharray: 202 500}
+	37.078651685393% {stroke-dasharray: 210 500; stroke: white;}
+	48.314606741573% {stroke: transparent}
+	86.516853932584% {stroke-dasharray: 210 500; stroke: transparent; animation-timing-function: step-start}
+	100% {stroke-dasharray: 0 500}
+}
+
+[gesturePath] > path {stroke-dasharray: 2 8; stroke-width: 3.5px; stroke: hsla(0, 100%, 29%, 0.7); stroke-linecap: round; vector-effect: non-scaling-stroke; fill: transparent}
+
+mouseCursor {position: absolute; left: 0px; top: 65px; animation: mouseCursorAnim1 4.45s linear infinite,
+																  mouseCursorAnim2 4.45s infinite cubic-bezier(0.43, 4, 1, 1)}
+@keyframes mouseCursorAnim1 {
+	15.730337078652% {left: 0px}
+	29.213483146067% {left: 100%}
+	86.516853932584% {left: 100%}
+	100% {left: 0px}
+}
+@keyframes mouseCursorAnim2 {
+	15.730337078652% {top: 65px}
+	22.47191011236% {top: 45px; animation-timing-function: cubic-bezier(0.2, -4, 0.3, -12)}
+	29.213483146067% {top: 39px}
+	86.516853932584% {top: 39px}
+	100% {top: 65px}
+}
+
+mouseCursor > svg {overflow: visible; transform: translate(-50%) rotate(-69.4deg); transform-origin: 50% 0; -webkit-filter: drop-shadow(6px 7px 3px hsla(0,0%,0%,0.3)); width: 26px; height: 40px;}
+mouseCursor path {fill: white; stroke:#000000; stroke-width: 2px; stroke-linejoin: round; vector-effect: non-scaling-stroke;}
+
+pnt {position: absolute; border-radius: 100%; width: 50px; height: 50px; transform: scale(0);}
+pnt[begin] {background: rgba(203, 0, 0, 0.55); left: -25px; top: 40px; animation: pntBeginAnim 4.45s infinite step-end}
+
+@keyframes pntBeginAnim {
+	3.9325842696629% {transform: scale(1.2); animation-timing-function: ease-in-out}
+	12.584269662921% {transform: scale(0.3);}
+	86.516853932584% {transform: scale(0);}
+}
+
+img[menu] {position: absolute; left: 346px; top: 76px; box-shadow: 4px 4px 17px -2px hsla(208,40%,20%,0.3);}
+
+</style>
+
+<script>
+function adjustSize(){
+	if ( !frameElement ) return ;
+	frameElement.width = document.body.scrollWidth ;
+	frameElement.height = document.body.scrollHeight ;
+}
+</script>
+
+<img win src="img/brwrWinWithPage.png" onload=adjustSize()>
+<img menu src="img/customActlMenu.png" onload=adjustSize()>
+
+<hiliteBrd></hiliteBrd>
+
+<gestPath>
+	<svg gesturePath viewBox="0 0 200 100" preserveAspectRatio=none>
+		<mask id=mask>
+			<path d="M 0,65 C 25,15 75,10 100,50 S 160,95 200,36"/>
+		</mask>
+		<path d="M 0,65 C 25,15 75,10 100,50 S 160,95 200,36" mask="url(#mask)"/>
+	</svg>
+
+	<pnt begin></pnt>
+
+	<mouseCursor>
+		<svg mouseCursor viewBox="-50 0 100 100" preserveAspectRatio=none>
+			<path d="M0,0 L -50,75 -13,70 -13,100 13,100 13,70 50,75 z"/>
+		</svg>
+	</mouseCursor>
+</gestPath>

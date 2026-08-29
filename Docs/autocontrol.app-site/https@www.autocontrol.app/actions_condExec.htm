@@ -1,0 +1,288 @@
+<html><head>
+	<title>Actions, Actions chains &amp; Unchained sequences - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer=""></script>
+	
+	
+	
+	
+
+	<script src="demoBuilder.min.js"></script><script src="jquery-2.2.4.min.js"></script></head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>
+	<tile id="actions.htm" highline="">
+	
+	<h1>AutoControl Actions</h1>
+	<hr b="3">
+	<img src="img/actionSelector.png" align="right" shadow2="" alt="AutoControl actions">
+ 
+	AutoControl provides a wide variety of actions for you to choose from.
+	There are actions for tabs, for windows, for bookmarks, for the clipboard, for menu creation and deployment, and more.
+	<hr b="2">
+	One important aspect of AutoControl's action system, is the ability to construct complex actions by putting simpler actions together in sequence.
+	Let's see an example of that.
+	<hr b="3">
+	Suppose we want to create a shortcut for opening all bookmarks of a given folder in new tabs and then pinning those tabs.
+	<hr b="2">
+	First we use the <actstep>Open Bookmarks</actstep> action for opening the bookmark folder in new tabs, 
+	and then the <actstep>Pin tabs</actstep> action will pin those tabs.
+	<hr b="3">
+	But we need a way to connect these two actions so that <actstep>Pin tabs</actstep> pins the same tabs that were created by <actstep>Open Bookmarks</actstep>.
+	<hr b="3">
+	For that, we use what's called an <u>action chain</u>.
+	<hr b="10">
+	
+	<h3 id="chain">Action Chains</h3>
+	In an action chain, the tabs used or created by an action are passed on to the next action in the chain and so on. This is how they look like:
+	<hr b="4">
+	<img src="img/actionChain.png" shadow1="" alt="Action chain"> 
+	<hr b="3">
+	In this example, the tabs created by <actstep>Open Bookmarks</actstep> are passed on to <actstep>Pin tabs</actstep> which will pin them.
+	<hr b="4">
+	
+	Now let's change the example a bit. Suppose we want to open a bookmarks folder in new tabs and then pin only the Gmail tab, not all of them. <hr b="">
+	In this case, the <actstep>Pin tabs</actstep> action must act upon a different set of tabs than those <actstep>Open Bookmarks</actstep> created.
+	So we can't use an action chain. What we need in this case is what's called an <u>unchained sequence</u>.
+	<hr b="10">
+	
+	<h3 id="sequence">Unchained Sequences</h3>
+	An unchained sequence is a sequence of actions similar to an action chain, except each action in the sequence is applied to its own set of tabs.
+	This is how they look like:
+	<hr b="4">
+	<img src="img/unchainedSeq.png" shadow1="" alt="Unchained sequence">
+	<hr b="3">
+	The tabs created by <actstep>Open Bookmarks</actstep> are NOT passed on to the following action.
+	Instead, <actstep>Pin tabs</actstep> is applied to the tabs specified in the <b><u>Apply to</u></b> field.
+	<hr b="4">
+	
+	You can combine these two mechanisms, <b>action chains</b> and <b>unchained sequences</b>, to construct actions of any complexity.
+	<hr b="10">
+	<hr b="3">
+	<!-- TODO: How to pass tabs between actions in an Unchained sequence (using a favorite list)-->
+	
+	<h3 id="condExec">Conditional Execution</h3>
+	
+	<img src="img/contChainIf.png" align="right" width="252" shadow2="">
+	It's also possible to execute actions conditionaly. i.e. if a condition is true, a sequence of one or more actions will be executed,
+	otherwise nothing will be done. <hr b="2">
+	This is achieved with the <actstep>Continue chain if</actstep> action, which will allow an action chain to continue or not depending on the
+	amount of tabs it received.
+	<hr b="5">
+	For example, the action chain below will pin all tabs in the current window, but only if the window contains more than 20 tabs.
+	<hr b="2">
+	<demo name="undefined" noui="" load="">
+			<step idx="1" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/condExecEx1.png">
+			  		<svg viewBox="0 0 425 177">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<g transform="translate(254 11)">
+					<text class="big blink whtOutln" style="">
+						<tspan x="0">2</tspan>
+					</text>
+				</g><rect x="18" y="8" width="216" height="30" rx="5" ry="5" class="dashed blink" style=""></rect>
+					</svg>
+		  			
+		  				<svg timer="" viewBox="0 0 100 100" style="--delay: 2" class="playing"><circle></circle></svg>
+					
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo>
+	<hr b="4">
+	There are 3 relevant parts in the above example: <hr b="2">
+	<style>[numLbl] {font: 24px arial; color: hsl(0,100%,39%)}</style>
+	<c numlbl="">1</c>. &nbsp; The target tabs passed to the action chain are all the tabs in the current window. <hr b="2">
+	<c numlbl="">2</c>. &nbsp; The <actstep>Continue chain if</actstep> action receives those tabs and checks if its condition is true. <hr b="2">
+	<c numlbl="">3</c>. &nbsp; If the condition is true, all remaining actions in the chain are executed. <hr b="2">
+	<hr b="6">
+	
+	Additionally, the <actstep>Continue chain if</actstep> action can be anywhere in the middle of an action chain, as shown bellow:
+	<demo name="undefined" noui="" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/condExecEx2.png">
+			  		<svg viewBox="0 0 484 182">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="130" y="86" width="216" height="30" rx="5" ry="5" class="dashed" style=""></rect>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo>
+	<hr b="3">
+	In this case, <actstep>Activate tabs</actstep> will switch to the tab specified in the <b u="">Apply to</b> field and then it will pass that
+	tab to <actstep>Continue chain if</actstep>. If zero tabs were passed, the chain will continue and <actstep>Open URL</actstep> will be executed.
+	<hr b="">
+	This allows, for example, to open a URL only if that URL is not already open. If it is, switch to the tab instead.
+	This is shown below for the URL <u>http://example.com</u>. <hr b="3">
+	<demo name="undefined" noui="" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/condExecEx2b.png">
+			  		<svg viewBox="0 0 676 297">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="190" y="179" width="150" height="26" rx="5" ry="5" class="dashed" style=""></rect><rect x="420" y="88" width="150" height="26" rx="5" ry="5" class="dashed" style=""></rect>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo>
+	<hr b="3">
+	In plain english, the above example means: Activate the tab with the URL <u>example.com</u>. If there's no tab with that URL, open the URL in a new tab. 
+	<hr b="6">
+	Now let's see one final example that will show the full power of the <actstep>Continue chain if</actstep> action. <hr b="">
+	Suppose we wanted to tile all browser windows in different ways depending on how many windows there are. As follows: <hr b="">
+	<style>
+	[actCases] {border-spacing: 0px; border: 1px outset hsla(0, 0%, 74%, 0.49); border-radius: 10px; overflow: hidden; font: 400 84% verdana; color: rgba(0, 0, 0, 0.85);}
+	[actCases] tr:nth-child(2n+1) {background: hsla(0, 0%, 60%, 0.1)}
+	[actCases] td {padding: 7px 39px;}
+	[actCases] td:nth-of-type(2) {font: 110% 'courier new', monospace; padding: 0; letter-spacing: -7px; color: hsl(0, 0%, 67%);}
+	</style>
+	<table center="" actcases="">
+	<tbody><tr><td>1 window </td><td> ----&gt; </td><td>Do nothing
+	</td></tr><tr><td>2 windows </td><td> ----&gt; </td><td>Tile in a 2×1 grid
+	</td></tr><tr><td>3 windows </td><td> ----&gt; </td><td>Tile in a 3×1 grid
+	</td></tr><tr><td>4 or more windows </td><td> ----&gt; </td><td>Tile in a 2×2 grid
+	</td></tr></tbody></table>
+	<hr b="4">
+	i.e. we need to execute a different <actstep>Tile</actstep> action on each case. <hr b="2">
+	This is achieved by putting each <actstep>Tile</actstep> action in a separate chain, each with a corresponding
+	<actstep>Continue chain if</actstep> action, as shown bellow: <hr b="3">
+		<demo name="undefined" noui="" load="">
+			<step idx="1" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/condExecEx3.png">
+			  		<svg viewBox="0 0 630 305">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="95" y="128" width="216" height="28" rx="5" ry="5" class="dotted" style="opacity: 0.75"></rect><rect x="322" y="179" width="130" height="26" rx="5" ry="5" class="dotted" style="opacity: 0.75"></rect><svg arrow="" x="277" y="162" width="14" height="33.1058907144937" overflow="visible">
+					<g transform="rotate(-25.016893478100023)">
+						<path d="M-7,7 L0,0 L7,7 M0,4 C 0,38.1058907144937 -4.530915699976327,30.991463387838078 26.279311059862696,45.36956920909629" class="dotted" style="opacity: 0.75"></path>
+					</g>
+				</svg>
+					</svg>
+		  			
+		  				<svg timer="" viewBox="0 0 100 100" style="--delay: 1.5" class="playing"><circle></circle></svg>
+					
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo>
+	<hr b="4">
+	Each action chain is applied to the <b>"Active tabs"</b>. This ensures that the number of tabs passed to each chain matches the number of windows
+	currently open (every window always has one active tab). <hr b="">
+	Then, as the condition of each <actstep>Continue chain if</actstep> action is different, only one of them will allow their respective chain to continue. <hr b="">
+	In other words, when you press <key>F1</key>, only one of the three <actstep>Tile</actstep> actions will be executed.
+	<hr b="8">
+	One limitation of the <actstep>Continue chain if</actstep> action is that it only supports one type of condition, i.e. number of target tabs. <br>
+	If more advanced conditions are needed, it's possible to use the <actstep>Run Script</actstep> action in combination with the
+	<a href="scripting/STOP_CHAIN.htm" b="" api=""><c>ACtl</c><d>.</d>STOP_CHAIN</a> and <a href="scripting/STOP_FULL_SEQ.htm" b="" api=""><c>ACtl</c><d>.</d>STOP_FULL_SEQ</a> constants.
+	<style>
+	a[api] {text-decoration: none; font-family: montserrat; font-size: 74%}
+	a[api]:hover {text-decoration: underline}
+	a[api] c {font-size: 126%}
+	a[api] d {font-family: monospace}
+	</style>
+	
+	</tile>
+
+</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

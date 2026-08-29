@@ -1,0 +1,177 @@
+<html><head>
+	<title>ACtl.getTabIds - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	<script src="../demoBuilder.min.js"></script><script src="../jquery-2.2.4.min.js"></script></head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.getTabIds</h1>
+			<hr b="">
+			<summary>
+	Returns the identifier number of each tab in a tab-selection, maintaining the order and grouping specified by it. 
+</summary>
+				
+	<signat>
+		<spec><c actl="">ACtl</c>.getTabIds(<arg><name>tabSpec</name></arg><arg><m>[</m>,<name>mergeGroups</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>tabSpec</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Selection of tabs whose IDs will be returned. It can be the name of a preset tab-selection or a custom tab-selection. Full details at <a href="tab-specifier.htm" locref="">Tab Specifier</a>.</desc>
+	</ioelem><ioelem>		<hd><name>mergeGroups</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a></attr>  <attr>Default: <val>true</val></attr> </hd>
+		<desc>If <arg>tabSpec</arg> gives the tabs in groups (example below), pass <hl>false</hl> to preserve those groups.
+						Pass <hl>true</hl> to merge all groups into a single array of IDs.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with an array of tab IDs or groups of IDs in the order given by <arg>tabSpec</arg>.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if <arg>tabSpec</arg> is not a valid <a href="tab-specifier.htm" locref="">Tab Specifier</a>.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+
+	Cycle through all tabs in the current window from left to right, with half a second delay in between.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get all tab IDs in the current window from left to right</span>
+<span class="token keyword">let</span> <span class="token identifier">currWinTabs</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getTabIds.htm" acapi="">getTabIds</a><span class="token punctuation">(</span><span class="token string">'#currWinTabs'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//For each of those tabs</span>
+<span class="token keyword">for</span><span class="token punctuation">(</span> <span class="token keyword">let</span> <span class="token identifier">tabId</span> <span class="token keyword">of</span> <span class="token identifier">currWinTabs</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token comment">//Activate the tab</span>
+	<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token identifier">tabId</span><span class="token punctuation">,</span> <span class="token string">'active'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+	<span class="token comment">//And sleep for half a second</span>
+	<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="sleep.htm" acapi="">sleep</a><span class="token punctuation">(</span><span class="token number">500</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+
+	<hr b="5">
+	Use a custom tab-selection to get all tabs grouped by domain and then pin only the groups with 3 or more tabs.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get all tabs grouped by domain</span>
+<span class="token keyword">let</span> <span class="token identifier">tabGroups</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getTabIds.htm" acapi="">getTabIds</a><span class="token punctuation">(</span><span class="token string">'All tabs grouped by domain'</span><span class="token punctuation">,</span> <span class="token boolean">false</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//For each tab group</span>
+<span class="token keyword">for</span><span class="token punctuation">(</span> <span class="token keyword">let</span> <span class="token identifier">group</span> <span class="token keyword">of</span> <span class="token identifier">tabGroups</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token comment">//If the group has 3 or more tabs</span>
+	<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token identifier">group</span><span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token operator">&gt;=</span> <span class="token number">3</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+		<span class="token comment">//Pin all tabs in the group</span>
+		<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token identifier">group</span><span class="token punctuation">,</span> <span class="token string">'pinned'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token punctuation">}</span></code></pre>
+
+	<demo name="undefined" load="" style="float: right; margin-left: 20px; max-width: 400px; -webkit-filter: drop-shadow(1px 1px 2px hsla(0,0%,0%,0.2))">
+			<step idx="0" last="" style="background: transparent; opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="../img/allTabsGroupByDomain.png">
+			  		<svg viewBox="0 0 435 408">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="183" y="167" width="178" height="232" rx="3" ry="3" class="dashed" style=""></rect>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo>
+	<hr b="4">
+	And this is the custom tab-selection used in the script. <br>
+	The result of the <hl>GROUP BY</hl> operation in this example is 3 groups of tabs, one for each domain.
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm" selected="">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

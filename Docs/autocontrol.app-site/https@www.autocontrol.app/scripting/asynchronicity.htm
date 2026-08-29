@@ -1,0 +1,236 @@
+<html><head>
+	<title>Handling Asynchronicity - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol>
+			<h1>Handling Asynchronicity</h1>
+			<hr b="">
+			<summary></summary>
+				
+	<!--
+	Due to the <a href='https://developer.mozilla.org/docs/Web/JavaScript/EventLoop' target=_blank extRef >single-threaded</a> nature of web pages (i.e. Javascript execution and
+	<a href='http://frontendbabel.info/articles/webpage-rendering-101/' target=_blank extRef >document rendering</a> cannot happen simultaneously),
+	any task that requires comunication with the outside of the page must be <a href='https://developer.mozilla.org/docs/Learn/JavaScript/Asynchronous/Concepts' target=_blank extRef >asynchronous</a>,
+	otherwise the whole page would become unresponsive while the task is being carried out.
+	<hr b=2>
+	Such is the case of <b>AutoControl's scripting API</b>, which all it does is to retrieve and send data from
+	and to other places like, for example, other pages, URLs, files, the clipboard, command shell, etc.
+	<hr b>
+	Hence, all functions in the <actl>ACtl</actl> API are asynchronous, i.e. they don't return their result directly.
+	Instead, they return a <a href='https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises' target=_blank extRef >Promise</a> object which, in turn, gives us the function's result.
+	<hr b=2>
+	-->
+	
+	All functions in the <actl>ACtl</actl> API are asynchronous, i.e. they don't return their result directly.
+	Instead, they return a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> object which, in turn, gives the function's result. <br>
+	The reason for why it has to be this way is a long story, but if you are curious, you can learn more at
+	<a href="https://developer.mozilla.org/docs/Learn/JavaScript/Asynchronous/Introducing">Asynchronous JavaScript</a>.
+	
+	<hr b="2">
+	In order to deal with these <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> objects, Javascript provides the <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/await" target="_blank" extref="">await</a> keyword
+	which makes the use of promises feel like a walk in park.
+	<hr b="2">
+	Observe:
+	
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the content of "sitemap.txt"</span>
+<span class="token keyword">let</span> <span class="token identifier">fileContent</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token string">'http://autocontrol.app/sitemap.txt'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//For each URL in the file</span>
+<span class="token keyword">for</span><span class="token punctuation">(</span> <span class="token keyword">let</span> <span class="token identifier">pageUrl</span> <span class="token keyword">of</span> <span class="token identifier">fileContent</span><span class="token punctuation">.</span><span class="token method function property-access">split</span><span class="token punctuation">(</span><span class="token string">'\n'</span><span class="token punctuation">)</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token comment">//Open the URL in a new tab</span>
+	<span class="token keyword">let</span> <span class="token identifier">newTabId</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="openURL.htm" acapi="">openURL</a><span class="token punctuation">(</span><span class="token identifier">pageUrl</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">rightOf</span><span class="token operator">:</span> <span class="token string">'#currentTab'</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+	<span class="token comment">//And then pin that tab</span>
+	<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token identifier">newTabId</span><span class="token punctuation">,</span> <span class="token string">'pinned'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+	
+	<hr b="2">
+	The <hl>await</hl> keyword, used in the above script, takes the <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> object returned by the function on its right side and turns it into the function's result.
+	This makes the use of asynchonous functions trivial, as if they were regular functions.
+	<hr b="3">
+	<hl>await</hl> will do its magic wherever you put it. Consider this alternative form of the previous code:
+	
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Call the function without "await" and store its returned value</span>
+<span class="token keyword">let</span> <span class="token identifier">promiseObj</span> <span class="token operator">=</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token string">'http://autocontrol.app/sitemap.txt'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Now use "await" to turn the promise into its result</span>
+<span class="token keyword">let</span> <span class="token identifier">urls</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token keyword">await</span> <span class="token identifier">promiseObj</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">split</span><span class="token punctuation">(</span><span class="token string">'\n'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="3">
+	The return of <a href="getFile.htm" apiref=""><o>ACtl</o><d>.</d>getFile</a> (which is a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> object) is stored in a variable, and then that variable is passed to <hl>await</hl>,
+	which in turn gives back the file content. <br>
+	i.e. a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> object can be passed to <hl>await</hl> either directly from a function or as a variable or as any expression that results in a Promise.
+	<hr b="">
+	All that matters is that a Promise goes into <hl>await</hl> and the Promise's result gets out.
+	<div awaitdiag="">
+		<c txt="">Result</c><arw>&lt;</arw><c pipe="">await</c><arw>&lt;</arw><c txt="">Promise</c>
+	</div>
+	And, since <hl>await</hl> is actually an operator, it can be used in the middle of any expression, as shown in the code example above.
+	It has the same <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#Table" target="_blank" extref="">precedence</a> of the <hl>typeof</hl> operator.
+	
+	<hr b="6">
+	
+	<b>But, what if we don't use <hl>await</hl> to call an asynchronous function?</b>
+	<hr b="2">
+	This is no problem, the function is executed anyway, but <a href="https://developer.mozilla.org/docs/Learn/JavaScript/Asynchronous/Concepts" target="_blank" extref="">asynchronously</a>.
+	i.e. the script will continue without waiting for the function to finish.
+	<hr b="">
+	Notice the lack of <hl>await</hl> before the <a href="setTabState.htm" apiref=""><o>ACtl</o><d>.</d>setTabState</a> function in the first code example above.
+	Since we don't need to wait for the tab to be pinned, there's no need for <hl>await</hl> in that case.
+	<hr b="">
+	The <hl>await</hl> operator "awaits" for the <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> object to be fulfilled, and then it gives the result back.
+	If we don't need a function's result or if we don't need to wait for it to complete, we can call the function without <hl>await</hl>.
+	
+	<hr b="4">
+	<h4>Creating your own functions</h4>
+	
+	One detail to keep in mind about <hl>await</hl> is that it can only be used inside <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/async_function" target="_blank" extref="">async</a> functions.
+	This is a restriction of the language itself, but not really a problem.
+	<hr b="2">
+	Let's say you want to create a function for replacing text in a file, like this:
+	
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">function</span> <span class="token function">fileReplaceStr</span><span class="token punctuation">(</span><span class="token parameter"><span class="token identifier">filePath</span><span class="token punctuation">,</span> <span class="token identifier">search</span><span class="token punctuation">,</span> <span class="token identifier">replace</span></span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">let</span> <span class="token identifier">fileCont</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token identifier">filePath</span><span class="token punctuation">)</span> <span class="token punctuation">;</span> <span class="token comment">//ERROR: "await" can't be here</span>
+	<span class="token identifier">fileCont</span> <span class="token operator">=</span> <span class="token identifier">fileCont</span><span class="token punctuation">.</span><span class="token method function property-access">replace</span><span class="token punctuation">(</span><span class="token identifier">search</span><span class="token punctuation">,</span> <span class="token identifier">replace</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+	<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="saveFile.htm" acapi="">saveFile</a><span class="token punctuation">(</span><span class="token identifier">filePath</span><span class="token punctuation">,</span> <span class="token identifier">fileCont</span><span class="token punctuation">)</span> <span class="token punctuation">;</span> <span class="token comment">//ERROR: neither here</span>
+<span class="token punctuation">}</span></code></pre>
+	<hr b="2">
+	The code above will not work because the <hl>fileReplaceStr</hl> function is not declared as <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/async_function" target="_blank" extref="">async</a>. So, any use of <hl>await</hl> inside it, will be a syntax error.
+	<hr b="">
+	The solution is simple, declare the function as aynchronous by prepending <hl>async</hl> to its declaration, and problem solved.
+	<hr b="">
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">async</span> <span class="token keyword">function</span> <span class="token function">fileReplaceStr</span><span class="token punctuation">(</span><span class="token parameter"><span class="token identifier">filePath</span><span class="token punctuation">,</span> <span class="token identifier">search</span><span class="token punctuation">,</span> <span class="token identifier">replace</span></span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>	<span class="token comment">//now we can use "await" in here</span>
+<span class="token punctuation">}</span></code></pre>
+	<hr b="2">
+	Now your function is asynchronous, so you can call it with <hl>await</hl> if you want to wait for it to finish, or without it if you don't.
+	<hr b="">
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">await</span> <span class="token function">fileReplaceStr</span><span class="token punctuation">(</span><span class="token string">'C:/someFile.txt'</span><span class="token punctuation">,</span> <span class="token string">'foo'</span><span class="token punctuation">,</span> <span class="token string">'bar'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token function">alert</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">This message will appear once the replacement is done</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="7">
+	But wait... if <hl>await</hl> can only be used inside <hl>async</hl> functions, then
+	<b>How is it possible that the first example at the begining of this page works at all?</b>
+	<hr b="2">
+	
+	That example does work, indeed. And the reason is that AutoControl automatically puts the script
+	inside an <hl>async</hl> function. This way you can use the <hl>await</hl> operator without worrying about that detail. <br>
+	This also makes it possible to use the <hl>return</hl> statement inside a script,
+	so you can end your scripts easily from any point with a simple use of the return statement.
+	
+	<!-- TODO: briefly talk about the script's return value, and link to the corresponding article -->
+
+	<hr b="8">
+	<b>Further reading:</b> <hr b="">
+	<a href="https://developer.mozilla.org/docs/Learn/JavaScript/Asynchronous/Promises#async_and_await" target="_blank" extref="">Making asynchronous programming easier with async and await</a>.
+
+
+	<!--
+	<hr b=3>
+	<h4>Asynchronous scripts</h4>
+
+	We saw above how to deal with the asynchronicity of individual functions. <br>
+	Now let's talk about the asynchronicity of the whole script.
+	The <actStep>run script</actStep> action let's you choose to run a script synchronisuly or asynchronously.	
+	
+	Asynchronous means you don't wait for something to finish before continuing with your next task.
+	Like washing your chothes. You don't wait for the washing machine to finish.
+	You go away and do something else and only when the machine is done you come back and deal with the result.
+	
+	-->	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" selected="" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

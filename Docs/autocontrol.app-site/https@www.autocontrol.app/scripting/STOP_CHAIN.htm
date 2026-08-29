@@ -1,0 +1,143 @@
+<html><head>
+	<title>ACtl.STOP_CHAIN - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.STOP_CHAIN</h1>
+			<hr b="">
+			<summary></summary>
+				<style>
+	dot {font-family: monospace; margin: 0 -2px;}
+	</style>
+	The constants <actl>ACtl</actl><dot>.</dot><b>STOP_CHAIN</b> and <actl>ACtl</actl><dot>.</dot><b>STOP_FULL_SEQ</b> are the API counterpart of the
+	<actstep>Continue chain if</actstep> action.
+	<hr b="3">
+	A script can return one of these two constants in order to signal AutoControl's action system to stop the current action chain or the entire action sequence.
+	<hr b="3"> 
+	Learn more about this feature at <a href="../actions.htm#condExec">Conditional Execution</a>.
+	<hr b="6">
+	If a script returns <actl>ACtl</actl><dot>.</dot><b>STOP_CHAIN</b>, it has the same effect as this GUI action: <hr b="">
+	<img src="../img/stopChainAct.png" center="">
+	
+	<hr b="7">
+	If a script returns <actl>ACtl</actl><dot>.</dot><b>STOP_FULL_SEQ</b>, it has the same effect as this GUI action: <hr b="">
+	<img src="../img/stopFullSeqAct.png" center="">
+	
+	<hr b="">
+	<h4>Example</h4>
+	
+	Given the following action sequence:
+	<img src="../img/scrtStopActSeq.png" center="">
+	<hr b="4">
+	and the <actstep>Run script</actstep> action containing this script: <hr b="">
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//If the current tab contains the term "Main Example" (case-insensitive)</span>
+<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token property-access">body</span><span class="token punctuation">.</span><span class="token property-access">innerText</span><span class="token punctuation">.</span><span class="token method function property-access">match</span><span class="token punctuation">(</span> <span class="token regex">/\bMain Example\b/i</span> <span class="token punctuation">)</span> <span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">;</span> <span class="token comment">//continue normally</span>
+<span class="token comment">//Else, if the current tab contains the word "Example"</span>
+<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token property-access">body</span><span class="token punctuation">.</span><span class="token property-access">innerText</span><span class="token punctuation">.</span><span class="token method function property-access">match</span><span class="token punctuation">(</span> <span class="token regex">/\bExample\b/i</span> <span class="token punctuation">)</span> <span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token constant" href="STOP_CHAIN.htm" acapi="">STOP_CHAIN</a> <span class="token punctuation">;</span> <span class="token comment">//Don't execute remaining actions in the chain</span>
+<span class="token comment">//Else, don't execute remaining actions in all chains</span>
+<span class="token keyword">return</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token constant" href="STOP_FULL_SEQ.htm" acapi="">STOP_FULL_SEQ</a> <span class="token punctuation">;</span></code></pre>
+	<hr b="3">
+	If the current tab contains the term "Main example", then <actstep>Pin tabs</actstep> and <actstep>Move tabs</actstep> will both be executed. <hr b="">
+	Else, if the current tab contains the word "Example", only <actstep>Move tabs</actstep> will be executed. <hr b="2">
+	Otherwise, nothing will be done.
+
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm" selected="">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

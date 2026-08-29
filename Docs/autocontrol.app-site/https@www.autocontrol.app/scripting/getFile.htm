@@ -1,0 +1,170 @@
+<html><head>
+	<title>ACtl.getFile - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.getFile</h1>
+			<hr b="">
+			<summary>
+	Gets the content of any local file or URL. The maximum file size is only limited by the available RAM.
+</summary>
+				<signat>
+		<spec><c actl="">ACtl</c>.getFile(<arg><name>fileLocation</name></arg><arg><m>[</m>,<name>returnType</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>fileLocation</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Either a URL, <a href="https://developer.mozilla.org/docs/Web/HTTP/Basics_of_HTTP/Data_URIs" target="_blank" extref="">data URI</a>, <!-- <a href='https://developer.mozilla.org/docs/Web/API/File/Using_files_from_web_applications#Using_object_URLs' target=_blank extRef >object URL</a>, --> local path or <a href="https://docs.microsoft.com/openspecs/windows_protocols/ms-dfsc/149a3039-98ce-491a-9268-2f5ddef08192" target="_blank" extref="">UNC</a> path of the file. It can be relative to the <a href="script-location.htm" locref="">script's location</a> (if there is one). It can also contain <a href="location-placeholders.htm" locref="">placeholders</a> such as <hl>&lt;desktop&gt;</hl>, <hl>&lt;documents&gt;</hl> and others.</desc>
+	</ioelem><ioelem>		<hd><name>returnType</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr>  <attr>Default: <val>'text'</val></attr> </hd>
+		<desc>
+				How to return the file's content. <hr b="2">
+				<table itemdesc="">
+				<tbody><tr><td> <hl>'text'</hl>		</td><td> A text <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a>
+				</td></tr><tr><td> <hl>'json'</hl>		</td><td> Same type returned by <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse" target="_blank" extref="">JSON.parse</a>
+				</td></tr><tr><td> <hl>'html'</hl>		</td><td> A <a href="https://developer.mozilla.org/docs/Web/API/DocumentFragment" target="_blank" extref="">DocumentFragment</a> object
+				</td></tr><tr><td> <hl>'htmlDoc'</hl>		</td><td> A <a href="https://developer.mozilla.org/docs/Web/API/Document" target="_blank" extref="">Document</a> object
+				</td></tr><tr><td> <hl>'xmlDoc'</hl>		</td><td> An <a href="https://developer.mozilla.org/docs/Web/API/XMLDocument" target="_blank" extref="">XMLDocument</a> object
+				</td></tr><tr><td> <hl>'css'</hl>			</td><td> An <a href="https://developer.mozilla.org/docs/Web/API/HTMLStyleElement" target="_blank" extref="">HTMLStyleElement</a> object
+				</td></tr><tr><td> <hl>'module'</hl>		</td><td> A Javascript <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Modules#Creating_a_module_object" target="_blank" extref="">module object</a> (same as <a href="import.htm" apiref=""><o>ACtl</o><d>.</d>import</a>)
+				</td></tr><tr><td> <hl>'image'</hl>		</td><td> An <a href="https://developer.mozilla.org/docs/Web/API/HTMLImageElement" target="_blank" extref="">HTMLImageElement</a> object
+				</td></tr><tr><td> <hl>'canvas'</hl>		</td><td> An <a href="https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement" target="_blank" extref="">HTMLCanvasElement</a> object
+				</td></tr><tr><td> <hl>'binary'</hl>		</td><td> A <a href="https://developer.mozilla.org/docs/Web/API/DOMString/Binary" target="_blank" extref="">binary string</a>
+				</td></tr><tr><td> <hl>'blob'</hl>		</td><td> A <a href="https://developer.mozilla.org/docs/Web/API/Blob" target="_blank" extref="">Blob</a> object
+				</td></tr><tr><td> <hl>'file'</hl>		</td><td> A <a href="https://developer.mozilla.org/docs/Web/API/File" target="_blank" extref="">File</a> object
+				</td></tr><tr><td> <hl>'objectUrl'</hl>	</td><td> An <a href="https://developer.mozilla.org/docs/Web/API/File/Using_files_from_web_applications#Using_object_URLs" target="_blank" extref="">object URL</a> string
+				</td></tr><tr><td> <hl>'dataUri'</hl>		</td><td> A <a href="https://developer.mozilla.org/docs/Web/HTTP/Basics_of_HTTP/Data_URIs" target="_blank" extref="">data URI</a> string
+				</td></tr><tr><td> <hl>'base64'</hl>		</td><td> A <a href="https://developer.mozilla.org/docs/Glossary/Base64" target="_blank" extref="">Base64</a> string
+				</td></tr></tbody></table>
+			</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with the file content as specified by <arg>returnType</arg>.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if <arg>fileLocation</arg> cannot be accessed or if the file cannot be interpreted as <arg>returnType</arg>.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+	
+	Get the first Google result for a search term.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">search</span> <span class="token operator">=</span> <span class="token string">'Olympics'</span> <span class="token punctuation">;</span>
+<span class="token comment">//Download the search results as an HTML fragment</span>
+<span class="token keyword">let</span> <span class="token identifier">html</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token string">'https://google.com/search?q='</span><span class="token operator">+</span><span class="token identifier">search</span><span class="token punctuation">,</span> <span class="token string">'html'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Get the first search result</span>
+<span class="token keyword">let</span> <span class="token identifier">result</span> <span class="token operator">=</span> <span class="token identifier">html</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span><span class="token string">'#main a[href^=http][ping]'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Extract the title and URL of the result</span>
+<span class="token keyword">let</span> <span class="token identifier">title</span> <span class="token operator">=</span> <span class="token identifier">result</span><span class="token punctuation">.</span><span class="token property-access">innerText</span> <span class="token punctuation">;</span>
+<span class="token keyword">let</span> <span class="token identifier">url</span> <span class="token operator">=</span> <span class="token identifier">result</span><span class="token punctuation">.</span><span class="token property-access">href</span> <span class="token punctuation">;</span>
+<span class="token function">alert</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">TITLE:\n</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">title</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\n\nURL:\n</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">url</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Add a text label to a local image file.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">filePath</span> <span class="token operator">=</span> <span class="token string">'C:/Projects/image.png'</span> <span class="token punctuation">;</span>
+<span class="token comment">//Load the image file as a canvas object</span>
+<span class="token keyword">let</span> <span class="token identifier">canvas</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token identifier">filePath</span><span class="token punctuation">,</span> <span class="token string">'canvas'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token keyword">let</span> <span class="token identifier">ctx</span> <span class="token operator">=</span> <span class="token identifier">canvas</span><span class="token punctuation">.</span><span class="token method function property-access">getContext</span><span class="token punctuation">(</span><span class="token string">'2d'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Set text style</span>
+<span class="token identifier">ctx</span><span class="token punctuation">.</span><span class="token property-access">font</span> <span class="token operator">=</span> <span class="token string">'14px arial'</span> <span class="token punctuation">;</span>
+<span class="token identifier">ctx</span><span class="token punctuation">.</span><span class="token property-access">fillStyle</span> <span class="token operator">=</span> <span class="token string">'blue'</span> <span class="token punctuation">;</span>
+<span class="token identifier">ctx</span><span class="token punctuation">.</span><span class="token property-access">textBaseline</span> <span class="token operator">=</span> <span class="token string">'top'</span> <span class="token punctuation">;</span>
+<span class="token comment">//Draw the text in the canvas at coordinates [5,5]</span>
+<span class="token identifier">ctx</span><span class="token punctuation">.</span><span class="token method function property-access">fillText</span><span class="token punctuation">(</span><span class="token string">'Hello, world!'</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Save the canvas object back to the file</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="saveFile.htm" acapi="">saveFile</a><span class="token punctuation">(</span><span class="token identifier">filePath</span><span class="token punctuation">,</span> <span class="token identifier">canvas</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Obtain Tesla's current stock price from a JSON service.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">url</span> <span class="token operator">=</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">http://bloomberg.com/markets2/api/intraday/TSLA:US?days=1&amp;interval=5</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">;</span>
+<span class="token keyword">let</span> <span class="token identifier">data</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token identifier">url</span><span class="token punctuation">,</span> <span class="token string">'json'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">"TESLA stock price is: $"</span> <span class="token operator">+</span> <span class="token identifier">data</span><span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token property-access">price</span><span class="token punctuation">.</span><span class="token method function property-access">slice</span><span class="token punctuation">(</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token property-access">value</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm" selected="">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

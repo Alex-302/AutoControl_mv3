@@ -1,0 +1,185 @@
+<html><head>
+	<title>GUI vs API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol>
+			<h1>GUI vs API</h1>
+			<hr b="">
+			<summary></summary>
+				Most actions available in AutoControl's graphical interface have an equivalent in the scripting API as shown in the following table.
+	<hr b="5">
+	
+	<table apigui="">
+	<tbody><tr><th>API function </th><th colspan="4"> GUI actions
+	
+	</th></tr><tr><td> <a href="setTabState.htm" apiref=""><o>ACtl</o><d>.</d>setTabState</a>
+		</td><td><actstep>Activate tabs</actstep> <br>
+			<actstep>Switch to ...</actstep> <br>
+			<actstep>Select tabs</actstep>
+		</td><td><actstep>Pin tabs</actstep> <br>
+			<actstep>Mute tabs</actstep> <br>
+			<actstep>Focus</actstep>
+		</td><td><actstep>Minimize</actstep> <br>
+			<actstep>Maximize</actstep> <br>
+			<actstep>Restore</actstep>
+		</td><td><actstep>Fullscreen</actstep> <br>
+			<actstep>Hide</actstep> <br>
+			<actstep>Stay on top</actstep>
+		
+	</td></tr><tr><td> <a href="openURL.htm" apiref=""><o>ACtl</o><d>.</d>openURL</a>
+		</td><td><actstep>Open URL</actstep>
+		</td><td><actstep>Open new tab</actstep>
+		</td><td colspan="2"><actstep>Open in incognito</actstep>
+	
+	</td></tr><tr><td> <a href="closeTab.htm" apiref=""><o>ACtl</o><d>.</d>closeTab</a>
+		</td><td><actstep>Close tabs</actstep>
+		</td><td colspan="3"><actstep>Close window</actstep>
+	
+	</td></tr><tr><td> <a href="setClipboard.htm" apiref=""><o>ACtl</o><d>.</d>setClipboard</a>
+		</td><td colspan="4"><actstep>Clipbrd put</actstep>
+	
+	</td></tr><tr><td> <a href="runCommand.htm" apiref=""><o>ACtl</o><d>.</d>runCommand</a>
+		</td><td colspan="4"><actstep>Open file/program</actstep>
+	
+	</td></tr><tr><td> <a href="switchState.htm" apiref=""><o>ACtl</o><d>.</d>switchState</a>
+		</td><td colspan="4"><actstep>Set switch state</actstep>
+	
+	</td></tr><tr><td> <a href="STOP_CHAIN.htm" apiref=""><o>ACtl</o><d>.</d>STOP_CHAIN</a> <br> <a href="STOP_FULL_SEQ.htm" apiref=""><o>ACtl</o><d>.</d>STOP_FULL_SEQ</a>
+		</td><td colspan="4"><actstep>CONTINUE CHAIN IF</actstep>
+	
+	</td></tr><tr><td> <a href="on.htm" apiref=""><o>ACtl</o><d>.</d>on</a> <br> <a href="sleep.htm" apiref=""><o>ACtl</o><d>.</d>sleep</a>
+		</td><td colspan="4"><actstep>Wait</actstep>
+	
+	</td></tr><tr><td> <a href="execAction.htm" apiref=""><o>ACtl</o><d>.</d>execAction</a>
+		</td><td><actstep>Go back</actstep> <br>
+			<actstep>Go forward</actstep> <br>
+			<actstep>Reload tabs</actstep> <br>
+			<actstep>Unload tabs</actstep> <br>
+			<actstep>Go upper URL</actstep>
+		</td><td>
+			<actstep>Zoom in</actstep> <br>
+			<actstep>Zoom out</actstep> <br>
+			<actstep>Duplicate tabs</actstep> <br>
+			<actstep>Detach tabs</actstep>  <br>
+			<actstep>Send to bottom</actstep>
+		</td><td>
+			<actstep>Clipbrd cut</actstep>  <br>
+			<actstep>Clipbrd copy</actstep> <br>
+			<actstep>Clipbrd paste</actstep> <br>
+			<actstep>Copy links</actstep> <br>
+			<actstep>Extract URLs</actstep>
+		</td><td>
+			<actstep>Erase dup. lines</actstep> <br>
+			<actstep>Reopen closed tab</actstep>
+	</td></tr></tbody></table>
+	
+	<hr b="7">
+	Actions that are not in the above table, such as <actstep>Move tabs</actstep>, <actstep>Move/Resize</actstep> or <actstep>Scroll</actstep>,
+	don't have a direct equivalent in the scripting API, but can be triggered indirectly using the <a href="execAction.htm" apiref=""><o>ACtl</o><d>.</d>execAction</a> function.
+	Let's see an example:
+	<hr b="3">
+	Suppose we wanted to perform the "scroll down" action from a script. Since there's no <actl>ACtl</actl> function for that action, we can create it in the GUI
+	and then call it programmatically, as follows:
+	<hr b="3"> <img src="../img/customScrollDown.png" center=""> <hr b="3">
+	And now we can trigger that action from a script, like this:
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Scroll down the current window one notch</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="execAction.htm" acapi="">execAction</a><span class="token punctuation">(</span><span class="token string">'Scroll down'</span><span class="token punctuation">,</span> <span class="token string">'#currentTab'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" selected="" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

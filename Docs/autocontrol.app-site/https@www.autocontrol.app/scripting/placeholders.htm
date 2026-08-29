@@ -1,0 +1,262 @@
+<html><head>
+	<title>Placeholders - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol>
+			<h1>Placeholders</h1>
+			<hr b="">
+			<summary></summary>
+				
+	<style>
+	tile[highLine]:not(._) {line-height: 1.7}
+	[red] {color: #C22700} [grn] {color: #23A112} [blu] {color: #1252A1} [prpl] {color: #9212A1} [orn] {color: #D18800}
+	[exVertPad] td:not(._) {padding-top: 11px; padding-bottom: 11px}
+	hl e {background: hsla(300,100%,50%,0.04); color: hsl(330,100%,37%); font-weight: 600}
+	</style>
+	
+	A placeholder is a text expression between the characters <hl>&lt; &gt;</hl> that marks the place where to insert a piece of data into a larger text.
+	<hr b="">
+	For example, <hl>&lt;clipboard&gt;</hl> is a placeholder for the clipboard content. <br>
+	Therefore, this text snippet: <hl>Hi &lt;clipboard&gt;, how are you?</hl> <br>
+	would be expanded to: <hl>Hi John, how are you?</hl> <br>
+	if the clipboard contained the word <hl>John</hl>.
+	
+	<hr b="2">
+	Placeholders are automatically expanded when used in actions such as 
+	<actstep>Open URL</actstep>,
+	<actstep>Save URL</actstep>,
+	<actstep>Extract URLs</actstep>,
+	<actstep>Text to URL</actstep>,
+	<actstep>Insert text</actstep>,
+	<actstep>Clipbrd put</actstep>,
+	and a few others.
+	<hr b="2">
+	AutoControl scripts can also expand placeholders in a given piece of text by using the <a href="expand.htm" apiref=""><o>ACtl</o><d>.</d>expand</a> function.
+	<hr b="2">
+	A placeholder can be a simple expression such as <hl>&lt;selection&gt;</hl>, <hl>&lt;clipboard.lines&gt;</hl> or <hl>&lt;url.domain&gt;</hl>,
+	or it can be a very complex expression such as: <hr b="2">
+	<center><hl>&lt;selection.replace('John', clipboard).split(/\s*\n\s*/)[2]&gt;</hl></center>
+	<hr b="5">
+	Below is the complete list of simple expressions supported. Further down is the explanation and syntax of complex expressions.
+	<hr b="7">
+	
+	<h3>Simple expressions</h3>
+	
+	In addition to the tables below, all properties of the <a locref="" href="getTabInfo_tabInfo.htm">TabInfo object</a> are valid placeholders as well.
+	e.g. <hl>&lt;title&gt;</hl>, <hl>&lt;url&gt;</hl>, <hl>&lt;window.type&gt;</hl>, <hl>&lt;window.width&gt;</hl>, etc. <hr b="2">
+	<hr b="4">
+	<table proplist="" exvertpad="">
+		<tbody><tr><td><hl>&lt;clipboard&gt;</hl>
+			</td><td>Text content of the system clipboard 
+		</td></tr><tr><td><hl>&lt;clipboard(<c red="" bb="">n</c>)&gt;</hl>
+			</td><td>Text content of clipboard <c red="" bb="">n</c>, where <c red="" bb="">n</c>=<c bb="">0</c> is the system clipboard and <c bb="">1-5</c> are the extra clipboards supported by AutoControl.
+		</td></tr><tr><td><hl>&lt;selection&gt;</hl>
+			</td><td>Cursor selection in the focused window, given as a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> or <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a> of strings depending on the type of window. <br>
+				For example, in a browser window the cursor selection is the <u>selected text</u>
+				minus any non-textual elements such as images. <br>
+				In a spreadsheet window (such as MS Excel), it'll be <u>all selected cells</u> in text form. <br>
+				In a file explorer window, it'll be an <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a> containing the <u>selected file/folder paths</u>. <hr b="">
+				An empty string is returned if no supported selection type is found. <br>
+				Not all kinds of windows are supported. e.g. text selection in a 
+				command prompt window cannot be obtained.
+		</td></tr><tr><td><hl>&lt;omnibox&gt;</hl>
+			</td><td>Text currently visible in the omnibox of the current Chrome window. i.e. either the URL 
+				of the active tab or any other text that was typed into the omnibox. <hr b="">
+				See <a href="../address-bar-shortcuts.htm">this page</a> for a few examples of using this placeholder.
+		</td></tr><tr><td><hl>&lt;date&gt;</hl>
+			</td><td>The current date with format <hl>Y-M-D</hl>. It accepts a custom format string as an optional argument. 
+				e.g. <hl>&lt;date('M/D/Y H:I:S')&gt;</hl> <hr b="">
+				<hl bb="">Y</hl>: Year &nbsp; &nbsp; &nbsp;
+				<hl bb="">M</hl>: Month &nbsp; &nbsp; &nbsp;
+				<hl bb="">D</hl>: Day &nbsp; &nbsp; &nbsp;
+				<hl bb="">H</hl>: Hours &nbsp; &nbsp; &nbsp;
+				<hl bb="">I</hl>: Minutes &nbsp; &nbsp; &nbsp;
+				<hl bb="">S</hl>: Seconds
+	</td></tr></tbody></table>
+	
+	<hr b=""> <h5>URL components</h5>
+	These placeholders return subcomponents of a tab's URL. <hr b="2">
+	<table proplist="">
+		<tbody><tr><td><hl>&lt;url.protocol&gt;</hl>
+			</td><td>A tab's <a href="https://developer.mozilla.org/docs/Web/API/URL/protocol" target="_blank" extref="">protocol</a>
+		</td></tr><tr><td><hl>&lt;url.user&gt;</hl>
+			</td><td>A tab's <a href="https://developer.mozilla.org/docs/Web/API/URL/username" target="_blank" extref="">username</a>
+		</td></tr><tr><td><hl>&lt;domain&gt;</hl><br><hl>&lt;url.domain&gt;</hl>
+			</td><td>A tab's full <a href="https://developer.mozilla.org/docs/Web/API/URL/hostname" target="_blank" extref="">host name</a>
+		</td></tr><tr><td><hl>&lt;mainDomain&gt;</hl><br><hl>&lt;url.mainDomain&gt;</hl>
+			</td><td>A tab's <a href="https://developer.mozilla.org/docs/Web/API/URL/hostname" target="_blank" extref="">host name</a> minus all subdomains at the left end (like <c bb="">www</c> and others)
+		</td></tr><tr><td><hl>&lt;url.port&gt;</hl>
+			</td><td>A tab's <a href="https://developer.mozilla.org/docs/Web/API/URL/port" target="_blank" extref="">port</a>
+		</td></tr><tr><td><hl>&lt;path&gt;</hl><br><hl>&lt;url.path&gt;</hl>
+			</td><td>A tab's <a href="https://developer.mozilla.org/docs/Web/API/URL/pathname" target="_blank" extref="">path</a>
+		</td></tr><tr><td><hl>&lt;dirPath&gt;</hl><br><hl>&lt;url.dirPath&gt;</hl>
+			</td><td>A tab's <a href="https://developer.mozilla.org/docs/Web/API/URL/pathname" target="_blank" extref="">path</a> without the filename, i.e. everything upto the last slash character
+		</td></tr><tr><td><hl>&lt;url.query&gt;</hl>
+			</td><td>A tab's <a href="https://developer.mozilla.org/docs/Web/API/URL/search" target="_blank" extref="">query string</a>
+		</td></tr><tr><td><hl>&lt;url.fragment&gt;</hl>
+			</td><td>A tab's <a href="https://developer.mozilla.org/docs/Web/API/URL/hash" target="_blank" extref="">fragment</a>
+	</td></tr></tbody></table>
+
+	<hr b=""> <h5 id="sysDir">System directories</h5>
+	<table proplist="" leftalgn="">
+		<tbody><tr><td><hl>&lt;dir.desktop&gt;</hl></td><td>The current user's desktop folder
+		</td></tr><tr><td><hl>&lt;dir.documents&gt;</hl></td><td>The current user's "My Documents" folder
+		</td></tr><tr><td><hl>&lt;dir.profile&gt;</hl></td><td>The current user's profile folder. e.g. C:\Users\John
+		</td></tr><tr><td><hl>&lt;dir.appdata&gt;</hl></td><td>The current user's Appplication data folder. e.g. C:\Users\John\AppData\Local
+		</td></tr><tr><td><hl>&lt;dir.windir&gt;</hl></td><td>The OS's installation directory. e.g. C:\Windows
+		<!--tr><td><hl>&lt;dir.progFiles&gt;</hl><td>The Program Files folder. e.g. C:\Program Files-->
+		</td></tr><tr><td><hl>&lt;dir.progFilesX86&gt;</hl></td><td>The Program Files folder for 32-bit programs. e.g. C:\Program Files (x86)
+		</td></tr><tr><td><hl>&lt;dir.startup&gt;</hl></td><td>The current user's startup folder
+		</td></tr><tr><td><hl>&lt;dir.recent&gt;</hl></td><td>The current user's "Recent items" folder
+	</td></tr></tbody></table>
+
+	<hr b=""> <h5>User variables</h5>
+	<table proplist="" exvertpad="">
+		<tbody><tr><td><hl>&lt;var.<i blu="">var_name</i>&gt;</hl> 
+			</td><td> <i blu="" style="font-family:consolas, monospace">var_name</i> must be any variable created with the <a href="pubVar.htm" apiref=""><o>ACtl</o><d>.</d>pubVar</a> function.
+				 
+		</td></tr><tr><td><hl>&lt;env.<i blu="">var_name</i>&gt;</hl>
+			</td><td> <i blu="" style="font-family:consolas, monospace">var_name</i> can be any of the OS's <a href="https://ss64.com/nt/syntax-variables.html" target="_blank" extref="">environment variables</a> as well as any variable defined at
+				 <hl style="font-family: inherit; font-size:inherit">Control Panel <c b2="">&gt;</c> User Accounts <c b2="">&gt;</c> Change my environment variables</hl>
+	</td></tr></tbody></table>
+	
+	<hr b="10"> <h3>Complex expressions</h3> <hr b="">
+	
+	Placeholders can also be expressions of any complexity by using any combination of the following syntaxes: <hr b="2">
+	<table proplist="" center="">
+		<tbody><tr><th>Syntax</th><th>Example
+		</th></tr><tr><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/Property_Accessors#dot_notation" target="_blank" extref="">dot notation</a></td><td><hl>&lt;clipboard<e>.</e>lines&gt;</hl>
+		</td></tr><tr><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/Property_Accessors#bracket_notation" target="_blank" extref="">bracket notation</a></td><td><hl>&lt;clipboard.lines<e>[</e>2<e>]</e>&gt;</hl>
+		</td></tr><tr><td>Function call</td><td><hl>&lt;clipboard.split<e>(</e>';'<e>)</e>&gt;</hl>
+		</td></tr><tr><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> literal</td><td><hl>&lt;clipboard.charAt(<e>123</e>)&gt;</hl>
+		</td></tr><tr><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> literal</td><td><hl>&lt;clipboard.concat(<e>'hello'</e>)&gt;</hl>
+		</td></tr><tr><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a> literal</td><td><hl>&lt;clipboard.split(<e>/[\n\r]+/</e>)&gt;</hl>
+		</td></tr><tr><td>Nested placeholders</td><td><hl>&lt;clipboard.replace('John', <e>clipboard(1)</e>)&gt;</hl>
+	</td></tr></tbody></table>
+	<hr b="5">
+	This allows placeholders to access <u>all standard Javascript properties and methods</u> of all data types (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a>, <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a>, etc.). <br>
+	However, the argument types that can be passed in a function call are limited to those in the above table.
+	<hr b="3">
+	<b>Example:</b> &nbsp; <hl>&lt;clipboard.replace('John', clipboard(1)).split(/\s*\n\s*/)[2]&gt;</hl>
+	<hr b="3">
+	The above placeholder gets the clipboard content and replaces all ocurrences of <hl>"John"</hl> with the content of the <c b="">Extra clipboard 1</c>.
+	Then it splits the resulting string by the <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a> <hl>/\s*\n\s*/</hl> and then it gets the <u>third</u> element in the resulting <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a>
+	(array indexes are <a href="https://en.wikipedia.org/wiki/Zero-based_numbering">zero-based</a>).
+	
+	<hr b="2">
+	<h4>Non-standard string properties and methods</h4>
+	
+	AutoControl also supports the following non-standard properties and methods for the <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> data type: <hr b="">
+	<table proplist="">
+		<tbody><tr><td><hl>.lines</hl></td><td>Gives an array with each text line in the string. Empty lines are discarded.
+		</td></tr><tr><td><hl>.words</hl></td><td>Gives an array with each word in the string. Blank characters act as word separators.
+		</td></tr><tr><td><hl>.escape</hl></td><td>Same result as the <a extref="" href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent">encodeURIComponent</a> standard function.
+		</td></tr><tr><td><hl>.unescape</hl></td><td>Same result as the <a extref="" href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/unescape">unescape</a> standard function.
+		</td></tr><tr><td><hl>.match(regex)</hl></td><td>Similar to the standard <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String/match" target="_blank" extref="">match</a> function, but returns only the first match or an empty string if no match is found.
+		</td></tr><tr><td><hl>.matches(regex)</hl></td><td>Same as the standard <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String/match" target="_blank" extref="">match</a> function, but returns an empty array if no match is found.
+		</td></tr><tr><td><hl>.replace(search, replcmt)</hl></td><td>Same as the standard <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String/replace" target="_blank" extref="">replace</a> function, but replaces all ocurrences of <hl>search</hl> whether it's a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> or <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a>.
+	</td></tr></tbody></table>
+	<hr b="6">
+	<b>Example:</b> &nbsp; <hl>&lt;url.path.unescape.replace('/',' ').words&gt;</hl>
+	<hr b="3">
+	The above placeholder gets the <a href="https://developer.mozilla.org/docs/Web/API/URL/pathname" target="_blank" extref="">path</a> component of a tab's URL, then it decodes percent-encoded characters, then replaces all slash characters with spaces
+	and finally it separates the resulting string into an array of words.
+	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

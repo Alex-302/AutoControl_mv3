@@ -1,0 +1,104 @@
+<html><head>
+	<title>Determining the hovered element - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>
+<tile highline="">
+
+	<h1>Determining the hovered element</h1>
+	<hr b="3">
+	
+	<!--TODO: add a graphic representation of a mouse cursor hovering over a chrome window-->
+	
+	There are some cases when AutoControl needs to determine what kind of element the mouse is hovering over.
+	This is the so called "<b>hovered element</b>" or "<b>hovered area</b>" and it's needed either when an action has to work
+	with that element or to decide whether a trigger must fire its action. <hr b="2">
+	
+	There are <b>two special cases</b>, however, in which the hovered element or area will be determined from a previous mouse position
+	instead of the current mouse position. These cases are:
+	<ol toc="">
+	<li><a href="#mouse-gesture">When performing a mouse gesture</a></li>
+	<li><a href="#menu-action">When firing an action from an AutoControl menu</a></li>
+	</ol>
+	
+	<hr b="5">
+	<h2 orditem="" id="mouse-gesture">When performing a mouse gesture</h2>
+	
+	When a mouse gesture triggers an action that needs to work with the "hovered element", this element will be obtained from
+	<u b="">the point the mouse was when the gesture started</u>. <hr b="">
+	The following animation shows how the actual mouse position is ignored and instead it's the gesture's starting point (marked with a red circle)
+	the one used to obtain the "hovered element".
+	<hr b="3">
+	<center><iframe src="hvrdElemMouseGestAnim.htm" frameborder="0" width="547" height="339"></iframe></center>
+	<hr b="3">
+	When a mouse gesture is completed, the mouse cursor can end up anywhere on the screen and this won't affect at all which element is
+	chosen as the "hovered element". <hr b="2">
+	There are several types of elements and areas over which you can perform mouse gestures, such as links, images, tabs in the tab strip,
+	AutoControl menu items, the webpage area, the browser window as a whole, among others. <hr b="2">
+	
+	Additionally, if a mouse gesture has a <a b="" href="hover-sensitive-shortcuts.htm">mouse-over condition</a>, the element used to check if the
+	condition applies will be the one under the gesture's starting point, as shown in the animation above, and not the current mouse position.
+	
+	
+	<hr b="8"><hr b="6">
+	<h2 orditem="" id="menu-action">When firing an action from an AutoControl menu</h2>
+	
+	AutoControl menus can contain items that trigger custom actions defined by the user.
+	If such a custom action needs to work with the "hovered element", that element will be obtained from
+	<u b="">the point the mouse was when the menu popped up</u>. <hr b="">
+	The following animation shows how this point (marked with a red circle) is remembered and then used to determine the "hovered element".
+	<hr b="3">
+	<center><iframe src="hvrdElemMenuActAnim.htm" frameborder="0" width="467" height="339"></iframe></center>
+	<hr b="3">
+	Navigating a menu with the mouse gives the user no control over where on the screen the mouse cursor ends up after clicking a menu item. <hr b="">
+	For this reason, AutoControl makes an exception and ignores the actual mouse position for the sole purpose of determining the
+	"hovered element". <hr b="">
+	This makes possible to create menus with actions that can operate with <b>the element over which the menu was opened</b>.
+	<!--TODO: link to /hover-sensitive-shortcuts once it has a context menu example -->
+</tile>
+
+</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

@@ -1,0 +1,199 @@
+<html><head>
+	<title>ACtl.var - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.var</h1>
+			<hr b="">
+			<summary>
+	 Gets, sets and deletes variables on permanent storage. These variables are private to each script, i.e. they are isolated from the variables of other scripts. <hr b="">
+	 A script can always access its private variables regarless of which page it's running in,
+	 even if multiple instances of the script are running on different pages or in the background at the same time.
+	 <hr b="">
+	 The maximum size of each variable is only limited by the available disk space.
+	 <hr b="2">
+	 Use <a href="pubVar.htm" apiref=""><o>ACtl</o><d>.</d>pubVar</a> instead, to work with variables that are common to all scripts.
+</summary>
+				<br>
+	With two arguments, the function sets or deletes a variable.
+	<signat>
+		<spec><c actl="">ACtl</c>.var(<arg><name>namePath</name></arg><arg>,<name>value</name></arg>)</spec>				<ioelem>		<hd><name>namePath</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>The name of the variable to set. All unicode characters are permitted. <hr b="">
+						It can also be a dot-separated list of property names,
+						e.g. <hl>'prop1.prop2.prop3'</hl>, in which case the value will be set in a nested property. <hr b="">
+						i.e. <code class=" language-js"><span class="token punctuation">{</span><span class="token propLiteral">prop1</span><span class="token operator">:</span> <span class="token punctuation">{</span><span class="token propLiteral">prop2</span><span class="token operator">:</span> <span class="token punctuation">{</span><span class="token propLiteral">prop3</span><span class="token operator">:</span> <span class="token identifier">value</span><span class="token punctuation">}</span><span class="token punctuation">}</span><span class="token punctuation">}</span></code>. &nbsp; If the nested objects don't exist, they will be created.</desc>
+	</ioelem><ioelem>		<hd><name>value</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a></attr> </hd>
+		<desc>The value to save. It must be a <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a> value. If <hl>undefined</hl> or <hl>null</hl> is passed, the variable will be deleted.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <val>undefined</val></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve when the variable has been set or deleted.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if the variable could not be set for lack of disk space or some other uncommon problem reported by the browser.</desc>
+	</ioelem>	</signat>
+	With one string argument, the function gets the value of a variable.
+	<signat>
+		<spec><c actl="">ACtl</c>.var(<arg><name>namePath</name></arg>)</spec>				<ioelem>		<hd><name>namePath</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>The name of the variable to get. It can also be a dot-separated list of property names, e.g. <hl>'prop1.prop2.prop3'</hl>, 
+						in which case the value will be read from the appropriate nested object. i.e. <code class=" language-js"><span class="token punctuation">{</span><span class="token propLiteral">prop1</span><span class="token operator">:</span> <span class="token punctuation">{</span><span class="token propLiteral">prop2</span><span class="token operator">:</span> <span class="token punctuation">{</span><span class="token propLiteral">prop3</span><span class="token operator">:</span> <span class="token identifier">value</span><span class="token punctuation">}</span><span class="token punctuation">}</span><span class="token punctuation">}</span></code>.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with the value of the variable, which will always be a <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a> value.
+						If the variable or nested property doesn't exist, the promise will resolve with <hl>undefined</hl>.</desc>
+	</ioelem>	</signat>	
+	With one object argument, the function will set each name-value pair in the object.
+	<signat>
+		<spec><c actl="">ACtl</c>.var(<arg><name>nameValuePairs</name></arg>)</spec>				<ioelem>		<hd><name>nameValuePairs</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a></attr> </hd>
+		<desc>An <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a> or <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a> with name-value pairs. For example: <br>
+						<table width="100%"><tbody><tr>
+						<td><pre compact="" class=" language-js"><code class=" language-js"><span class="token punctuation">{</span>
+	<span class="token propLiteral">variable1</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">,</span> <span class="token number">3</span><span class="token punctuation">,</span> <span class="token number">4</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+	<span class="token propLiteral">prop1</span><span class="token operator">:</span> <span class="token punctuation">{</span><span class="token propLiteral">prop2</span><span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+	<span class="token string">'prop1.prop2.prop3'</span><span class="token operator">:</span> <span class="token keyword null nil">null</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span></code></pre>
+						</td><td><pre compact="" class=" language-js"><code class=" language-js"><span class="token punctuation">[</span>
+	<span class="token punctuation">[</span><span class="token string">'variable1'</span><span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">,</span> <span class="token number">3</span><span class="token punctuation">,</span> <span class="token number">4</span><span class="token punctuation">,</span> <span class="token number">5</span><span class="token punctuation">]</span> <span class="token punctuation">]</span><span class="token punctuation">,</span>
+	<span class="token punctuation">[</span><span class="token string">'prop1'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">prop2</span><span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span> <span class="token punctuation">}</span> <span class="token punctuation">]</span><span class="token punctuation">,</span>
+	<span class="token punctuation">[</span><span class="token string">'prop1.prop2.prop3'</span><span class="token punctuation">,</span> <span class="token keyword null nil">null</span> <span class="token punctuation">]</span><span class="token punctuation">,</span>
+<span class="token punctuation">]</span></code></pre>
+						</td></tr></tbody></table>
+						This is identical to calling <code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token identifier">name</span><span class="token punctuation">,</span><span class="token identifier">value</span><span class="token punctuation">)</span></code> once for each name-value pair, but faster when used on a large amount of variables
+						since storage is read and written only once.
+			</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <val>undefined</val></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve when all name-value pairs have been set or deleted.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if <arg>nameValuePairs</arg> doesn't contain name-value pairs or if the variables could not be set
+						due to lack of disk space or some other uncommon problem reported by the browser.</desc>
+	</ioelem>	</signat>
+	With no arguments, the function gives all private variables.
+	<signat>
+		<spec><c actl="">ACtl</c>.var()</spec>				<ioelem></ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with an <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a> of name-value pairs
+						containing all private variables of the calling script. <hr b="">
+						This object is direclty iterable with a <hl>for...of</hl> loop (standard Objects are not). See example below.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+
+	Create and modify object variables in-place.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Create the `data` variable as an object</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token string">'data'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">prop1</span><span class="token operator">:</span> <span class="token string">'value 1'</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Add to it a property `prop2` as a sub object</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token string">'data.prop2.prop3'</span><span class="token punctuation">,</span> <span class="token string">'value 2'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Get the value of property `prop1` in that object</span>
+<span class="token keyword">let</span> <span class="token identifier">prop1</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token string">'data.prop1'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Show that value</span>
+<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'data.prop1 = '</span> <span class="token operator">+</span> <span class="token identifier">prop1</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Delete `prop1` from the object</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token string">'data.prop1'</span><span class="token punctuation">,</span> <span class="token keyword null nil">null</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Get and set variables in bulk.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Set several variables in one call</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token punctuation">{</span>
+	<span class="token propLiteral">variable1</span><span class="token operator">:</span> <span class="token number">1.234E5</span><span class="token punctuation">,</span>
+	<span class="token propLiteral">variable2</span><span class="token operator">:</span> <span class="token punctuation">[</span><span class="token string">'1'</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token number">3</span><span class="token operator">:</span> <span class="token string">'four'</span><span class="token punctuation">}</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+	<span class="token propLiteral">variable3</span><span class="token operator">:</span> <span class="token boolean">false</span><span class="token punctuation">,</span>
+	<span class="token propLiteral">variable4</span><span class="token operator">:</span> <span class="token string">'value 4'</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Get all existing variables</span>
+<span class="token keyword">let</span> <span class="token identifier">allVars</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Iterate the name-value pairs in the object</span>
+<span class="token keyword">for</span><span class="token punctuation">(</span> <span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token identifier">varName</span><span class="token punctuation">,</span> <span class="token identifier">value</span><span class="token punctuation">]</span> <span class="token keyword">of</span> <span class="token identifier">allVars</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token identifier">varName</span><span class="token punctuation">,</span> <span class="token identifier">value</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm" selected="">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

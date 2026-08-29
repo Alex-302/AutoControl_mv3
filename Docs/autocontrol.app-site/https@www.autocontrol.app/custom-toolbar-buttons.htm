@@ -1,0 +1,207 @@
+<html><head>
+	<title>Customize Google Chrome toolbar - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer=""></script>
+	
+	
+	
+	
+
+	<script src="demoBuilder.min.js"></script><script src="jquery-2.2.4.min.js"></script><script src="demoData.js@demoName=bkmFldStrip"></script></head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>
+<style>
+#tbButtons {animation: bgSwipe 2.5s linear infinite; background: white no-repeat -150px -30px / 200% 200% linear-gradient(90deg, transparent 42%, hsl(213, 100%, 25%) 45%, hsl(213, 100%, 30%) 48%,transparent 50%);}
+@keyframes bgSwipe {5% {background-position-x: -150px} 85% {background-position-x: -15px } 85.01% {background-position-x: -150px }}
+evtItm {color: hsla(30,50%,13%,0.85); background: #FEF7E3; font: 88% textFont; padding: 1px 6px; border: 1px solid rgba(58, 27, 0, 0.08); border-radius: 9px; white-space: nowrap}
+</style>
+
+<tile higherline="">
+	<h1>Add custom buttons to Chrome's toolbar</h1>
+	<hr b="3">
+	<img src="img/tbButtons.png" align="left" style="margin: 8px 30px 50px 12px" id="tbButtons">
+	
+	<b>AutoControl</b> lets you add customizable buttons to the browser's toolbar to perform any desired action. <br>
+	Inside AutoControl's configuration page, go to <u>Options</u> and then <u>Custom Toolbar Buttons</u>.
+	
+	<hr b="2" clr=""> <img src="img/tbBtnClickEvt.png" align="right"> <hr b="6">
+	
+	A click on any of these buttons triggers the <evtitm>Toolbar btn clicked</evtitm> event, which you can find in the <u>Events</u> menu when you enter a trigger.
+	
+	<hr b="" clr="">
+	
+	Let's see a few examples of using these buttons.
+	
+	<ol toc="">
+	<li><a href="#bookmark-menu">Deploy bookmarks menu</a></li>
+	<li><a href="#undo-close">Reopen closed tabs</a></li>
+	<li><a href="#map-shortcuts">Trigger keyboard shortcuts</a></li>
+	<!--li><a href=#action-menu>Menu with actions</a></li-->
+	</ol>
+
+	<hr b="6"> <!--################################################################################################################################################-->
+	
+	<h2 orditem="" id="bookmark-menu">Deploy bookmarks menu</h2>
+	
+	On this example, we'll have a toolbar button pop up a menu with our entire bookmarks tree. <br> 
+	Let's start by creating an action and set <evt env="">Toolbar btn 1</evt> as the trigger. Then let's set <actstep>open menu</actstep> as the action and
+	choose "Bookmarks" as the menu to open. That's it.
+	
+	<hr b="2"> <img src="img/tbBtn-BkmMenu.png" center=""> <hr b="">
+	
+	The result will look like this:
+	
+	<hr b="2"> <img src="img/tbBtn-bkmTree.png" width="70%" result="" center=""> <hr b="6">
+	
+	Ok, that was way too easy, let's complicate things a bit. Now let's have the button do a second action if we click it while holding <key>Ctrl</key> down.
+	That way, the button will serve two purposes: with <key>Ctrl</key> held down, it will instead show a horizontal toolbar with bookmarks from a specific folder.
+	Let's call this folder our <b>"Frequent Sites"</b>.
+	<hr b="2">
+	Go ahead and create another action and set the trigger as shown below. The action side is more elaborate this time, though.
+	You have to create a custom menu. Click below on the right side to follow the steps.
+	
+	<hr b=""> <img src="img/ctrl-tbBtn1.png"><demo name="bkmFldStrip" inline="" load="">
+			<step idx="0" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="demos/bkmFldStrip/img20.png">
+			  		<svg viewBox="0 0 462 298">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<svg arrow="" x="245" y="277" width="10" height="99" overflow="visible">
+					<g transform="rotate(-90)">
+						<path d="M-5,5 L0,0 L5,5 M0,4 L0,99" class="" style=""></path>
+					</g>
+				</svg>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo> <hr b="6">
+	
+	That's all. Now, when you hold down <key>Ctrl</key> and click on the button, you'll see something like this:
+	
+	<hr b="3"> <img src="img/tbBtn-bkmStrip.png" width="80%" result="" center=""> <hr b="7">
+	
+	If that's not enough, you could add a third action to this same button.
+	For example <nobr><key>Alt</key>+<evt env="">Toolbar btn 1</evt></nobr> for opening the <b>Bookmark Manager</b> page. But, we'll leave that as an exercise for the reader.
+	
+	<hr b="8"><hr b="6"> <!--########################################################################################################################################-->
+	
+	<h2 orditem="" id="undo-close">Reopen closed tabs</h2>
+	
+	For this second button, we'll have it do two functions as well. A normal click will reopen the last closed tab,
+	whereas a click while the right mouse button is pressed will show a menu with all closed tabs and windows.
+	<hr b="">
+	The first action is trivial to set up. Here it is:
+	
+	<hr b=""> <img src="img/tbBtn2-reopenTab.png" center=""> <hr b="6">
+	
+	For the second action, the trigger requires a new trick. The mouse's <evt mse="">Right Btn</evt> has a native action (opening the context menu),
+	so in order to prevent that action when we do the combination <nobr><evt mse="">Right Btn</evt>+<evt env="">Toolbar btn 2</evt>,</nobr>
+	we have to override it as shown below.
+	
+	<hr b="3"> <img src="img/ctrl-tbBtn2-closedTabs.png" center=""> <hr b="3">
+	
+	So, now when you hold down the right mouse button and click with left button, you'll see a menu with all your closed tabs and windows.
+	
+	<hr b="3"> <img src="img/tbBtn-closedMenu.png" width="80%" result="" center=""> <hr b="6">
+	
+	At this point you may be thinking. . . &nbsp; this is like two whole extensions from the Web Store combined into a single button.
+	&nbsp; <c style="font-size: 70%">That's right!</c>
+	 
+	<hr b="8"><hr b="6"> <!--########################################################################################################################################-->
+	
+	<h2 orditem="" id="map-shortcuts">Trigger keyboard shortcuts</h2>
+	
+	If there's a native keyboard shortcut for the action you want, but you hate typing shortcuts... <br>
+	No problem! Just add a toolbar button that triggers the action for that shortcut.
+	
+	<hr b="5">
+	
+	<c center="" style="display: table">
+		<img src="img/chooseSynthInput.png" align="right" width="250" style="margin-left: 20px">
+		<nobr>
+			<hr b="9">
+			The <b>Synthesize Input</b> action is ideal for this. <br> You found it in the <u>Advanced Actions</u> tab, <br> under the section <u>Other</u>.
+		</nobr>
+	</c>
+	
+	<hr b="4">
+	
+	As an example, we'll configure a button that opens the "Print..." dialog box by sending the <nobr><key>Ctrl</key>+<key>P</key></nobr> combination. <br>
+	
+	Start by creating a new action and choose <evt env="">Toolbar btn 3</evt> as the trigger. On the action side, choose <actstep>synthesize input</actstep>
+	and enter <key>Ctrl</key>+<key>P</key> as if you were typing the actual shortcut.
+	
+	<hr b="3"> <img src="img/tbBtn3-ctrl-P.png" center=""> <hr b="3">
+	
+	That's it. Now, whenever you click the button with the printer icon, the Print dialog box will show up.
+	<hr b="3">
+	Ok, let's make good use of the real estate and give the button a second function. If we click it with <key>Ctrl</key> held down, we want to open Windows' "Print..." dialog box instead
+	(which is different from Chrome's own "Print..." dialog). <br>
+	Chrome's native shortcut for that action is <key>Ctrl</key>+<key>Shift</key>+<key>P</key>. <hr b="2">
+	So, we create a new action exactly as before, but we set <nobr><evt kbd="">Control</evt>+<evt env="">Toolbar btn 3</evt></nobr> as the trigger
+	and we enter <key>Ctrl</key>+<key>Shift</key>+<key>P</key> as the keyboard combination.
+
+	<hr b="3"> <img src="img/ctrl-tbBtn3-ctrl-Shift-P.png" center=""> <hr b="4">
+	
+	You can employ this technique with any keyboard shortcut supported by Chrome.
+	Find a full list of shortcuts at <a href="https://support.google.com/chrome/answer/157179" target="_blank">this page</a>.
+	<hr b="4">
+	That's all. Now you are ready to add buttons to Chrome's toolbar and make them perform whatever action you want. 
+	
+</tile>
+
+</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

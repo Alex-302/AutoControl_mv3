@@ -1,0 +1,243 @@
+<html><head>
+	<title>ACtl.expand - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.expand</h1>
+			<hr b="">
+			<summary>
+	Replaces all placeholder expressions in a given string with their corresponding values.
+	<hr b="2">
+	See the full list of supported placeholders and syntax at <a href="placeholders.htm" locref="" b="">Placeholders</a>.
+	<hr b="3">
+</summary>
+				<signat>
+		<spec><c actl="">ACtl</c>.expand(<arg><name>template</name></arg><arg><m>[</m>,<name>tabSpec</name><m>]</m></arg><arg><m>[</m>,<name>returnType</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>template</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>String containing zero or more <a href="placeholders.htm" locref="">Placeholders</a>.</desc>
+	</ioelem><ioelem>		<hd><name>tabSpec</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>If <arg>template</arg> contains placeholders that access tab properties (such as <hl>&lt;title&gt;</hl> or <hl>&lt;url&gt;</hl>),
+						this argument must specify the tabs from which to get those properties. Otherwise, this argument is ignored. <hr b=""> It can be either a <a href="tab-specifier.htm#tabId" locref="">tab ID</a>, a <a href="tab-specifier.htm#filterObj" locref="">filter object</a>, a <a href="tab-specifier.htm#presetTabSel" locref="">tab-selection name</a> or an <a href="tab-specifier.htm#arrayOf" locref="">array combining all that</a>. Full details at <a href="tab-specifier.htm" locref="">Tab Specifier</a>. <hr b="">
+						It can be omitted even if <arg>returnType</arg> is not omitted. It defaults to the tab in which the script is running.</desc>
+	</ioelem><ioelem>		<hd><name>returnType</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr>  <attr>Default: <val>'string'</val></attr> </hd>
+		<desc> Either the string <hl>'string'</hl> or <hl>'array'</hl> for whether to return the result as a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a>
+						or as an <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a> of strings. <hr b="">
+						See <a href="#multi-expansion">Multiple expansion</a> below for full details.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with the string or array of strings (as indicated by <arg>returnType</arg>)
+						that results from replacing all placeholders with their corresponding values.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if <arg>template</arg> is not a string or if <arg>tabSpec</arg> is not a valid <a href="tab-specifier.htm" locref="">Tab Specifier</a>.</desc>
+	</ioelem>	</signat>	
+	<style>[red] {color: #C22700} [grn] {color: #23A112} [blu] {color: #1252A1} [prpl] {color: #9212A1} [orn] {color: #D18800}</style>
+	
+	<hr b="4"> <h3 id="multi-expansion">Multiple expansion</h3>
+
+	A string can be expanded to multiple strings if it contains placeholders of these types: <hr b="">
+	&nbsp; <b b2="">1.</b> &nbsp;Placeholders that return an <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a>. <hr b="">
+	&nbsp; <b b2="">2.</b> &nbsp;Placeholders that access tab properties when the <c arg="">tabSpec</c> argument specifies more than one tab.
+	
+	<hr b="4">
+	
+	<c bb="">Example for case 1:</c> <hr b="2">
+	If the omnibox contained the text <hl><c red="">John</c> <c grn="">Paul</c> <c blu="">Peter</c></hl>, then the <hl>&lt;omnibox.words&gt;</hl> placeholder
+	will return an array with 3 elements.
+	Therefore, the following string: <hr b="">
+	<hl>"http://google.com/search?q=<c prpl="">&lt;omnibox.words&gt;</c>"</hl> <hr b="2">
+	will be expanded to these 3 strings: <hr b="2">
+	<hl>http://google.com/search?q=<c red="">John</c></hl> <br>
+	<hl>http://google.com/search?q=<c grn="">Paul</c></hl> <br>
+	<hl>http://google.com/search?q=<c blu="">Peter</c></hl> <br>
+	<hr b="3">
+	The way these 3 strings are returned by <code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token punctuation">)</span></code> depends on its <c arg="">returnType</c> argument. <hr b="">
+	If <c arg="">returnType</c> is <hl>'array'</hl>, then the strings are returned as a 3-element array. <hr b="">
+	If <c arg="">returnType</c> is <hl>'string'</hl>, the 3 strings are joined into a single string separated by a newline character.
+	
+	<hr b="5">
+	
+	<c bb="">Example for case 2:</c> <hr b="2">
+	
+	If the current Chrome window had 3 tabs with the following titles: <hr b="">
+	<hl>Title of first tab</hl>, &nbsp; &nbsp;&nbsp; <hl>Title of second tab</hl>, &nbsp;&nbsp; &nbsp; <hl>Title of third tab</hl>
+	<hr b="3">
+	then this call: <code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">"(&lt;index&gt;) &lt;title&gt;"</span><span class="token punctuation">,</span> <span class="token string">"#currWinTabs"</span><span class="token punctuation">,</span> <span class="token string">"array"</span><span class="token punctuation">)</span></code> <hr b="2">
+	will return this array: <br>
+	<pre compact="" style="display: inline-block; padding-right: 10px" class=" language-js"><code class=" language-js"><span class="token punctuation">[</span>
+	<span class="token string">"(1) Title of first tab"</span><span class="token punctuation">,</span>
+	<span class="token string">"(2) Title of second tab"</span><span class="token punctuation">,</span>
+	<span class="token string">"(3) Title of third tab"</span>
+<span class="token punctuation">]</span></code></pre>
+	<hr b="">
+	Since the <hl>&lt;index&gt;</hl> and <hl>&lt;title&gt;</hl> placeholders are tab properties, they will expand to multiple values because the
+	<c arg="">tabSpec</c> argument specifies more than one tab (<hl>"#currWinTabs"</hl> in this example).
+	
+	<hr b="7">
+	
+	<c bb="">Example for cases 1 and 2 combined:</c> <hr b="2">
+	When a string contains more than one multi-expansion placeholders, the resulting expansion will be the cartesian product of all those multi-expansions. <hr b="">
+	For instance, if the current Chrome window had the following 2 tabs: <hr b="">
+	<hl><c blu="">http://google.com/search?q=hi</c></hl> <br>
+	<hl><c prpl="">http://bing.com/search?q=bye</c></hl> <hr b="2">
+	
+	and the clipboard content was: <hr b="">
+	<hl>
+	<c grn="">Shirts</c> <br>
+	<c orn="">Sweaters</c> <br>
+	<c red="">Trousers</c>
+	</hl>
+	<hr b="2">
+	then this call: <br> <code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">"&lt;url.protocol&gt;//&lt;domain&gt;&lt;path&gt;?q=&lt;clipboard.lines&gt;"</span><span class="token punctuation">,</span> <span class="token string">"#currWinTabs"</span><span class="token punctuation">)</span></code> <hr b="3">
+	will return this string: <hr b="">
+	<hl>
+	<c blu="">http://google.com/search?q=</c><c grn="">Shirts</c> <br>
+	<c blu="">http://google.com/search?q=</c><c orn="">Sweaters</c> <br>
+	<c blu="">http://google.com/search?q=</c><c red="">Trousers</c> <br>
+	<c prpl="">http://bing.com/search?q=</c><c grn="">Shirts</c> <br>
+	<c prpl="">http://bing.com/search?q=</c><c orn="">Sweaters</c> <br>
+	<c prpl="">http://bing.com/search?q=</c><c red="">Trousers</c>
+	</hl>
+	
+	
+	<!--###############################################################################################################################-->
+	<hr b="9"> <h3>Examples</h3> <hr b="">
+	
+	Get the current text in the omnibox of the current Chrome window.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">omniboxText</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">'&lt;omnibox&gt;'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="4">
+
+	Get the URL of all currently open pages as a single string, one URL per line.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">allOpenUrls</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">'&lt;url&gt;'</span><span class="token punctuation">,</span> <span class="token string">'#allTabs'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="4">
+	
+	Get the clipboard content followed by a space and the current date in parentheses.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">clpbrdWithDate</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">'&lt;clipboard&gt; (&lt;date&gt;)'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="4">
+
+	Get an array with all selected words in quotes.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">quotedWords</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">'"&lt;selection.words&gt;"'</span><span class="token punctuation">,</span> <span class="token string">'array'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="4">
+
+	Get an array with the tab title and URL of all tabs in the current window.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">titleAndUrl</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">'&lt;title&gt;\n&lt;url&gt;'</span><span class="token punctuation">,</span> <span class="token string">'#currWinTabs'</span><span class="token punctuation">,</span> <span class="token string">'array'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="4">
+
+	Get a single string with the tab position, width, height and title of all tabs in MRU order.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">mruTabs</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">'(&lt;index&gt;) [&lt;width&gt;x&lt;height&gt;] &lt;title&gt;'</span><span class="token punctuation">,</span> <span class="token string">'#mruTabs'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="4">
+
+	Get the current text selection with all ocurrences of <hl>"John"</hl> replaced with the clipboard content.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">newText</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="expand.htm" acapi="">expand</a><span class="token punctuation">(</span><span class="token string">'&lt;selection.replace(/\\bJohn\\b/i, clipboard)&gt;'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	Observe the use of double-backslash characters above. Inside a string, a double-backslash becomes a single backslash,
+	so the <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a> ends up being <hl>/\bJohn\b/i</hl>.  
+	
+	<!--
+	So, if the current tab's title was <hl>"Title of the page"</hl>, then this call: <hr b>
+	<code class="lang-js">ACtl.expand('(&lt;title.words&gt;)', '#currentTab', 'array')</code> <hr b=2>
+	would return the array <code class="lang-js">['(Title)', '(of)', '(the)', '(page)']</code>
+	
+	<hr b=2>
+	
+	The <a href='https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/Property_Accessors#bracket_notation' target=_blank extRef >bracket notation</a> can be used to access properties and method too, but it can also access <a href='https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array' target=_blank extRef >Array</a> elements. <br>
+	For example, if the title of a webpage was: <hl>Cars, Trucks, SUVs</hl>, <br> then this text: <hl>The third word is: &lt;title.split(',')[2]&gt;</hl> <br>
+	would be expanded to: <hl>The third word is: SUVs</hl> <hr b>
+	i.e. the <a href='https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String/split' target=_blank extRef >split</a> method separates the page title into an array with 3 words, and then the <a href='https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/Property_Accessors#bracket_notation' target=_blank extRef >bracket notation</a> accesses the third word
+	in the array (array indexes are <a href="https://en.wikipedia.org/wiki/Zero-based_numbering">zero-based</a>).
+	-->
+
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm" selected="">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

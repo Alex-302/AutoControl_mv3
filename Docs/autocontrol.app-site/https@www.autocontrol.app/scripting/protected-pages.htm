@@ -1,0 +1,148 @@
+<html><head>
+	<title>Protected pages - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol>
+			<h1>Protected pages</h1>
+			<hr b="">
+			<summary></summary>
+				One important limitation of the <actstep>Run script</actstep> action is that it cannot run scripts in what are known as "Protected pages".
+	These are pages whose URL starts with any of the following: <hr b="4">
+	<style>
+	tile[highLine]:not(._) {line-height: 1.7}
+	table td:last-child:not(._) {font-size: 100%; line-height: 1.6;} 
+	[simple] li:not(#_) {margin-top: 21px; padding-left: 5px; font: 98% consolas, arial;}
+	</style>
+	<table proplist="">
+		<tbody><tr><th>URLs</th><th>Description
+		</th></tr><tr><td><hl>chrome://</hl>                          </td><td> All Chrome's settings pages and configuration pages
+		</td></tr><tr><td><hl>chrome-extension://</hl>                </td><td> All extension pages, such as AutoControl's own configuration page.
+		</td></tr><tr><td><hl>devtools://</hl>                        </td><td> DevTools windows 
+		</td></tr><tr><td><hl>about:</hl>                             </td><td> All <a href="https://en.wikipedia.org/wiki/About_URI_scheme" target="_blank">about</a> pages
+		</td></tr><tr><td><hl>data:</hl>                              </td><td> All <a href="https://en.wikipedia.org/wiki/Data_URI_scheme" target="_blank">data URLs</a>
+		</td></tr><tr><td><hl>view-source:</hl>                       </td><td> Tabs showing the source code of other pages.
+		</td></tr><tr><td><hl>https://chrome.google.com/webstore/</hl><br>
+				<hl>https://chromewebstore.google.com/</hl>	</td><td> All pages in the <a href="https://chrome.google.com/webstore/default.htm" target="_blank">Chrome Web Store</a>.
+		</td></tr><tr><td><hl>file://</hl>                            </td><td> Pages in the local hard drive or local network drives. <br> Can be unprotected. See below.
+		<!--
+		TODO: The schemes filesystem: and blob: are also protected
+		https://developer.mozilla.org/en-US/docs/Web/API/FileSystemEntry
+		-->														 
+	</td></tr></tbody></table>
+
+	<hr b="4">
+	The browser prevents all extensions from running scripts in these pages. This is a security restriction that cannot be bypassed. <hr b="2">
+	<hl>file://</hl> pages are a special case that can be unprotected by enabling the "Allow access to file URLs" option in the extension's details page at <hl>chrome://extensions</hl>. <hr b="3">
+	
+	This limitation also affects the <a href="runInTab.htm" apiref=""><o>ACtl</o><d>.</d>runInTab</a> and <a href="runInFrames.htm" apiref=""><o>ACtl</o><d>.</d>runInFrames</a> functions. These functions will ignore any protected page they receive in their <a href="tab-specifier.htm" locref="">Tab Specifier</a> argument.
+	<hr b="3">
+	
+	<h4>Examples of protected pages</h4>
+	
+	<ul simple="">
+		<li>chrome://newtab
+		</li><li>chrome://settings
+		</li><li>chrome-extension://lkaihdpfpifdlgoapbfocpmekbokmcfd/main.html
+		</li><li>about:blank
+		</li><li>data:text/html;base64,PGZvbnQgc2l6ZT03IGNvbG9yPWJsdWU+SGVsbG8h
+		</li><li>view-source:https://example.com
+		</li><li>https://chrome.google.com/webstore/search/shortcut+manager
+	</li></ul>	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

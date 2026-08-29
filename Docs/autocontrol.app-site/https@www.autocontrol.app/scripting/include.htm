@@ -1,0 +1,158 @@
+<html><head>
+	<title>ACtl.include - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.include</h1>
+			<hr b="">
+			<summary>
+	Includes a local or remote Javascript or CSS file in the page the function is called from. <br>
+	Script files are executed in the <u>global scope</u> of the <a href="script-isolation.htm" locref="">script context</a>, not the page context.
+</summary>
+				To execute code in the <u>page context</u>, you must use <a href="runInPageCtx.htm" apiref=""><o>ACtl</o><d>.</d>runInPageCtx</a>.
+	To include code in the script's <u>local scope</u>, you may use <a href="import.htm" apiref=""><o>ACtl</o><d>.</d>import</a> or the example shown below.
+	<hr b="2">
+	<signat>
+		<spec><c actl="">ACtl</c>.include(<arg><name>fileLocation</name></arg><arg><m>[</m>,<name>fileType</name><m>]</m></arg><arg><m>[</m>,<name>again</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>fileLocation</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Either a URL, <a href="https://developer.mozilla.org/docs/Web/HTTP/Basics_of_HTTP/Data_URIs" target="_blank" extref="">data URI</a>, <!-- <a href='https://developer.mozilla.org/docs/Web/API/File/Using_files_from_web_applications#Using_object_URLs' target=_blank extRef >object URL</a>, --> local path or <a href="https://docs.microsoft.com/openspecs/windows_protocols/ms-dfsc/149a3039-98ce-491a-9268-2f5ddef08192" target="_blank" extref="">UNC</a> path pointing to a Javascript file or CSS file. It can be relative to the <a href="script-location.htm" locref="">script's location</a> (if there is one). It can also contain <a href="location-placeholders.htm" locref="">placeholders</a> such as <hl>&lt;desktop&gt;</hl>, <hl>&lt;documents&gt;</hl> and others.</desc>
+	</ioelem><ioelem>		<hd><name>fileType</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>Either the string <hl>'js'</hl> or <hl>'css'</hl>. If omitted, the file type will be determined
+						automatically from its name extension or MIME type. It can be omitted even if <arg>again</arg> is specified.</desc>
+	</ioelem><ioelem>		<hd><name>again</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a></attr>  <attr>Default: <val>false</val></attr> </hd>
+		<desc>If <hl>false</hl>, the file will be included only if it hasn't been included in the <u>script context</u> already (by any AutoControl script). <br>
+						If <hl>true</hl>, the file will always be included.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with <hl>true</hl> once the file has been included and executed or <hl>false</hl>
+						if the file wasn't included at all (according to the <arg>again</arg> argument).</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if <arg>fileLocation</arg> cannot be accessed.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+
+	Load jQuery in the script context. This will make the library available to all AutoControl scripts in the page,
+	but will be independent from the jQuery version loaded by the page itself.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">try</span><span class="token punctuation">{</span>
+	<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="include.htm" acapi="">include</a><span class="token punctuation">(</span><span class="token string">'https://code.jquery.com/jquery-3.4.1.min.js'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+	<span class="token comment">//Now jQuery is loaded in the page. Any AutoControl script can use it</span>
+	<span class="token function">$</span><span class="token punctuation">(</span><span class="token string">'img'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">css</span><span class="token punctuation">(</span><span class="token punctuation">{</span><span class="token propLiteral">width</span><span class="token operator">:</span> <span class="token string">'auto'</span><span class="token punctuation">,</span> <span class="token propLiteral">height</span><span class="token operator">:</span> <span class="token string">'auto'</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+
+<span class="token punctuation">}</span><span class="token keyword">catch</span><span class="token punctuation">(</span> <span class="token identifier">error</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span> <span class="token string">"Unable to load jQuery. The error was: "</span> <span class="token operator">+</span> <span class="token identifier">error</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+	
+	<hr b="4">
+	To include code in the script's local scope, we can use <a href="getFile.htm" apiref=""><o>ACtl</o><d>.</d>getFile</a> plus <hl>eval()</hl>.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">try</span><span class="token punctuation">{</span>
+	<span class="token comment">//Get the file content as text and eval it in this scope</span>
+	<span class="token function">eval</span><span class="token punctuation">(</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token string">'C:/Projects/Time Machine/functions.js'</span><span class="token punctuation">)</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span>
+
+	<span class="token comment">//This function was defined by the file above</span>
+	<span class="token comment">//It's only visible by the current script</span>
+	<span class="token function">timeJumpTo</span><span class="token punctuation">(</span><span class="token string">'yesterday'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+
+<span class="token punctuation">}</span><span class="token keyword">catch</span><span class="token punctuation">(</span> <span class="token identifier">error</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span> <span class="token string">"Unable to load functions.js. The error was: "</span> <span class="token operator">+</span> <span class="token identifier">error</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+
+	<hr b="4">
+	We can apply a local CSS file to a webpage easily.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//This script must run in the page we want to alter</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="include.htm" acapi="">include</a><span class="token punctuation">(</span><span class="token string">'&lt;desktop&gt;/myCustomStyles.css'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm" selected="">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

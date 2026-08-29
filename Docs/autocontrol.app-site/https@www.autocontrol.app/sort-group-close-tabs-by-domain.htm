@@ -1,0 +1,236 @@
+<html><head>
+	<title>Sort, group and close tabs by domain in Google Chrome - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer=""></script>
+	
+	
+	
+	
+
+	<script src="demoBuilder.min.js"></script><script src="jquery-2.2.4.min.js"></script></head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>
+<tile higherline="">
+	<h1 long="">Sort, group &amp; close tabs by domain in Google Chrome</h1>
+	<hr b="3">
+	<b>AutoControl</b> allows to perform actions onto a set of tabs according to many selection, filtering and sorting criteria. <br>
+	Let's see 3 useful cases of applying an action to all open tabs according to their domain.
+	
+	<ol toc="">
+	<li><a href="#sort">Sort tabs by domain</a></li>
+	<li><a href="#group">Group tabs by domain</a></li>
+	<li><a href="#close">Close domain tabs</a></li>
+	</ol>
+
+	<hr b="6"> <!--################################################################################################################################################-->
+	
+	<h2 orditem="" id="sort">Sort tabs by domain</h2>
+
+	When you apply an action to more than one tab, you can specify the order the action will be applied to each of those tabs. <br>
+	We can take advantage of this and use the <actstep>move tabs</actstep> action to arrange a number of tabs in any desired order.
+	<hr b="">
+	Follow this demo for the complete steps:
+	
+	<hr b="2"> <demoph demoname="domTabSort"></demoph> <hr b="7">
+		
+	In the end, the key part is this:
+	
+	<hr b=""> <demo name="undefined" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/domSortResult.png">
+			  		<svg viewBox="0 0 568 553">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="14.5" y="210" width="537" height="42" rx="3" ry="3" class="dashed" style=""></rect><rect x="367" y="332" width="176" height="176" rx="3" ry="3" class="dashed" style=""></rect><svg arrow="" x="353" y="415" width="36" height="67" overflow="visible">
+					<g transform="rotate(90)">
+						<path d="M-18,18 L0,0 L18,18 M0,4 L0,67" class="thick3" style=""></path>
+					</g>
+				</svg><g transform="translate(152 385)">
+					<text class="whtOutln" style="stroke-width: 30px">
+						<tspan x="0">The action will be applied</tspan><tspan x="0" dy="1.6em">to these tabs, in this order</tspan>
+					</text>
+				</g>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo> <hr b="3">
+	
+	The result we see above is the result of the <u>tab selection</u>, not the action. It's the <u>tab selection</u> itself that's ordered by domain.
+	Then, the <actstep>move tabs</actstep> action will move those tabs one by one to the leftmost position in the window. <br>
+	But, since the action is applied to each tab in the order specified by the <u>tab selection</u>, the result is that the tabs end up in that same order.
+	As shown below:
+
+	<hr b="3"> <img src="img/domSort.gif" center="" result="" style="border-radius: 5px; -webkit-filter: saturate(0.6) contrast(1.25)"> <hr b="4"> 
+
+	<hr b="8"><hr b="6"> <!--########################################################################################################################################-->
+	
+	<h2 orditem="" id="group">Group tabs by domain</h2>
+
+	In this example, we'll group tabs of the same domain in separate windows. One window for each domain. <br>
+	The <actstep>move tabs</actstep> action can move tabs to any position in the same window, a different window or a new window entirely.
+	
+	<demo name="undefined" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/moveTabsNewWin.png">
+			  		<svg viewBox="0 0 261 152">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<svg arrow="" x="168" y="98" width="14" height="71" overflow="visible">
+					<g transform="rotate(-90)">
+						<path d="M-7,7 L0,0 L7,7 M0,4 L0,71" class="" style=""></path>
+					</g>
+				</svg>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo> <hr b="3">
+	
+	We have to specify a tab selection similar to the one used for sorting, except that instead of sorting by domain we'll <u>group by</u> domain. <br>
+	
+	<hr b="2"> <demo name="undefined" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/domGrpResult.png">
+			  		<svg viewBox="0 0 565 555">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="12.5" y="209" width="537" height="42" rx="3" ry="3" class="dashed" style=""></rect><rect x="365" y="331" width="176" height="206" rx="3" ry="3" class="dashed" style=""></rect>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo> <hr b="3">
+
+	As you can see, the final result of the tab selection contains 3 groups of tabs.
+	The <actstep>move tabs</actstep> action can see these groups and will create a new window for each group.
+	
+
+	<hr b="8"><hr b="6"> <!--########################################################################################################################################-->
+	
+	<h2 orditem="" id="close">Close domain tabs</h2>
+	
+	In this last example, we'll define an action for closing all tabs with the same domain as the current tab. <br>
+	For example, if we are viewing a Twitter page, this action will close all Twitter tabs currently open. <hr b="2">
+	We have to apply the <actstep>close tabs</actstep> action to the following tab selection:
+
+	<hr b="2"> <demo name="undefined" load="">
+			<step idx="0" last="" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/currDomTabs.png">
+			  		<svg viewBox="0 0 542 335">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			<rect x="13" y="171" width="470" height="42" rx="3" ry="3" class="dashed" style=""></rect>
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo> <hr b="3">
+	
+	That's all we need. The specified filter will select all tabs whose <u>main domain</u> is the <u>same as</u> the <u>main&nbsp;domain</u> of the <u>current tab</u>.
+	And then the <actstep>close tabs</actstep> action will close all of them regardless of what window those tabs belong to.
+	
+</tile>
+
+</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

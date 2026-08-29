@@ -1,0 +1,225 @@
+<html><head>
+	<title>ACtl.getClipboard - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.getClipboard</h1>
+			<hr b="">
+			<summary>
+	 Gets the clipboard content in various formats or tells the type of content the clipboard contains. <br>
+	 <hr b="2">
+</summary>
+				
+	If no argument is passed, the clipboard content is retrieved.
+	<signat>
+		<spec><c actl="">ACtl</c>.getClipboard()</spec>				<ioelem></ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr> </hd>
+		<desc>
+				Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with the clipboard content. The resolved type depends on the type of content in the clipboard.
+				<hr b="2">
+				<table itemdesc2="" center="">
+					<tbody><tr><th>If clipboard contains...				</th><th> The resolved value will be...
+					</th></tr><tr><td> Plain text or <br> Rich Text Format	</td><td> A <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> of plain text.
+					</td></tr><tr><td> Hypertext (HTML)						</td><td> A <a href="https://developer.mozilla.org/docs/Web/API/DocumentFragment" target="_blank" extref="">DocumentFragment</a> object.
+					</td></tr><tr><td> Files									</td><td> An <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a> of file system paths.
+					</td></tr><tr><td> Image									</td><td> An <a href="https://developer.mozilla.org/docs/Web/API/HTMLCanvasElement" target="_blank" extref="">HTMLCanvasElement</a>.
+					</td></tr><tr><td> Anything else							</td><td> An empty string.
+				</td></tr></tbody></table>
+			</desc>
+	</ioelem>	</signat>	
+	If the string <hl>'format'</hl> is passed as the only argument, the function tells what type of content there is in the clipboard.
+	<signat>
+		<spec><c actl="">ACtl</c>.getClipboard(<arg><name>'format'</name></arg>)</spec>				<ioelem></ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with a string representing the type of content in the clipboard.
+				<hr b="">
+				<table itemdesc2="" center="">
+					<tbody><tr><th>If clipboard contains...				</th><th> The resolved string will be...
+					</th></tr><tr><td> Plain text or <br> Rich Text Format	</td><td> <hl>'text'</hl>
+					</td></tr><tr><td> Hypertext (HTML)						</td><td> <hl>'html'</hl>
+					</td></tr><tr><td> Files									</td><td> <hl>'files'</hl>
+					</td></tr><tr><td> Image									</td><td> <hl>'image'</hl>
+					</td></tr><tr><td> Anything else							</td><td> <hl>'unknown'</hl>
+				</td></tr></tbody></table>
+			</desc>
+	</ioelem>	</signat>
+	If the string <hl>'text'</hl> is passed as the only argument, the clipboard content is retrieved as plain text.
+	<signat>
+		<spec><c actl="">ACtl</c>.getClipboard(<arg><name>'text'</name></arg>)</spec>				<ioelem></ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with the clipboard content converted to plain text.
+					Any rich formatting or hypertext formatting is removed. <br> If the content cannot be converted to text, an empty string is returned.</desc>
+	</ioelem>	</signat>	
+	If anything else is passed as argument, the function will interpret that as an image format, in which case the clipboard is expected to contain image data.
+	<signat>
+		<spec><c actl="">ACtl</c>.getClipboard(<arg><name>imageFormat</name></arg><arg><m>[</m>,<name>returnType</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>imageFormat</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>How to <u>encode</u> the image data in the clipboard. It can be any of <hl>'png'</hl>, <hl>'jpg'</hl> or <hl>'webp'</hl>. <hr b="2">
+						Don't confuse "encode" with "decode". Clipboard images are not encoded in any format, they are raw pixels.
+						This argument is for getting the image data in the desired file format (i.e. for "encoding").</desc>
+	</ioelem><ioelem>		<hd><name>returnType</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr>  <attr>Default: <val>'binary'</val></attr> </hd>
+		<desc>How to return the encoded image data: <hr b="">
+						<table itemdesc="">
+						<tbody><tr><td> <hl>'binary'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/DOMString/Binary" target="_blank" extref="">binary string</a>
+						</td></tr><tr><td> <hl>'dataUri'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/HTTP/Basics_of_HTTP/Data_URIs" target="_blank" extref="">data URI</a> string
+						</td></tr><tr><td> <hl>'objectUrl'</hl>	</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/File/Using_files_from_web_applications#Using_object_URLs" target="_blank" extref="">object URL</a> string
+						</td></tr><tr><td> <hl>'base64'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Glossary/Base64" target="_blank" extref="">Base64</a> string
+						</td></tr><tr><td> <hl>'blob'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/Blob" target="_blank" extref="">Blob</a> object
+						</td></tr><tr><td> <hl>'image'</hl>		</td><td> Return as a <a href="https://developer.mozilla.org/docs/Web/API/HTMLImageElement" target="_blank" extref="">HTMLImageElement</a> object
+						</td></tr></tbody></table>
+					</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with the image data encoded as <arg>imageFormat</arg>.
+						The binary data will be given as specified by <arg>returnType</arg>. <br>
+						If the clipboard doesn't contain image data, an empty string is returned.
+						</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if <arg>imageFormat</arg> is not a valid format or if <arg>returnType</arg> is not a valid return type.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+
+	Take the image in the clipboard and save it to a PNG file.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the clipboard image as a PNG-encoded binary string</span>
+<span class="token keyword">let</span> <span class="token identifier">pngData</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getClipboard.htm" acapi="">getClipboard</a><span class="token punctuation">(</span><span class="token string">'png'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Save the binary string to a PNG file as is</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="saveFile.htm" acapi="">saveFile</a><span class="token punctuation">(</span><span class="token string">'&lt;desktop&gt;/new-image.png'</span><span class="token punctuation">,</span> <span class="token identifier">pngData</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Read the file that was copied to the clipboard.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the current clipboard format</span>
+<span class="token keyword">let</span> <span class="token identifier">clipFormat</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getClipboard.htm" acapi="">getClipboard</a><span class="token punctuation">(</span><span class="token string">'format'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//If there are no files in the clipboard</span>
+<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token identifier">clipFormat</span> <span class="token operator">!=</span> <span class="token string">'files'</span> <span class="token punctuation">)</span>
+	<span class="token comment">//Finish the script</span>
+	<span class="token keyword">return</span> <span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">"There are no files in the clipboard."</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Else, get the first file in the clipboard</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token identifier">filePath</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getClipboard.htm" acapi="">getClipboard</a><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Read the file's content as text</span>
+<span class="token keyword">let</span> <span class="token identifier">fileContent</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getFile.htm" acapi="">getFile</a><span class="token punctuation">(</span><span class="token identifier">filePath</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Show off what we've got</span>
+<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'The first 50 characters in the file are:\n'</span> <span class="token operator">+</span> <span class="token identifier">fileContent</span><span class="token punctuation">.</span><span class="token method function property-access">slice</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span><span class="token number">50</span><span class="token punctuation">)</span> <span class="token punctuation">)</span><span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Take the image in the clipboard and insert it into a webpage.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the clipboard image as an &lt;img&gt; element</span>
+<span class="token keyword">let</span> <span class="token identifier">imageElem</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getClipboard.htm" acapi="">getClipboard</a><span class="token punctuation">(</span><span class="token string">'jpg'</span><span class="token punctuation">,</span> <span class="token string">'image'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Add some CSS styles to the image</span>
+<span class="token identifier">imageElem</span><span class="token punctuation">.</span><span class="token property-access">style</span><span class="token punctuation">.</span><span class="token property-access">cssText</span> <span class="token operator">=</span> <span class="token string">'position: fixed; top: 10px; left: 10px'</span> <span class="token punctuation">;</span>
+<span class="token comment">//Insert the image into the page the script is running in</span>
+<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token property-access">body</span><span class="token punctuation">.</span><span class="token method function property-access">appendChild</span><span class="token punctuation">(</span> <span class="token identifier">imageElem</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Get the hypertext in the clipboard, count the number of links in it and find out which page it was copied from.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the clipboard content</span>
+<span class="token keyword">let</span> <span class="token identifier">htmlFragment</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getClipboard.htm" acapi="">getClipboard</a><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//If the content is a DocumentFragment</span>
+<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token identifier">htmlFragment</span> <span class="token keyword">instanceof</span> <span class="token class-name">DocumentFragment</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token comment">//Count the number of links</span>
+	<span class="token keyword">let</span> <span class="token identifier">linkCount</span> <span class="token operator">=</span> <span class="token identifier">htmlFragment</span><span class="token punctuation">.</span><span class="token method function property-access">querySelectorAll</span><span class="token punctuation">(</span><span class="token string">'a[href]'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token property-access">length</span> <span class="token punctuation">;</span>
+	<span class="token comment">//Show the link count, the URL it was copied from, etc.</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">
+		The hypertext contains </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">linkCount</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> links.
+		It was copied from:\n </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">htmlFragment</span><span class="token punctuation">.</span><span class="token property-access">sourceURL</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> \n
+		The unformatted text is:\n </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">htmlFragment</span><span class="token punctuation">.</span><span class="token property-access">textContent</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> \n
+		And the full HTML code is:\n </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">htmlFragment</span><span class="token punctuation">.</span><span class="token property-access">innerHTML</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">
+	</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token keyword">else</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">"There's no hypertext in the clipboard."</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="2">
+	Notice the use of the properties <hl>.sourceURL</hl> and <hl>.innerHTML</hl> above.
+	These are special properties of the <a href="https://developer.mozilla.org/docs/Web/API/DocumentFragment" target="_blank" extref="">DocumentFragment</a> object returned only by <a href="getClipboard.htm" apiref=""><o>ACtl</o><d>.</d>getClipboard</a>. 
+	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm" selected="">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>
