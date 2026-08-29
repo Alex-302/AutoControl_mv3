@@ -203,10 +203,8 @@
 	acsLink.querySelectorAll('button').forEach(function(btn){
 		btn.addEventListener('click', function(ev){
 			if(btn.hasAttribute('dwnld')){ ev.preventDefault(); ev.stopPropagation(); download(); return; }
-			if(document.querySelector('ACtlExt[ver]')) return;
-			ev.preventDefault(); ev.stopPropagation();
-			if(btn.value == 'imprtSttgs') download();
-			else if(btn.value == 'viewSttgs') view();
+			/* Import/View: handled by basics.js — the extension bridge when
+			   ACtlExt is present, the original "not installed" alert otherwise */
 		});
 	});
 })();

@@ -15,9 +15,10 @@ V3. The original MV2 extension, its native Windows components, and
 the AutoControl name belong to their respective authors — the code in this
 repository is **not owned** by the port's author @AutoControl-app.
 
-The **original AutoControl** is available at:
+The **original AutoControl** and documentation are available at:
 
-- **Website**: <https://www.autocontrol.app>
+- ~~**Official website**: <https://www.autocontrol.app>~~ it's dead.\
+  **Copy** of the site: <https://alex-302.github.io/AutoControl_mv3/>
 - **Chrome Web Store**: <https://chromewebstore.google.com/detail/autocontrol-keyboard-shor/lkaihdpfpifdlgoapbfocpmekbokmcfd/>
 
 **What is original and what is ported:**

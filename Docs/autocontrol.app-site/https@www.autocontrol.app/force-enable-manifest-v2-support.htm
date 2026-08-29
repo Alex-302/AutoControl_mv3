@@ -1,0 +1,97 @@
+<html><head>
+	<title>Force enable Manifest V2 support - AutoControl</title>
+	
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer=""></script>
+	
+</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>
+<style>
+[pseudoLnk] {color: blue; text-decoration: underline}
+[red] {color: red}
+[inlnCode] {font: 16px 'courier new', monospace; background: hsla(208,30%,94%,1); padding: 0px 4px; border-radius: 10px;}
+</style>
+
+<tile highline="">
+
+	<h3>Force enable "Manifest V2" support</h3>
+	<hr b="3">
+	<b><c red="">Note:</c></b> This method does not work in Chromium-based browsers newer than version 150, where the "Manifest V2" support policy was removed entirely. <br>
+	<hr b="">
+	Starting on October 2024, Google Chrome will gradually disable support for "Manifest V2" extensions. <br>
+	This will affect 
+	<b><a href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd" target="_blank">AutoControl</a></b>
+	and spin-off extensions such as
+	<b><a href="https://chrome.google.com/webstore/detail/jpaiaplhepeiilhiegfnknedhjepknng" target="_blank">Tab Switcher</a></b>
+	and
+	<b><a href="https://chrome.google.com/webstore/detail/dnhodapkogdjinogphlafimejpmahoam" target="_blank">Per Tab Zoom</a></b>.
+	
+	<hr b="4">
+	
+	<b>Alternative:</b> you can also keep "Manifest V2" support enabled without touching the registry, by launching your browser
+	with the following command-line parameter (e.g. via a desktop shortcut or a script): <br>
+	<c inlnCode="">"C:\Program Files\Google\Chrome\Application\chrome.exe" --disable-features=ExtensionManifestV2Unsupported,ExtensionManifestV2Disabled</c> <br>
+	Note that the parameter must be present every time the browser is started, otherwise "Manifest V2" extensions will be disabled again. <br>
+	
+	<hr b="4">
+	
+	You can continue using these extensions by forcing Chromium browsers to keep "Manifest V2" support enabled until at least June 2025.
+	This is achieved by adding a special setting to the Windows registry. Please follow these steps: <br>
+	<ol>
+		<li>Download <a download="" href="files/Force%20Manifest%20V2%20availability.reg">this file</a> to your computer.
+		<li>Double-click on the file and confirm the message box.
+		<li>Go to <c pseudolnk="">chrome://policy</c> and click on the "Reload policies" button.
+	</ol>
+	<hr b="">
+	Once you add this setting, your browser will show the message <b>"Your browser is managed by your organization"</b> on various settings pages such as 
+	<c pseudolnk="">chrome://settings</c> and <c pseudolnk="">chrome://extensions</c>.
+	This message is shown whenever the browser detects a registry setting. That's all it means.
+	<hr b="4">
+	You can remove the registry setting by following these steps:
+	<ol>
+		<li>Download <a download="" href="files/Remove%20Manifest%20V2%20availability.reg">this file</a> to your computer.
+		<li>Double-click on the file and confirm the message box.
+		<li>Go to <c pseudolnk="">chrome://policy</c> and click on the "Reload policies" button.
+	</ol>
+	<hr b="3">
+	The registry file works for most Chromium browsers such as Chrome, Edge, Brave, Vivaldi and others. If it doesn't work on your particular browser,
+	please ask for help at the <a b="" href="https://groups.google.com/g/autocontrol_app">Support Forum</a> by mentioning your exact browser brand and version.
+	
+</tile>
+
+</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+</body></html>
