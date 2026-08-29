@@ -1,0 +1,178 @@
+<html><head>
+	<title>ACtl.runInTab - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.runInTab</h1>
+			<hr b="">
+			<summary>
+	Runs Javascript code in the context of other tabs <!--(i.e. the pages in those tabs)-->.
+	The code can be given as a function or as the name of an existing AutoControl script. <hr b="">
+	This is analogous to using the <actstep>run script</actstep> action to run code in one or more tabs,
+	but this function lets you do it programmatically from inside any script.
+	<hr b="2">
+	<c bb="">Limitation:</c> This function cannot run code in <a href="protected-pages.htm" locref="">protected pages</a>.
+	<hr b="2">
+</summary>
+				<signat sticktonext="">
+		<spec><c actl="">ACtl</c>.runInTab(<arg><name>tabSpec</name></arg><arg><m>[</m>,<name>args</name><m>]</m></arg><arg>,<name>func</name></arg>)</spec>				<ioelem></ioelem><ioelem></ioelem><ioelem></ioelem>	</signat><signat>
+		<spec><c actl="">ACtl</c>.runInTab(<arg><name>tabSpec</name></arg><arg>,<name>scriptName</name></arg>)</spec>				<ioelem>		<hd><name>tabSpec</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr> </hd>
+		<desc>	One or more tabs in which to run <arg>func</arg> or <arg>scriptName</arg>. It can be either a <a href="tab-specifier.htm#tabId" locref="">tab ID</a>, a <a href="tab-specifier.htm#filterObj" locref="">filter object</a>, a <a href="tab-specifier.htm#presetTabSel" locref="">tab-selection name</a> or an <a href="tab-specifier.htm#arrayOf" locref="">array combining all that</a>. Full details at <a href="tab-specifier.htm" locref="">Tab Specifier</a>. <hr b="">
+						If more than one tab is specified, the code given by <arg>func</arg> or <arg>scriptName</arg> runs concurrently on each tab,
+						not sequentially. <br> Therefore, errors thrown in one tab don't prevent the execution of the code in the other tabs. <hr b="2">
+						<c b2="">Limitation:</c> Tabs containing <a href="protected-pages.htm" locref="">protected pages</a> will be omitted from the list. i.e. no attemp to run <arg>func</arg> or
+						<arg>scriptName</arg> will be made for those tabs. 
+					</desc>
+	</ioelem><ioelem>		<hd><name>args</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>	An array of values to be passed as arguments to the <arg>func</arg> function.
+						If a single argument is passed, it can be passed as is, without being enclosed in an array. <br>
+						All values must be <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a>, since they have to be moved between <a href="https://developer.mozilla.org/docs/Glossary/Browsing_context" target="_blank" extref="">contexts</a>.</desc>
+	</ioelem><ioelem>		<hd><name>func</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Functions" target="_blank" extref="">Function</a></attr> </hd>
+		<desc>The function to run in each tab specified by <arg>tabSpec</arg>. This function cannot use <a href="https://developer.mozilla.org/docs/Web/JavaScript/Closures" target="_blank" extref="">closure</a> variables
+						since it will run in a different <a href="https://developer.mozilla.org/docs/Glossary/Browsing_context" target="_blank" extref="">browsing context</a>. However, it can still use global variables that exist in the page in which it will run.</desc>
+	</ioelem><ioelem>		<hd><name>scriptName</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>	<img src="../img/usrScrtName.png" align="right" width="348" style="margin: -25px 0 0 10px;"> <hr b="2">
+						The name of any script created by the user. <hr b="2">
+						The name matching is done ignoring letter case and redundant white spaces.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a></attr> </hd>
+		<desc>	Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve to an array containing the return value of
+						<arg>func</arg> or <arg>scriptName</arg> for each tab in <arg>tabSpec</arg> (minus tabs containing <a href="protected-pages.htm" locref="">protected pages</a>).
+						These values must be <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a>, since they have to be moved between <a href="https://developer.mozilla.org/docs/Glossary/Browsing_context" target="_blank" extref="">contexts</a>.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a></attr> </hd>
+		<desc>	Error description if <arg>tabSpec</arg> is not a valid <a href="tab-specifier.htm" locref="">Tab Specifier</a> or
+						if <arg>func</arg> is not a function or if <arg>scriptName</arg> doesn't exist. <hr b="">
+						This function also rethrows any errors thrown by <arg>func</arg> or <arg>scriptName</arg>.
+						If <arg>tabSpec</arg> specifies multiple tabs, only the first error that occurs in one of the tabs is rethrown. <hr b="">
+						The error value must be <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a>, since it has to be moved between <a href="https://developer.mozilla.org/docs/Glossary/Browsing_context" target="_blank" extref="">contexts</a>.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+	
+	Close all tabs in the current window that contain the phrase "Not found" anywhere in the page.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">textToSearch</span> <span class="token operator">=</span> <span class="token string">'Not found'</span> <span class="token punctuation">;</span>
+<span class="token comment">//Run a function on all tabs in the current window and get its result</span>
+<span class="token keyword">let</span> <span class="token identifier">tabIds</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInTab.htm" acapi="">runInTab</a><span class="token punctuation">(</span><span class="token string">'#currWinTabs'</span><span class="token punctuation">,</span> <span class="token identifier">textToSearch</span><span class="token punctuation">,</span> <span class="token parameter"><span class="token identifier">text</span></span> <span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token comment">//If the page contains the text we are looking for</span>
+	<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token property-access">body</span><span class="token punctuation">.</span><span class="token property-access">innerText</span><span class="token punctuation">.</span><span class="token method function property-access">match</span><span class="token punctuation">(</span> <span class="token known-class-name class-name">RegExp</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">\\b</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">text</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">\\b</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span> <span class="token punctuation">)</span> <span class="token punctuation">)</span>
+		<span class="token comment">//Return its tab ID</span>
+		<span class="token keyword">return</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token constant" href="TAB_ID.htm" acapi="">TAB_ID</a> <span class="token punctuation">;</span>
+	<span class="token comment">//Otherwise, return nothing</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Close all tabs found above</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="closeTab.htm" acapi="">closeTab</a><span class="token punctuation">(</span><span class="token identifier">tabIds</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="5">
+	Use a custom tab-selection to select a Youtube tab that's playing video, then stop the video.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Run a function in all audible Youtube tabs</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token identifier">timeMark</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInTab.htm" acapi="">runInTab</a><span class="token punctuation">(</span><span class="token string">'Youtube audible tabs'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token comment">//Click on the play/pause button</span>
+	<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span><span class="token string">'.ytp-play-button'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">click</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+	<span class="token comment">//Get the video's current time and return it</span>
+	<span class="token keyword">return</span> <span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span><span class="token string">'.ytp-time-current'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token property-access">innerText</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//If there were audible Youtube tabs, `timeMark` will be defined</span>
+<span class="token keyword">if</span><span class="token punctuation">(</span><span class="token identifier">timeMark</span><span class="token punctuation">)</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'Video stopped at '</span> <span class="token operator">+</span> <span class="token identifier">timeMark</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token keyword">else</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'No Youtube videos playing.'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<img src="../img/youtubeAudibleTabs.png" align="right" width="453" style="-webkit-filter: drop-shadow(1px 1px 2px hsla(60,20%,50%,0.4))">
+	<hr b="3">
+	And this is the tab-selection for selecting audible Youtube tabs:
+
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm" selected="">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

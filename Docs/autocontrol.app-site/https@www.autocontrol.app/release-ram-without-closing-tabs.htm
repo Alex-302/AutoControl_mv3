@@ -1,0 +1,107 @@
+<html><head>
+	<title>Release RAM without closing tabs in Google Chrome - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer=""></script>
+	
+	
+	
+	
+
+	<script src="demoBuilder.min.js"></script><script src="jquery-2.2.4.min.js"></script></head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>
+<tile higherline="">
+	<h1 long="">Release RAM without closing tabs in Google Chrome</h1>
+	<hr b="3">
+	<img src="img/unloadTabs.png" align="right" style="margin: 0 0 20px 30px; -webkit-filter: drop-shadow(1px 1px 2px hsl(210,15%,80%))">
+	The <actstep>Unload tabs</actstep> action in AutoControl lets you unload the webpage from one or more tabs without closing the tabs themselves. <br>
+	The effect of unloading a webpage is that all system resources used by it are released.
+	This is a useful feature when your computer gets slow after opening lots of tabs.  
+	Releasing the memory taken by some of the tabs will bring the computer back to a healthier state.
+	<hr b="4">
+	Let's see how to create a shortcut for unloading one tab at a time in inverse MRU order.
+	That way, whenever this shortcut is triggered, the tab that hasn't been used for the longest time will be unloaded.
+	<hr b="4">
+	
+	See the image below. The interesting part is in the <u b="">Apply to</u> select box. i.e. the target tabs for the <actstep>Unload tabs</actstep> action.
+	Click the image to see the description of each part.
+	<hr b="5">
+	<demo name="undefined" load="">
+			<step idx="0" style="opacity: 1;">
+				<header>
+					<c>Step 0/0:</c> undefined <cb></cb>
+				</header>
+				<content>
+					<img src="img/lruLoadedTab.png">
+			  		<svg viewBox="0 0 704 515">
+						<defs>
+							<filter id="backgr" x="0" y="0" width="1" height="1">
+								<feFlood></feFlood>
+								<feComposite in="SourceGraphic"></feComposite>
+							</filter>
+						</defs>
+			  			
+					</svg>
+		  			
+					<ctrls title="Click for the next step">
+						<btn prev="" title="Previous step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(3.5 17.5) rotate(-45)"></path></svg>
+						</btn>
+						<btn next="" title="Next step">
+							<svg viewBox="0 0 17.5 35"><path d="M0,10 L0,0 L10,0" transform="translate(14 17.5) rotate(135)"></path></svg>
+						</btn>
+					</ctrls>
+				</content>
+			</step>
+		</demo>
+	<hr b="5">
+	The result of the tab-selection above will be at most one tab. That tab will be <u>the least recently used tab that hasn't been unloaded yet</u>. <br>
+	That's exactly the tab we want to unload when the computer starts getting slow, i.e. the one we haven't used for the longest time.
+	<hr b="">
+	Then, if unloading one tab is not enough, we can press <key>F1</key> again to unload another tab. <br>
+	That way, each time we press <key>F1</key>, the memory usage will become lower and lower until nearly all RAM used by the browser is released, as shown below.
+	<hr b="4">
+	<img src="img/ramRelease.png" center="" style="box-shadow: 1px 1px 4px #232323">
+	<hr b="5">
+	And not a single tab was closed in the whole process :)
+	
+</tile>
+
+</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

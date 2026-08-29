@@ -1,0 +1,24 @@
+ _ = { 	bkmFldStrip : {
+	steps:[
+		{img:'img20.png', elems:[{type:'arrow', params:[[344,277], [245,277], 5]}]},
+		{img:'img30.png', elems:[{type:'arrow', params:[[192,180], [118,180], '', 'anim']}]},
+		{img:'img40.png', elems:[
+			{type:'arrow', params:[[130,241], [130,194], '', 'anim']},
+			{type:'arrow', params:[[250,241], [250,194], '', 'anim']}
+		]},
+		{img:'img40.png', elems:[
+			{type:'rect', params:[[100,250], [145,25], 3]},
+			{type:'rect', params:[[283,250], [149,25], 3]}
+		]},
+		{img:'img40.png', elems:[
+			{type:'arrow', params:[[363,272], [298,272], '', 'anim']},
+		]},
+		{img:'img50.png', elems:[
+			{type:'arrow', params:[[425,123], [355,123], '', 'anim']},
+			{type:'arrow', params:[[341,197], [269,197], '', 'anim']}
+		]},
+		{img:'img60.png', elems:[{type:'text', params:[[233,246], 'Done!', 'big']}]},
+	]
+}
+ ,
+ } 

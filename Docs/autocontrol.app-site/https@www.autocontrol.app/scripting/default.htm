@@ -1,0 +1,167 @@
+<html><head>
+	<title>Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol>
+			<h1>Scripting API</h1>
+			<hr b="2">
+							<img src="../img/runScriptSelect.png" align="right" width="300" style="margin: 0 0 0 30px">
+				<b>AutoControl</b> provides the <actstep>Run script</actstep> advanced action which lets you write your own scripts in
+				Javascript in order to carry out all sorts of tasks, such as: 
+				<l features="">
+				<!--it>Downloading files to specific folders</it-->
+				<it>Performing operations on your open tabs (open, close, pin, mute, minimize, etc.).</it>
+				<it>Injecting Javascript and CSS into one or more web pages.</it>
+				<it>Reading and writing files to your hard drive.</it>
+				<it>Reading and writing data to the clipboard in various formats.</it>
+				<it>Running external programs and commands.</it>
+				<it>And much more...</it>
+				</l>
+				
+				Here is an example showing the power of AutoControl's scripting API.
+				
+				<pre hl="" class=" language-js"><code class=" language-js"><span class="token comment">//UPLOAD A SCREENSHOT OF THE CURRENT TAB TO SNAG.GY</span>
+
+<span class="token comment">//1. Take a screenshot of the current tab</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token punctuation">[</span><span class="token punctuation">,</span> <span class="token identifier">dataUri</span><span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="captureTab.htm" acapi="">captureTab</a><span class="token punctuation">(</span><span class="token string">'#currentTab'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//2. Put the image in the clipboard</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setClipboard.htm" acapi="">setClipboard</a><span class="token punctuation">(</span><span class="token punctuation">{</span><span class="token propLiteral">image</span><span class="token operator">:</span> <span class="token identifier">dataUri</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//3. Open http://snag.gy in a new tab</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token identifier">tabId</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="openURL.htm" acapi="">openURL</a><span class="token punctuation">(</span><span class="token string">'http://snag.gy'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">rightOf</span><span class="token operator">:</span> <span class="token string">'#currentTab'</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//4. Wait for the tab to finish loading</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="on.htm" acapi="">on</a><span class="token punctuation">(</span><span class="token string">'tabLoadEnd'</span><span class="token punctuation">,</span> <span class="token identifier">tabId</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//5. Activate the new tab and focus its window</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token identifier">tabId</span><span class="token punctuation">,</span> <span class="token string">'active focused'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//6. Execute AutoControl's [CLIPBRD PASTE] action</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="execAction.htm" acapi="">execAction</a><span class="token punctuation">(</span><span class="token string">'#clpbrdPaste'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//7. Also, save the screenshot to a file in the desktop</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="saveURL.htm" acapi="">saveURL</a><span class="token punctuation">(</span><span class="token identifier">dataUri</span><span class="token punctuation">,</span> <span class="token string">'&lt;desktop&gt;/tab-capture.png'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+				
+				The entire API resides under the <actl>ACtl</actl> special object. This is a private object that only the script has access to.
+				<br>
+				Scripts run in a fully isolated context to ensure the security and reliabiliy of your code.
+				Read more at <a href="script-isolation.htm" locref="">Script Isolation</a> to learn how this isolation is enforced
+				and the ways you can bypass it at your own discretion.
+				
+				<hr b="3">
+				Also, notice the use of the <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/await" target="_blank" extref="" b="">await</a> keyword before every <actl>ACtl</actl> function.
+				This is because those functions are asynchronous, i.e. they return <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">promises</a>.
+				Go to <a href="asynchronicity.htm" locref="">Handling Asynchronicity</a> to learn how to deal with this comfortably in your scripts.
+				
+				<hr b="3">
+				Finally, and very importantly, the lifetime of a script is tied to the lifetime of the page it's running in.
+				Once a tab is closed, reloaded or navigated away, the page in that tab disappears including all scripts running in it.
+				<hr b="3">
+				So, don't forget: &nbsp; <i style="font-family: verdana, arial; font-size: 108%">Scripts run in pages, not tabs</i>.
+				<hr b="3">
+				AutoControl lets you choose one or more "tabs" to run a script in, but this is an abuse of language.
+				It's implied that a script will run in the <u>page</u> currently loaded in a tab.
+				
+				<!-- TODO: link to section "Script's lifetime" explaining in greater detail this topic -->
+				
+				<hr b="">
+				In order to run persistent scripts that are independent of the lifetime of any page,
+				AutoControl supports <a href="background-scripts.htm" locref="">Background Scripts</a>.
+				
+				<!-- TODO: a short comment about the script's return value and a link to the corresponding topic page -->
+				
+				<!-- TODO: also add a link to "debugging a script" -->
+	
+					</contcol>
+	<apimenu><a href="../scripting/default.htm" selected="" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

@@ -1,0 +1,145 @@
+<html><head>
+	<title>ACtl.sleep - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.sleep</h1>
+			<hr b="">
+			<summary>
+	 Sleeps for the specified amount of time.
+</summary>
+				
+	<signat>
+		<spec><c actl="">ACtl</c>.sleep(<arg><name>millisec</name></arg>)</spec>				<ioelem>		<hd><name>millisec</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a></attr> </hd>
+		<desc>Amount of milliseconds to sleep for.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <val>undefined</val></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve after <arg>millisec</arg> milliseconds have passed.</desc>
+	</ioelem><ioelem></ioelem>	</signat>
+	<h4>Example</h4>
+
+	Switch to the tab on the right repeateadly every half a second, endlessly.<br>
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the script's current state from a variable</span>
+<span class="token keyword">let</span> <span class="token identifier">currentState</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token string">'running'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Change the variable to its opposite value</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token string">'running'</span><span class="token punctuation">,</span> <span class="token operator">!</span><span class="token identifier">currentState</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//While the variable is true</span>
+<span class="token keyword">while</span><span class="token punctuation">(</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="var.htm" acapi="">var</a><span class="token punctuation">(</span><span class="token string">'running'</span><span class="token punctuation">)</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token comment">//Activate the tab to the right (with wrap-around)</span>
+	<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token string">'#righTabWrap'</span><span class="token punctuation">,</span> <span class="token string">'active'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+	<span class="token comment">//Wait for half a second</span>
+	<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="sleep.htm" acapi="">sleep</a><span class="token punctuation">(</span><span class="token number">500</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+	<hr b="2">
+	If you run this script a second time, the loop will stop. <hr b="">
+	The first time the script runs, the <hl>running</hl> variable will be undefined.
+	So, the script will change it to <hl>true</hl> and then it'll enter the infitite loop. <hr b="">
+	While the script is running, you can run the script again, so now there will be two instances of the same script running.
+	The second instance will read the <hl>running</hl> variable and change it to <hl>false</hl>.
+	Hence, it will not enter the infinite loop and will also cause the first instance of the script to get out of the loop.
+	<hr b="2">
+
+	This example, other than showing the use of <a href="sleep.htm" apiref=""><o>ACtl</o><d>.</d>sleep</a>, demonstrates how multiple instances of the same script can run at the same time
+	and communicate with each other via <a href="var.htm" locref="">private storage variables</a>. <br>
+	Of course, you must run this script <c bb="">asynchronously</c> so that a second instance of the script can start while the first one is still running.
+	Otherwise, AutoControl would wait forever for the first instance to finish, and the only way to regain control would be "Emergency repair".
+	<hr b="4">
+	<img src="../img/asyncScript.png" center="" width="600">
+
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm" selected="">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

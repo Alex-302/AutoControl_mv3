@@ -1,0 +1,151 @@
+<html><head>
+	<title>ACtl.getTabInfo - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.getTabInfo</h1>
+			<hr b="">
+			<summary>
+	Gets detailed information about one or more tabs. <hr b="2">
+</summary>
+				<signat>
+		<spec><c actl="">ACtl</c>.getTabInfo(<arg><m>[</m><name>tabSpec</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>tabSpec</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>One or more tabs to obtain their information. It can be either a <a href="tab-specifier.htm#tabId" locref="">tab ID</a>, a <a href="tab-specifier.htm#filterObj" locref="">filter object</a>, a <a href="tab-specifier.htm#presetTabSel" locref="">tab-selection name</a> or an <a href="tab-specifier.htm#arrayOf" locref="">array combining all that</a>. Full details at <a href="tab-specifier.htm" locref="">Tab Specifier</a>. <hr b=""> If omitted, it defaults to the tab the script is running in.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with an object of <hl>[tabID, <a href="getTabInfo_tabInfo.htm">TabInfo</a>]</hl> pairs that looks like this:
+						<pre compact="" class=" language-js"><code class=" language-js"><span class="token punctuation">{</span>
+	<span class="token number">23</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token comment">/*... tab info ...*/</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+	<span class="token number">51</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token comment">/*... tab info ...*/</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+	<span class="token number">105</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token comment">/*... tab info ...*/</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+<span class="token punctuation">}</span></code></pre>
+						This object is iterable, so it can be <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment" target="_blank" extref="">destructured</a> like an array. See the examples below. <hr b="">
+						If <arg>tabSpec</arg> contains non-existent tab IDs, those IDs are excluded from the returned object.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if <arg>tabSpec</arg> is not a valid <a href="tab-specifier.htm" locref="">Tab Specifier</a>.</desc>
+	</ioelem>	</signat>	
+	<h4 id="tabInfo">TabInfo object</h4>
+	The <hl>TabInfo</hl> object contains the following properties: <hr b="3">
+	<table proplist="">
+	<tbody><tr><th>Property </th><th>Type </th><th>Description
+	</th></tr><tr><td><hl>id</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> Integer number, unique identifier of the tab.</td></tr><tr><td><hl>index</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> Position of the tab in its window, starting at 1 from the left.</td></tr><tr><td><hl>title</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> </td><td> Title of the page currently loaded in the tab.</td></tr><tr><td><hl>url</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> </td><td> URL of the page currently loaded in the tab.</td></tr><tr><td><hl>favIconUrl</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> </td><td> URL of the page's favicon.</td></tr><tr><td><hl>openerTabId</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> ID of the tab that opened this one (if any).</td></tr><tr><td><hl>status</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> </td><td> The load status of the page: <hl>'loading'</hl>, <hl>'loaded'</hl> or <hl>'unloaded'</hl>.</td></tr><tr><td><hl>active</hl> </td><td><a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> </td><td> Whether the tab is the active one in its window.</td></tr><tr><td><hl>selected</hl> </td><td><a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> </td><td> Whether the tab is selected (by Ctrl+Click on the tab).</td></tr><tr><td><hl>pinned</hl> </td><td><a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> </td><td> Whether the tab is pinned.</td></tr><tr><td><hl>audible</hl> </td><td><a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> </td><td> Whether the tab is playing audio (speaker icon on tab's right edge).</td></tr><tr><td><hl>muted</hl> </td><td><a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> </td><td> Whether the tab is muted.</td></tr><tr><td><hl>incognito</hl> </td><td><a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> </td><td> Whether it's an incognito tab.</td></tr><tr><td><hl>width</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> Width of the tab's viewport in pixels.</td></tr><tr><td><hl>height</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> Height of the tab's viewport in pixels.</td></tr><tr><td><hl>window.type</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> </td><td> Type of window the tab belongs to: <hl>'normal'</hl>, <hl>'popup'</hl>, <hl>'app'</hl> or <hl>'devtools'</hl>.</td></tr><tr><td><hl>window.state</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> </td><td> Visibility state of the tab's containing window: <hl>'normal'</hl>,
+										<hl>'minimized'</hl>, <hl>'maximized'</hl>, <hl>'fullscreen'</hl>, <hl>'hidden'</hl>.</td></tr><tr><td><hl>window.focused</hl> </td><td><a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> </td><td> Whether the tab's containing window is focused.</td></tr><tr><td><hl>window.alwaysOnTop</hl> </td><td><a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> </td><td> Whether the tab is in a topmost window.</td></tr><tr><td><hl>window.left</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> X coordinate of the window from the left edge of the desktop, in pixels.</td></tr><tr><td><hl>window.top</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> Y coordinate of the window from the top edge of the desktop, in pixels.</td></tr><tr><td><hl>window.width</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> Width of the window in pixels.</td></tr><tr><td><hl>window.height</hl> </td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> </td><td> Height of the window in pixels.	</td></tr></tbody></table>
+	
+	<hr b="3">
+	<h4>Examples</h4>
+	
+	Check whether the tab the script is running in is focused.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get info for the tab the script is running in</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token punctuation">[</span><span class="token punctuation">,</span> <span class="token identifier">tabInfo</span><span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getTabInfo.htm" acapi="">getTabInfo</a><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Whether the tab is active and its window is focused</span>
+<span class="token keyword">let</span> <span class="token identifier">tabIsFocused</span> <span class="token operator">=</span> <span class="token identifier">tabInfo</span><span class="token punctuation">.</span><span class="token property-access">active</span> <span class="token operator">&amp;&amp;</span> <span class="token identifier">tabInfo</span><span class="token punctuation">.</span><span class="token property-access">window</span><span class="token punctuation">.</span><span class="token property-access">focused</span> <span class="token punctuation">;</span>
+<span class="token function">alert</span><span class="token punctuation">(</span> <span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">The tab </span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">tabIsFocused</span> <span class="token operator">?</span> <span class="token string">'IS'</span> <span class="token operator">:</span> <span class="token string">'IS NOT'</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string"> focused</span><span class="token template-punctuation string">`</span></span> <span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Close all popup windows smaller than 300x300 pixels.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get ALL tabs' info</span>
+<span class="token keyword">let</span> <span class="token identifier">allTabsInfo</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getTabInfo.htm" acapi="">getTabInfo</a><span class="token punctuation">(</span><span class="token string">'#allTabs'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Get each tabId and window info by destructuring each [tabID, TabInfo] pair</span>
+<span class="token keyword">for</span><span class="token punctuation">(</span> <span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token identifier">tabId</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token dom variable">window</span><span class="token punctuation">}</span><span class="token punctuation">]</span> <span class="token keyword">of</span> <span class="token identifier">allTabsInfo</span> <span class="token punctuation">)</span><span class="token punctuation">{</span>
+	<span class="token comment">//If the window is a popup smaller than 300x300</span>
+	<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access">type</span> <span class="token operator">==</span> <span class="token string">'popup'</span> <span class="token operator">&amp;&amp;</span> <span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access">width</span> <span class="token operator">&lt;</span> <span class="token number">300</span> <span class="token operator">&amp;&amp;</span> <span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access">height</span> <span class="token operator">&lt;</span> <span class="token number">300</span> <span class="token punctuation">)</span>
+		<span class="token comment">//Close the tab and, thus, the window (popup windows have only one tab)</span>
+		<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="closeTab.htm" acapi="">closeTab</a><span class="token punctuation">(</span><span class="token identifier">tabId</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span></code></pre>
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm" selected="">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

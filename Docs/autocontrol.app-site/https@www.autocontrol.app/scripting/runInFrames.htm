@@ -1,0 +1,199 @@
+<html><head>
+	<title>ACtl.runInFrames - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.runInFrames</h1>
+			<hr b="">
+			<summary>
+	Runs Javascript code in the context of other tabs and all embeded documents in those tabs. <br>
+	Embedded documents are specified by the following HTML elements: <hr b="">
+	<center> <hl>&lt;frame&gt;</hl>, <hl>&lt;iframe&gt;</hl>, <hl>&lt;embed&gt;</hl>, <hl>&lt;object&gt;</hl>. </center> <hr b="2">
+	In other words, this function runs code in the top frame as well as all subframes at any nesting depth.
+</summary>
+				In contrast, <a href="runInTab.htm" apiref=""><o>ACtl</o><d>.</d>runInTab</a> runs code only in the top frame of each tab. Therefore, the following call: <hr b="">
+	<code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInTab.htm" acapi="">runInTab</a><span class="token punctuation">(</span><span class="token identifier">tabSpec</span><span class="token punctuation">,</span> <span class="token identifier">args</span><span class="token punctuation">,</span> <span class="token identifier">func</span><span class="token punctuation">)</span></code> <hr b="">
+	is functionally equivalent to: <hr b="">
+	<code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInFrames.htm" acapi="">runInFrames</a><span class="token punctuation">(</span><span class="token identifier">tabSpec</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">depth</span><span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token identifier">args</span><span class="token punctuation">,</span> <span class="token identifier">func</span><span class="token punctuation">)</span></code> <hr b="5">
+	<c bb="">Limitation:</c> This function cannot run code in <a href="protected-pages.htm" locref="">protected pages</a>.
+	<hr b="2">
+	<signat>
+		<spec><c actl="">ACtl</c>.runInFrames(<arg><name>tabSpec</name></arg><arg>,<name>frameFilter</name></arg><arg><m>[</m>,<name>args</name><m>]</m></arg><arg>,<name>func</name></arg>)</spec>				<ioelem>		<hd><name>tabSpec</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr> </hd>
+		<desc>	One or more tabs in which to run <arg>func</arg>. It can be either a <a href="tab-specifier.htm#tabId" locref="">tab ID</a>, a <a href="tab-specifier.htm#filterObj" locref="">filter object</a>, a <a href="tab-specifier.htm#presetTabSel" locref="">tab-selection name</a> or an <a href="tab-specifier.htm#arrayOf" locref="">array combining all that</a>. Full details at <a href="tab-specifier.htm" locref="">Tab Specifier</a>. <hr b="">
+						The code given by <arg>func</arg> runs concurrently on each frame of each tab,
+						not sequentially. <br> Therefore, errors thrown in one frame don't prevent the execution of the code in any other frame. <hr b="2">
+						<c b2="">Limitation:</c> Tabs containing <a href="protected-pages.htm" locref="">protected pages</a> will be omitted from the list. i.e. no attemp to run <arg>func</arg>
+						will be made for those tabs.
+					</desc>
+	</ioelem><ioelem>		<hd><name>frameFilter</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a></attr> </hd>
+		<desc>				An object with zero or more of the following properties. Each property represents a condition. <arg>func</arg> will run only in the frames
+				that satisfy all conditions. <br>
+				A condition can be a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a> or <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> for an exact match or a <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a> for a pattern match. <hr b="">
+				If the object is empty or has no valid conditions, <arg>func</arg> will run in all frames. <hr b="2">
+				<table proplist="">
+					<tbody><tr><th>Property</th><th>Type</th><th>Description
+					</th></tr><tr><td><arg>depth</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a></td><td>Nesting depth of the frame. The top frame has depth zero.
+					</td></tr><tr><td><arg>minDepth</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a></td><td>Minimum nesting depth of the frame.
+					</td></tr><tr><td><arg>maxDepth</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a></td><td>Maximum nesting depth of the frame.
+					</td></tr><tr><td><arg>href</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a></td><td>The URL of the frame.
+					</td></tr><tr><td><arg>protocol</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a></td><td>The <a href="https://developer.mozilla.org/docs/Web/API/URL/protocol" target="_blank" extref="">protocol</a> of the frame.
+					</td></tr><tr><td><arg>hostname</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a></td><td>The <a href="https://developer.mozilla.org/docs/Web/API/URL/hostname" target="_blank" extref="">host name</a> of the frame.
+					</td></tr><tr><td><arg>port</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a></td><td>The <a href="https://developer.mozilla.org/docs/Web/API/URL/port" target="_blank" extref="">port</a> of the frame.
+					</td></tr><tr><td><arg>pathname</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a></td><td>The <a href="https://developer.mozilla.org/docs/Web/API/URL/pathname" target="_blank" extref="">path</a> of the frame.
+					</td></tr><tr><td><arg>search</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a></td><td>The <a href="https://developer.mozilla.org/docs/Web/API/URL/search" target="_blank" extref="">query string</a> of the frame.
+					</td></tr><tr><td><arg>hash</arg></td><td><a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/RegExp" target="_blank" extref="">RegExp</a></td><td>The <a href="https://developer.mozilla.org/docs/Web/API/URL/hash" target="_blank" extref="">fragment</a> of the frame.
+				</td></tr></tbody></table>
+			</desc>
+	</ioelem><ioelem>		<hd><name>args</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a></attr>  <attr>Default: <val>undefined</val></attr> </hd>
+		<desc>	An array of values to be passed as arguments to the <arg>func</arg> function.
+						If a single argument is passed, it can be passed as is, without being enclosed in an array. <br>
+						All values must be <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a>, since they have to be moved between <a href="https://developer.mozilla.org/docs/Glossary/Browsing_context" target="_blank" extref="">contexts</a>.</desc>
+	</ioelem><ioelem>		<hd><name>func</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Functions" target="_blank" extref="">Function</a></attr> </hd>
+		<desc>The function to run in each frame. This function cannot use <a href="https://developer.mozilla.org/docs/Web/JavaScript/Closures" target="_blank" extref="">closure</a> variables
+						since it will run in a different <a href="https://developer.mozilla.org/docs/Glossary/Browsing_context" target="_blank" extref="">browsing context</a>. However, it can still use global variables that exist in the frame in which it will run.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a></attr> </hd>
+		<desc>	Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve to an array containing the return value of
+						<arg>func</arg> for each frame in which it ran (minus frames containing <a href="protected-pages.htm" locref="">protected pages</a>).
+						These values must be <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a>, since they have to be moved between <a href="https://developer.mozilla.org/docs/Glossary/Browsing_context" target="_blank" extref="">contexts</a>.</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a></attr> </hd>
+		<desc>	Error description if <arg>tabSpec</arg>, <arg>frameFilter</arg> or <arg>func</arg> are invalid values. <hr b="">
+						This function also rethrows any errors thrown by <arg>func</arg>.
+						Only the first error that occurs in any of the frames is rethrown. <hr b="">
+						The error value must be <a href="https://developer.mozilla.org/docs/Glossary/JSON" target="_blank" extref="">JSONable</a>, since it has to be moved between <a href="https://developer.mozilla.org/docs/Glossary/Browsing_context" target="_blank" extref="">contexts</a>.</desc>
+	</ioelem>	</signat>	
+	<h4>Examples</h4>
+	
+	Get the URL, width and height of all frames in the current tab.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">framesData</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInFrames.htm" acapi="">runInFrames</a><span class="token punctuation">(</span><span class="token string">'#currentTab'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">minDepth</span><span class="token operator">:</span> <span class="token number">1</span><span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token keyword">return</span> <span class="token punctuation">[</span><span class="token dom variable">location</span><span class="token punctuation">.</span><span class="token property-access">href</span><span class="token punctuation">,</span> <span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access">innerWidth</span><span class="token punctuation">,</span> <span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access">innerHeight</span><span class="token punctuation">]</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token identifier">framesData</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="5">
+	
+	Navigate to <hl>about:blank</hl> all frames at depth 2 (i.e. frames inside frames).
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInFrames.htm" acapi="">runInFrames</a><span class="token punctuation">(</span><span class="token string">'#currentTab'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">depth</span><span class="token operator">:</span> <span class="token number">2</span><span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token property-access">location</span> <span class="token operator">=</span> <span class="token string">'about:blank'</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="5">
+
+	Scroll down 100px all frames with a domain terminated in <hl>.example.com</hl>.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInFrames.htm" acapi="">runInFrames</a><span class="token punctuation">(</span><span class="token string">'#currentTab'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">hostname</span><span class="token operator">:</span> <span class="token regex">/\.example\.com$/</span><span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token dom variable">window</span><span class="token punctuation">.</span><span class="token method function property-access">scrollBy</span><span class="token punctuation">(</span><span class="token punctuation">{</span><span class="token propLiteral">top</span><span class="token operator">:</span><span class="token number">100</span><span class="token punctuation">,</span> <span class="token propLiteral">behavior</span><span class="token operator">:</span><span class="token string">'smooth'</span><span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="5">
+
+	Submit a login form in a frame at depth 2 whose path contains the string <hl>loginForm</hl>. <br>
+	Then wait for the frame to finish loading.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">username</span> <span class="token operator">=</span> <span class="token string">'John'</span> <span class="token punctuation">;</span>
+<span class="token keyword">let</span> <span class="token identifier">password</span> <span class="token operator">=</span> <span class="token string">'123456'</span> <span class="token punctuation">;</span>
+<span class="token keyword">let</span> <span class="token identifier">frameFilter</span> <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token propLiteral">pathname</span><span class="token operator">:</span> <span class="token regex">/loginForm/</span><span class="token punctuation">,</span> <span class="token propLiteral">depth</span><span class="token operator">:</span> <span class="token number">2</span><span class="token punctuation">}</span> <span class="token punctuation">;</span>
+
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInFrames.htm" acapi="">runInFrames</a><span class="token punctuation">(</span><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token constant" href="TAB_ID.htm" acapi="">TAB_ID</a><span class="token punctuation">,</span> <span class="token identifier">frameFilter</span><span class="token punctuation">,</span> <span class="token punctuation">[</span><span class="token identifier">username</span><span class="token punctuation">,</span> <span class="token identifier">password</span><span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token parameter"><span class="token identifier">user</span><span class="token punctuation">,</span> <span class="token identifier">pass</span></span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span><span class="token string">'#username'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token property-access">value</span> <span class="token operator">=</span> <span class="token identifier">user</span> <span class="token punctuation">;</span>
+	<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span><span class="token string">'#password'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token property-access">value</span> <span class="token operator">=</span> <span class="token identifier">pass</span> <span class="token punctuation">;</span>
+	<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span><span class="token string">'#submit'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">click</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="on.htm" acapi="">on</a><span class="token punctuation">(</span><span class="token string">'tabLoadEnd'</span><span class="token punctuation">,</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token constant" href="TAB_ID.htm" acapi="">TAB_ID</a><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'We are in!!'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm" selected="">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

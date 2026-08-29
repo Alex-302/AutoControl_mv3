@@ -1,0 +1,179 @@
+<html><head>
+	<title>Background scripts - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol>
+			<h1>Background scripts</h1>
+			<hr b="">
+			<summary></summary>
+				
+	AutoControl lets you run scripts either in a webpage or in the background.
+	<hr b="2">
+	<img src="../img/runInBkgr.png" center="" height="181">
+	<hr b="4">
+	When a script runs in a webpage, the script's lifetime is tied to the lifetime of the page.
+	<br>
+	Which means, once the page is unloaded, all scripts running in that page are immediately terminated.
+	<hr b="2">
+	A page will be unloaded when:
+	<ul simple="">
+	<li>You close its containing tab
+	</li><li>You load a new page in that tab
+	</li><li>You reload the page
+	</li><li>You apply the <actstep>unload tabs</actstep> action to its containing tab
+	</li><li>You are low on RAM and the browser decides to unload some pages to release memory
+	</li></ul>
+	<hr b="3">
+
+	The lifetime of a <b>background script</b>, on the other hand, is only tied to the lifetime of the extension itself.
+	Extensions are started up when you open the first browser window and are shut down right after you close the last remaining tab.
+	<hr b="4">
+	<img src="../img/reloadExt.png" align="left" width="160" style="margin: 0 40px; -webkit-filter: drop-shadow(1px 2px 2px lightgrey);">
+	<hr b="4">
+	Clicking on "<b>Emergency repair</b>" also terminates any background script currently running.
+	<hr b="6" clr="">
+	
+	Additionally, triggers have the option to work even when the browser is closed.
+	<hr b="2"> <img src="../img/brwrClosedTrigger.png" width="517" center=""> <hr b="3">
+	
+	This will activate the browser's background mode, which allows AutoControl to run persistently, even when no browser windows are open.
+	
+	<hr b="2">
+	Thanks to this, a background script can run freely, without worrying that it might be inadvertently terminated
+	when pages are unloaded and tabs closed due to the script's own actions or the user's.
+	<hr b="2">
+	Let's see a concrete example. Suppose we want to click the submit button in a login form.
+	Then, once the submission is complete, we'll do something interesting in the newly loaded page. <br>
+	
+	So, we could run the following script in that page:
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Click the submit button</span>
+<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span><span class="token string">'#submit-button'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">click</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Wait for the page to finish loading</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="on.htm" acapi="">on</a><span class="token punctuation">(</span><span class="token string">'tabLoadEnd'</span><span class="token punctuation">,</span> <span class="token string">'#currentTab'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Now we can do our thing</span>
+<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">"We are in. Let's do some sneaky stuff."</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="2">
+	This script would've worked except for the fact that clicking the submit button causes the tab to navigate to another page,
+	which results in the script being terminated prematurely because the page the script was running in was unloaded. <br>
+	In other words, this script causes its own demise.
+	<hr b="2">
+	In order to avoid this situation, the script has to <u>run in the background</u> and be modified as follows:
+
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Click the submit button</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInTab.htm" acapi="">runInTab</a><span class="token punctuation">(</span><span class="token string">'#currentTab'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token dom variable">document</span><span class="token punctuation">.</span><span class="token method function property-access">querySelector</span><span class="token punctuation">(</span><span class="token string">'#submit-button'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">click</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Wait for the page to finish loading</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="on.htm" acapi="">on</a><span class="token punctuation">(</span><span class="token string">'tabLoadEnd'</span><span class="token punctuation">,</span> <span class="token string">'#currentTab'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Now we can do our thing</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runInTab.htm" acapi="">runInTab</a><span class="token punctuation">(</span><span class="token string">'#currentTab'</span><span class="token punctuation">,</span> <span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token arrow operator">=&gt;</span><span class="token punctuation">{</span>
+	<span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">"We are in. Let's do some sneaky stuff."</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="2">
+	The <a href="runInTab.htm" apiref=""><o>ACtl</o><d>.</d>runInTab</a> function lets us run code in another tab. That way, even though the script is running in the background,
+	we can still interact with the page we want.
+	<hr b="2">
+	You can think of background scripts as running in a "hidden page" of sorts, which cannot ever be closed unless the extension itself is shut down.
+	<br>
+	This gives background scripts access to all <a href="https://developer.mozilla.org/docs/Web/API" target="_blank" extref="">Web APIs</a> that page scripts have.
+	Anything that can be done in a page script can also be done in a background script.
+
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" selected="" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

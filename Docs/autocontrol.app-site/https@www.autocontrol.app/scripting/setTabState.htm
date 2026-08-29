@@ -1,0 +1,164 @@
+<html><head>
+	<title>ACtl.setTabState - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.setTabState</h1>
+			<hr b="">
+			<summary>
+	Sets, unsets or toggles various boolean states of tabs and windows. Such as <hl>active</hl>, <hl>pinned</hl>, <hl>minimized</hl>, etc. 
+</summary>
+				
+	<signat>
+		<spec><c actl="">ACtl</c>.setTabState(<arg><name>tabSpec</name></arg><arg>,<name>states</name></arg><arg><m>[</m>,<name>mode</name><m>]</m></arg><arg><m>[</m>,<name>animate</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>tabSpec</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr> </hd>
+		<desc>One or more tabs to change their state. It can be either a <a href="tab-specifier.htm#tabId" locref="">tab ID</a>, a <a href="tab-specifier.htm#filterObj" locref="">filter object</a>, a <a href="tab-specifier.htm#presetTabSel" locref="">tab-selection name</a> or an <a href="tab-specifier.htm#arrayOf" locref="">array combining all that</a>. Full details at <a href="tab-specifier.htm" locref="">Tab Specifier</a>.</desc>
+	</ioelem><ioelem>		<hd><name>states</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>One or more states to set, unset or toggle (according to the <arg>mode</arg> argument). Multiple states must be separated by a space character.
+						Valid states are: <hr b="3">
+						<table tabstates="">
+						<tbody><tr><th colspan="2">Tab states
+						</th></tr><tr><td><hl>active</hl>		</td><td><hl>pinned</hl>
+						</td></tr><tr><td><hl>selected</hl>	</td><td><hl>muted</hl>
+						</td></tr></tbody></table>
+						
+						<table tabstates="">
+						<tbody><tr><th colspan="4">Window states 
+						</th></tr><tr><td><hl>focused</hl>	</td><td><hl>minimized</hl>	</td><td><hl>restored</hl>	</td><td><hl>hidden</hl>
+						</td></tr><tr><td><hl>topmost</hl>	</td><td><hl>maximized</hl>	</td><td><hl>fullscreen</hl>	</td><td>
+						</td></tr></tbody></table>
+						<hr b="3">
+						Window states are applied to the window containing the tab, not to the individual tab.
+						<hr b="">
+						The <hl>restored</hl> state doesn't have an opposite state.  i.e. there's no "unrestored" state.
+						Hence, it can be <i>set</i>, but not <i>unset</i> or <i>toggled</i>. 
+					</desc>
+	</ioelem><ioelem>		<hd><name>mode</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a></attr>  <attr>Default: <val>true</val></attr> </hd>
+		<desc>	<table itemdesc="">
+						<tbody><tr><td><hl>true</hl> </td><td>Set the state
+						</td></tr><tr><td><hl>false</hl> </td><td>Unset the state
+						</td></tr><tr><td><hl>-1</hl> </td><td>Change to the opposite state (toggle)
+						</td></tr></tbody></table></desc>
+	</ioelem><ioelem>		<hd><name>animate</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a></attr>  <attr>Default: <val>true</val></attr> </hd>
+		<desc>Enable or disable the animation effect when minimizing, maximizing or restoring a window. <br>
+						It can be disabled globally in the OS settings, in which case this argument has no effect.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a></attr> </hd>
+		<desc>Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve with the number of tabs given by <arg>tabSpec</arg> (which may be zero or more).</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if <arg>tabSpec</arg> is not a valid <a href="tab-specifier.htm" locref="">Tab Specifier</a> or if <arg>states</arg> contains an invalid state name.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+	
+	<hr b="">
+	Pin, activate and focus the first tab that's playing video or audio.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Get the ID of the first audible tab, if any, or an empty array otherwise</span>
+<span class="token keyword">let</span> <span class="token identifier">firstAudibleTab</span> <span class="token operator">=</span> <span class="token punctuation">(</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getTabIds.htm" acapi="">getTabIds</a><span class="token punctuation">(</span><span class="token string">'#audibleTabs'</span><span class="token punctuation">)</span> <span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">slice</span><span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Set the 3 desired states to the tab</span>
+<span class="token keyword">let</span> <span class="token identifier">tabCount</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token identifier">firstAudibleTab</span><span class="token punctuation">,</span> <span class="token string">'pinned active focused'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Complain if there was no audible tab</span>
+<span class="token keyword">if</span><span class="token punctuation">(</span> <span class="token identifier">tabCount</span><span class="token operator">==</span><span class="token number">0</span> <span class="token punctuation">)</span> <span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">"There's no audible tab!"</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="5">
+	Minimize all non-minimized windows and unminimized all minimized windows. i.e. exchange the visibility of two disjoint sets of windows. 
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Toggle the minimized state of all tabs (i.e. all windows) without animation</span>
+<span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span><span class="token string">'#allTabs'</span><span class="token punctuation">,</span> <span class="token string">'minimized'</span><span class="token punctuation">,</span> <span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token boolean">false</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	<hr b="3">
+	The above line of code is equivalent to doing this in the GUI: <hr b="">
+	<img src="../img/toggleMinimAll.png" center="">
+		</contcol>
+	<apimenu style="top: 532.062px;"><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm" selected="">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

@@ -1,0 +1,21 @@
+ _ = { 	actionMenu : {
+	steps:[
+		//{img:'img1.png', elems:[]},
+		{img:'img10.png', elems:[
+			{type:'arrow', params:[[247,130], [173,130]]},
+			{type:'text', params:[[380,112], 'The trigger will be the <br> "toolbar button clicked" event.']}
+		]},
+		//{img:'img20.png', elems:[]},
+		{img:'img30.png', elems:[{type:'arrow', params:[[564,104], [481,104], '', 'anim']}]},
+		{img:'img40.png', elems:[{type:'arrow', params:[[500,282], [416,282], '', 'anim']}]},
+		{img:'img50.png', elems:[{type:'arrow', params:[[368,184], [300,184], '', 'anim']}]},
+		{img:'img60b.png', elems:[
+			{type:'arrow', params:[[235,240], [235,197], '', 'anim']},
+			{type:'arrow', params:[[399,240], [399,197], '', 'anim']},
+			{type:'text', params:[[309,257], 'The first menu item will be one of the actions created before.', 'whtOutln backgr']}
+		]},
+		{img:'img70b.png', elems:[{type:'text', params:[[337,384], 'Then, add the remaining actions the same way as the first one.', 'whtOutln backgr']}]},
+	]
+}
+ ,
+ } 

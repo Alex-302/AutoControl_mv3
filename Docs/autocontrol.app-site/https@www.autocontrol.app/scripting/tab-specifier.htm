@@ -1,0 +1,224 @@
+<html><head>
+	<title>Tab specifier argument - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol>
+			<h1>Tab specifier argument</h1>
+			<hr b="">
+			<summary></summary>
+				Several functions in the <actl>ACtl</actl> API receive a <hl>tabSpec</hl> argument.
+	The purpose of this argument is to specify one or more tabs for a function to work with. <hr b="2">
+	The argument's data type is defined recursively as follows:
+	<hr b="5">
+	
+	<style>
+	[tabSpec] a {white-space: nowrap; color: #00466F; text-decoration: none; background: linear-gradient(to right,rgba(0, 37, 121, 0.5) 3px, transparent 0) repeat-x 0 calc(100% - 0px)/7px 1px;}
+    [tabSpec] a:hover {background-size: 1px 1px}
+    [tabSpec] hl {margin-bottom: 10px; display: inline-block;}
+    hl[type] {color: hsla(212,70%,45%,1)}
+	</style>
+	<table tabspec=""><tbody><tr>
+	<td valign="top" style="white-space: nowrap"><hl>TabSpec</hl> &nbsp;= &nbsp; 
+	</td><td>
+	<hl><a href="tab-specifier_tabId.htm">Tab ID</a></hl>&nbsp; | &nbsp;<hl><a href="tab-specifier_filterObj.htm">Filter Object</a></hl>&nbsp; | &nbsp;<hl><a href="tab-specifier_presetTabSel.htm">Preset tab-selection</a></hl>&nbsp; | &nbsp;<hl><a href="tab-specifier_customTabSel.htm">Custom tab-selection</a></hl>&nbsp; | &nbsp;<hl><a href="tab-specifier_arrayOf.htm">Array of TabSpec</a></hl>	</td></tr></tbody></table>
+	
+	<hr b="3">
+	<signat>
+	<ioelem id="tabId">
+		<hd>Tab ID <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a></attr></hd>
+		<desc>
+			A tab ID is a non-zero integer number that uniquely identifes a tab. <hr b="">
+			The <a href="TAB_ID.htm" apiref=""><o>ACtl</o><d>.</d>TAB_ID</a> constant gives the ID of the tab the script is running in. <br>
+			The <a href="getTabIds.htm" apiref=""><o>ACtl</o><d>.</d>getTabIds</a> function gives the IDs of any tab or set of tabs.
+		</desc>
+	</ioelem>
+	<ioelem id="filterObj">
+		<hd>Filter object <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a></attr></hd>
+		<desc>
+			An object with <u>only one</u> of the following properties:
+					<optelem>		<hd><name>not</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr> </hd>
+		<desc>One or more tabs to filter out. i.e. all tabs not specified here will be included.</desc>
+	</optelem>
+			<optelem>		<hd><name>sameWinAs</name> <attr>Type: <a href="tab-specifier.htm" target="_blank" extref="">TabSpec</a></attr> </hd>
+		<desc>It includes all tabs that are in the same window (or windows) as the specified tabs.</desc>
+	</optelem>
+			</desc>
+	</ioelem>
+	<ioelem id="presetTabSel">
+		<hd>Preset tab-selection <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr></hd>
+		<desc>
+			Any of the following strings, all of which start with the <hl>#</hl> character. <hr b="">
+			Tab-selections represent an ordered list of tabs. This order is usually the same as in their containing window (from left to right), unless otherwise noted.
+			<hr b="3">
+			<table itemdesc="" tsenames="">
+			<tbody><tr><td> <hl>#targetTabs</hl></td><td> The tabs given to the <actstep>Run script</actstep> action by the <u bb="">Apply to</u> select box or by the previous action in the <a href="../actions.htm#chain">chain</a>
+			</td></tr><tr><td colspan="2"> <hr>
+			</td></tr><tr><td> <hl>#currentTab</hl></td><td> The active tab in the most recently focused window
+			</td></tr><tr><td> <hl>#newestTab</hl></td><td> The tab that was opened most recently
+			</td></tr><tr><td> <hl>#openerTab</hl></td><td> The tab that opened the <hl>#currentTab</hl> (if any)
+			</td></tr><tr><td colspan="2"> <hr>
+			</td></tr><tr><td> <hl>#prevUsedTab</hl></td><td> The previously used tab in the current window
+			</td></tr><tr><td> <hl>#prevUsedTabAnyWin</hl></td><td> The previously used tab in whichever window that tab is
+			</td></tr><tr><td> <hl>#nextUsedTab</hl></td><td> The tab used after the current tab in the current window
+			</td></tr><tr><td> <hl>#nextUsedTabAnyWin</hl></td><td> The tab used after the current tab in whichever window that tab is
+			</td></tr><tr><td colspan="2"> <hr>
+			</td></tr><tr><td> <hl>#activeTabs</hl></td><td> All active tabs (one per window)
+			</td></tr><tr><td> <hl>#selectedTabs</hl></td><td> All selected tabs in the current window
+			</td></tr><tr><td> <hl>#hoveredTabs</hl></td><td> The tab or tabs the mouse is hovering over
+			</td></tr><tr><td> <hl>#pinnedTabs</hl></td><td> All pinned tabs in the current window
+			</td></tr><tr><td> <hl>#audibleTabs</hl></td><td> All audible tabs on any window
+			</td></tr><tr><td> <hl>#nonMinimTabs</hl></td><td> All tabs that are in non-minimized windows
+			</td></tr><tr><td colspan="2"> <hr>
+			</td></tr><tr><td> <hl>#leftTab</hl></td><td> The tab to the left of the <hl>#currentTab</hl>
+			</td></tr><tr><td> <hl>#leftTabWrap</hl></td><td> The tab to the left of the <hl>#currentTab</hl> with wrap-around
+			</td></tr><tr><td> <hl>#allLeftTabs</hl></td><td> All tabs to the left of the <hl>#currentTab</hl>
+			</td></tr><tr><td> <hl>#leftmostTab</hl></td><td> The left-most tab in the current window
+			</td></tr><tr><td colspan="2"> <hr>
+			</td></tr><tr><td> <hl>#rightTab</hl></td><td> The tab to the right of the <hl>#currentTab</hl>
+			</td></tr><tr><td> <hl>#rightTabWrap</hl></td><td> The tab to the right of the <hl>#currentTab</hl> with wrap-around
+			</td></tr><tr><td> <hl>#allRightTabs</hl></td><td> All tabs to the right of the <hl>#currentTab</hl>
+			</td></tr><tr><td> <hl>#rightmostTab</hl></td><td> The right-most tab in the current window
+			</td></tr><tr><td colspan="2"> <hr>
+			</td></tr><tr><td> <hl>#otherTabs</hl></td><td> All tabs in the current window except the active tab
+			</td></tr><tr><td> <hl>#otherTabsAllWins</hl></td><td> All tabs in all windows except the current tab
+			</td></tr><tr><td> <hl>#currWinTabs</hl></td><td> All tabs in the current window
+			</td></tr><tr><td> <hl>#mruTabs</hl></td><td> All tabs in the current window in MRU order
+			</td></tr><tr><td> <hl>#mruTabsAllWins</hl></td><td> All tabs in all windows in MRU order
+			</td></tr><tr><td> <hl>#allTabs</hl></td><td> All tabs from left to right in all windows from oldest to newest
+			</td></tr></tbody></table>
+		</desc>
+	</ioelem>
+	<ioelem id="customTabSel">
+		<hd>Custom tab-selection <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr></hd>
+		<desc>
+			<img src="../img/custTabSelName.png" align="right" width="379" style="margin: 0 0 0 16px">
+			<hr b="3">
+			The name of any of the custom tab selections defined by the user. <hr b="2">
+			The name matching is done ignoring letter case and redundant white spaces.
+		</desc>
+	</ioelem>
+	<ioelem id="arrayOf">
+		<hd>Array of TabSpec <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array" target="_blank" extref="">Array</a></attr></hd>
+		<desc>
+			An array containing one or more <hl type="">TabSpec</hl> values. The resulting tab set will be the union of all tab specifiers in the array. <hr b="3">
+			<c b2="">Example:</c> <code class=" language-js"><span class="token punctuation">[</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token constant" href="TAB_ID.htm" acapi="">TAB_ID</a><span class="token punctuation">,</span> <span class="token string">'#newestTab'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">not</span><span class="token operator">:</span><span class="token string">'#selectedTabs'</span><span class="token punctuation">}</span> <span class="token punctuation">]</span></code> <hr b="3">
+			This gives the tab the script is running in plus the newest tab plus all tabs that are not selected.
+		</desc>
+	</ioelem>
+	</signat>
+	<hr b="">
+	<h4 hu="">Examples</h4>
+	Pin the tab the script is running in.
+	<pre class=" language-js"><code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token constant" href="TAB_ID.htm" acapi="">TAB_ID</a><span class="token punctuation">,</span> <span class="token string">'pinned'</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Open a URL in the tab to the left.
+	<pre class=" language-js"><code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="openURL.htm" acapi="">openURL</a><span class="token punctuation">(</span><span class="token string">'http://example.com'</span><span class="token punctuation">,</span> <span class="token string">'#leftTab'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Mute all tabs that are not pinned.
+	<pre class=" language-js"><code class=" language-js"><span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="setTabState.htm" acapi="">setTabState</a><span class="token punctuation">(</span> <span class="token punctuation">{</span><span class="token propLiteral">not</span><span class="token operator">:</span><span class="token string">'#pinnedTabs'</span><span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token string">'muted'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	<hr b="4">
+	Get the IDs of the current tab plus all tabs that are not in the current window.
+	<pre class=" language-js"><code class=" language-js"><span class="token keyword">let</span> <span class="token identifier">tabIds</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="getTabIds.htm" acapi="">getTabIds</a><span class="token punctuation">(</span> <span class="token punctuation">[</span><span class="token string">'#currentTab'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token propLiteral">not</span><span class="token operator">:</span><span class="token string">'#currWinTabs'</span><span class="token punctuation">}</span><span class="token punctuation">]</span> <span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+
+	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

@@ -1,0 +1,384 @@
+<html><head>
+	<title>Triggers: Shortcuts, Gestures &amp; Events - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>
+<tile id="triggers.htm">
+
+<h1>AutoControl Triggers</h1>
+<hr b="2">
+In AutoControl, an action can be triggered by the following methods:
+<ul>
+	<li>Keyboard shortcuts</li>
+	<li>Mouse shortcuts</li>
+	<li>Joystick shortcuts</li>
+	<li>Mouse gestures</li>
+	<li>Browser events</li>
+	<li>Any combination of the above</li>
+</ul>
+All this methods are collectively known as <b><u>TRIGGERS</u></b>. <br>
+<br>
+In the following tables you'll find abundant examples of the different forms a trigger can take.
+<br><br>
+
+
+		<table triggers=""><tbody><tr><th>Trigger</th><th>Description
+	</th></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A while no other keys or buttons are pressed on any device
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd up" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Release A while no other keys or buttons are pressed on any device
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>*</wc> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A while other buttons are, optionally, held down on other devices, except the keyboard. The <u>asterisk</u> acts as a wildcard for keys/buttons on <b>other devices</b>.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A while other keys and buttons are, optionally, held down on any device (including the keyboard). The <u>double asterisk</u> acts as a wildcard for keys/buttons on <b>any device</b>.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>*</wc> + <event class="mouse down" title="Click for options">Middle Btn<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press middle mouse button while other keys and buttons are, optionally, held down on other devices, except the mouse
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="mouse down" title="Click for options">Middle Btn<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press middle mouse button while other keys and buttons are, optionally, held down on any device (including the mouse)
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>*</wc> + <event class="joystk down" title="Click for options">Joy 1 - Btn 1<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press button #1 in joystick #1 while other keys and buttons are, optionally, held down on other devices, except joystick #1
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="joystk down" title="Click for options">Joy 1 - Btn 1<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press button #1 in joystick #1 while other keys and buttons are, optionally, held down on any device (including joystick #1)
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">A<d></d><r>2</r></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A twice
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd up" title="Click for options">A<d></d><r>2</r></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Release A twice
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down hold" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Hold down A for a period of time (click on the key to specify the hold-down period)
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down hold" title="Click for options">A<d></d><r>2</r></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Hold down A for a period of time, twice
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Control<d></d></event> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A while Control is held down
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">A<d></d></event> + <event class="keybrd down" title="Click for options">Control<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press Control while A is held down
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="keybrd up" title="Click for options">Control<d></d></event> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A while Control is NOT held down and, at the same time, other keys and buttons can, optionally, be held down on any device
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">B<d></d></event> + <event class="keybrd up" title="Click for options">C<d></d></event> + <event class="keybrd down" title="Click for options">D<d></d></event> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A while B and D are held down and C is NOT held down
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">D<d></d></event> + <event class="keybrd down" title="Click for options">B<d></d></event> + <event class="keybrd up" title="Click for options">C<d></d></event> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Same as above. The rightmost key must be pressed last, the rest can be pressed in any order
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd on" title="Click for options">Caps Lock<d></d></event> + <event class="mouse down" title="Click for options">Vert. Wheel<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Turn vertical scroll wheel down while Caps Lock is toggled ON
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd off" title="Click for options">Num Lock<d></d></event> + <event class="keybrd down" title="Click for options">Caps Lock<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press Caps Lock while Num Lock is toggled OFF
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="mouse " title="Click for options"><gest>5</gest><d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Drag your mouse downwards while no other keys or buttons are being held down on any device
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>*</wc> + <event class="mouse " title="Click for options"><gest>1</gest><d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Drag your mouse upwards while keys/buttons can, optionally, be held down on other devices, except the mouse
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="mouse " title="Click for options"><gest>7</gest><d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Drag your mouse to the left while keys/buttons can, optionally, be held down on any device (including the mouse)
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Control<d></d></event> + <event class="mouse " title="Click for options"><gest>53</gest><d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Drag your mouse in an L shape while Control is held down
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd on" title="Click for options">Scroll Lock<d></d></event> + <event class="mouse " title="Click for options"><gest>2468</gest><d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Drag your mouse in a diamond shape while Scroll Lock is toggled ON
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="envEvt " title="Click for options">Tab opens<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> This is a browser event. The associated action will fire whenever a tab is opened and no other keys and buttons are pressed on any device.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>*</wc> + <event class="envEvt " title="Click for options">Window opens<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> The action will fire when a window is opened and any keys/buttons are, optionally, being held down on any device.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="envEvt " title="Click for options">Window opens<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Same as above. The single and double wildcards have the same effect on browser events.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="mouse down" title="Click for options">4th Btn<d></d></event> + <event class="envEvt " title="Click for options">Tab closes<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> The action will fire when a tab is closed while the 4th mouse button is being held down
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd on" title="Click for options">Num Lock<d></d></event> + <event class="envEvt " title="Click for options">Tab audio starts<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> The action will fire when a tab starts playing audio while Num Lock is toggled ON
+		</td></tr></tbody></table>
+
+<br><br>
+
+<h3 id="multiStep">Multi-step triggers</h3>
+A trigger can also be a sequence of steps, where each step can be any possible combination as seen in the table above.
+<br><br>
+
+
+<table triggers="" sqncs=""><tbody><tr><th>Trigger</th><th>Description
+	</th></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">B<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">C<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A, then B, then C while no other keys and buttons are held down on any device.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>*</wc> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>*</wc> + <event class="keybrd down" title="Click for options">B<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>*</wc> + <event class="keybrd down" title="Click for options">C<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A, then B, then C while other buttons can, optionally, be held down on other devices.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="keybrd down" title="Click for options">B<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><wc>**</wc> + <event class="keybrd down" title="Click for options">C<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A, then B, then C while other keys/buttons can, optionally, be held down on any device.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Control<d></d></event> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Control<d></d></event> + <event class="keybrd down" title="Click for options">B<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press A and then B while Control is being held down.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Control<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd up" title="Click for options">Control<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press and release Control with no keys/buttons in between. i.e. the trigger will fire its action only if Control is pressed and released without being combined with anything else, such as <b>Ctrl+A</b>, <b>Ctrl+Click</b>, etc.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="joystk down" title="Click for options">Joy 1 - Y Axis down<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="joystk down" title="Click for options">Joy 1 - Y Axis down<d></d></event> + <event class="joystk down" title="Click for options">Joy 1 - X Axis right<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="joystk down" title="Click for options">Joy 1 - X Axis right<d></d></event> + <event class="joystk up" title="Click for options">Joy 1 - Y Axis down<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="joystk down" title="Click for options">Joy 1 - X Axis right<d></d></event> + <event class="joystk down" title="Click for options">Joy 1 - Btn 1<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> On joystick #1, do a quarter circle forward + button #1. This is the famous <b>HADOUKEN COMBO</b> move.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Down<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Down<d></d></event> + <event class="keybrd down" title="Click for options">Right<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Right<d></d></event> + <event class="keybrd up" title="Click for options">Down<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">Right<d></d></event> + <event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Do the HADOUKEN COMBO on the keyboard.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="mouse " title="Click for options"><gest>65432187</gest><d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd on" title="Click for options">Scroll Lock<d></d></event> + <event class="keybrd down" title="Click for options">Caps Lock<d></d></event> + <event class="mouse up" title="Click for options">Vert. Wheel<d></d><r>3</r></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Drag your mouse in a complete circle and then turn the vertical scroll wheel up three notches while holding down Caps Lock and Scroll Lock is toggled ON.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class="negate"></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">B<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press B, not preceded by A. That is, the associated action will NOT fire if you press A and then B
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">B<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class="negate"></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">C<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press C, not preceded by the sequence <b>A » B</b>. That is, the action will NOT fire if you press A then B then C.
+		</td></tr><tr>
+			<td trig=""> 
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">A<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class="negate"></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">B<d></d></event></cont><b></b></combin>
+		
+			<sep button="" actbtn="" hh="newCmb" class=""></sep>
+			<combin><cont><event class="keybrd down" title="Click for options">C<d></d></event></cont><b></b></combin>
+		<sep button="" actbtn="" hh="newCmb"></sep>
+			</td><td desc=""> Press B and then C, but B must not be preceded by A.
+		</td></tr></tbody></table>
+
+</tile>
+
+</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

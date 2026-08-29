@@ -1,0 +1,148 @@
+<html><head>
+	<title>ACtl.runCommand - Scripting API - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="../favicon.ico">
+
+	<link rel="stylesheet" href="../styles.css">
+	<link rel="stylesheet" href="../demo.css">
+			<link rel="stylesheet" href="../../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="../basics.js" defer=""></script>
+	
+	
+	
+	
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class="notranslate"><a href="../default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="../img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoshw></logoshw>
+	
+	<content><centercol>	
+	<script>	
+	var myGlobalVar = "I'm in the page context." ;
+	function myFunction(...args){
+		return myGlobalVar + ' Passed arguments are: ' + args ;
+	}
+	</script>
+	
+	<link rel="stylesheet" href="../scripting.css">
+	<link rel="stylesheet" href="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/themes/prism.min.css">
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/prism.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/components/prism-js-extras.min.js"></script>
+	<script src="../../https@cdnjs.cloudflare.com/ajax/libs/prism/1.19.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"></script>
+	
+	<script src="../scripting.js" defer=""></script>
+	
+	<tile highline="" scripting="">
+			<contcol api="">
+			<h1>ACtl.runCommand</h1>
+			<hr b="">
+			<summary>This function is the API counterpart of the <actstep>open file/program</actstep> action. It can execute commands, run programs and open files. <hr b="3"></summary>
+				<signat>
+		<spec><c actl="">ACtl</c>.runCommand(<arg><name>command</name></arg><arg><m>[</m>,<name>workingDir</name><m>]</m></arg><arg><m>[</m>,<name>getOutput</name><m>]</m></arg>)</spec>				<ioelem>		<hd><name>command</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Any command line, program or file that can be run via the system shell. <br> File paths must be enclosed in quotes if they contain spaces.</desc>
+	</ioelem><ioelem>		<hd><name>workingDir</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr>  <attr>Default: <val>&lt;desktop&gt;</val></attr> </hd>
+		<desc>Path of the directory in which to run <arg>command</arg>. It can be relative to the <a href="script-location.htm" locref="">script's location</a> (if there is one). It can also contain <a href="location-placeholders.htm" locref="">placeholders</a> such as <hl>&lt;desktop&gt;</hl>, <hl>&lt;documents&gt;</hl> and others. <hr b="">
+						It cannot be omitted if you pass a string to the <arg>getOutput</arg> argument.</desc>
+	</ioelem><ioelem>		<hd><name>getOutput</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Glossary/Boolean" target="_blank" extref="">boolean</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr>  <attr>Default: <val>false</val></attr> </hd>
+		<desc><hl>true</hl> or <hl>false</hl> for whether or not to retrieve <arg>command</arg>'s <hl><a href="https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)" target="_blank" extref="">stdout</a></hl> stream. <hr b="2">
+					It can also be the string <hl>'UTF-16'</hl>, in which case the output stream is interpreted as double-byte unicode characters.
+					Shell commands such as <hl><a href="https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/dir" target="_blank" extref="">dir</a></hl> need this in order to show non-Latin characters correctly.</desc>
+	</ioelem><ioelem>		<hd>Returns <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a></attr>  <attr>Resolves to: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object" target="_blank" extref="">Object</a></attr> </hd>
+		<desc>				Returns immediately. The <a href="https://developer.mozilla.org/docs/Web/JavaScript/Guide/Using_promises" target="_blank" extref="">Promise</a> will resolve when <arg>command</arg> has finished.
+				The resolved value will be an object with the following properties:
+						<optelem sml="">		<hd><name>exitCode</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#number_type" target="_blank" extref="">number</a></attr> </hd>
+		<desc>The <a href="https://en.wikipedia.org/wiki/Exit_status" target="_blank" extref="">exit code</a> returned by <arg>command</arg>.</desc>
+	</optelem>
+			<optelem sml="">		<hd><name>stdout</name> <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>The contents of <arg>command</arg>'s <hl><a href="https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)" target="_blank" extref="">stdout</a></hl> stream.
+									This property won't be present if <arg>getOutput</arg> is <hl>false</hl>.</desc>
+	</optelem>
+					</desc>
+	</ioelem><ioelem>		<hd>Throws <attr>Type: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Data_structures#string_type" target="_blank" extref="">string</a></attr> </hd>
+		<desc>Error description if the system fails to run <arg>command</arg>.</desc>
+	</ioelem>	</signat>
+	<h4>Examples</h4>
+	
+	Get the list of files and folders in the desktop. 
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Execute the DIR command and get its output</span>
+<span class="token keyword">let</span> <span class="token punctuation">{</span><span class="token identifier">stdout</span><span class="token punctuation">}</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runCommand.htm" acapi="">runCommand</a><span class="token punctuation">(</span><span class="token string">'dir /b'</span><span class="token punctuation">,</span> <span class="token boolean">true</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Split the output in lines. Each line is a filename</span>
+<span class="token keyword">for</span><span class="token punctuation">(</span> <span class="token keyword">let</span> <span class="token identifier">filename</span> <span class="token keyword">of</span> <span class="token identifier">stdout</span><span class="token punctuation">.</span><span class="token method function property-access">split</span><span class="token punctuation">(</span><span class="token string">'\n'</span><span class="token punctuation">)</span> <span class="token punctuation">)</span>
+	<span class="token console class-name">console</span><span class="token punctuation">.</span><span class="token method function property-access">log</span><span class="token punctuation">(</span><span class="token identifier">filename</span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+	<hr b="4">
+	Take a screenshot of the tab the script is running in and open it in the default image viewer.
+	<pre class=" language-js"><code class=" language-js"><span class="token comment">//Capture the tab the script is running in</span>
+<span class="token keyword">let</span> <span class="token punctuation">[</span><span class="token punctuation">[</span><span class="token punctuation">,</span> <span class="token identifier">dataUri</span><span class="token punctuation">]</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="captureTab.htm" acapi="">captureTab</a><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Save the image to a PNG file in the desktop</span>
+<span class="token keyword">let</span> <span class="token identifier">filePath</span> <span class="token operator">=</span> <span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="saveURL.htm" acapi="">saveURL</a><span class="token punctuation">(</span><span class="token identifier">dataUri</span><span class="token punctuation">,</span> <span class="token string">'&lt;desktop&gt;/tab capture.png'</span><span class="token punctuation">)</span> <span class="token punctuation">;</span>
+<span class="token comment">//Open the image file (between quotes to guard for spaces)</span>
+<span class="token keyword">await</span> <span class="token maybe-class-name" actl="">ACtl</span><span class="token punctuation">.</span><a class="token method function property-access" href="runCommand.htm" acapi="">runCommand</a><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">"</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span><span class="token identifier">filePath</span><span class="token interpolation-punctuation punctuation">}</span></span><span class="token string">"</span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span> <span class="token punctuation">;</span></code></pre>
+	
+		</contcol>
+	<apimenu><a href="../scripting/default.htm" big="">
+			Scripting API		</a><a href="script-isolation.htm" big="">
+			Script Isolation		</a><a href="asynchronicity.htm" big="">
+			Asynchronicity		</a><a href="background-scripts.htm" big="">
+			Backgrnd Scripts		</a><a href="gui-vs-api.htm" big="">
+			GUI vs API		</a><a href="include.htm">
+			<x>ACtl</x><y>.</y><z>include</z>		</a><a href="import.htm">
+			<x>ACtl</x><y>.</y><z>import</z>		</a><a href="getFile.htm">
+			<x>ACtl</x><y>.</y><z>getFile</z>		</a><a href="saveFile.htm">
+			<x>ACtl</x><y>.</y><z>saveFile</z>		</a><a href="saveURL.htm">
+			<x>ACtl</x><y>.</y><z>saveURL</z>		</a><a href="openURL.htm">
+			<x>ACtl</x><y>.</y><z>openURL</z>		</a><a href="closeTab.htm">
+			<x>ACtl</x><y>.</y><z>closeTab</z>		</a><a href="runInTab.htm">
+			<x>ACtl</x><y>.</y><z>runInTab</z>		</a><a href="runInFrames.htm">
+			<x>ACtl</x><y>.</y><z>runInFrames</z>		</a><a href="runInPageCtx.htm">
+			<x>ACtl</x><y>.</y><z>runInPageCtx</z>		</a><a href="getTabInfo.htm">
+			<x>ACtl</x><y>.</y><z>getTabInfo</z>		</a><a href="getTabIds.htm">
+			<x>ACtl</x><y>.</y><z>getTabIds</z>		</a><a href="TAB_ID.htm">
+			<x>ACtl</x><y>.</y><z const="">TAB_ID</z>		</a><a href="setTabState.htm">
+			<x>ACtl</x><y>.</y><z>setTabState</z>		</a><a href="captureTab.htm">
+			<x>ACtl</x><y>.</y><z>captureTab</z>		</a><a href="execAction.htm">
+			<x>ACtl</x><y>.</y><z>execAction</z>		</a><a href="runCommand.htm" selected="">
+			<x>ACtl</x><y>.</y><z>runCommand</z>		</a><a href="getClipboard.htm">
+			<x>ACtl</x><y>.</y><z>getClipboard</z>		</a><a href="setClipboard.htm">
+			<x>ACtl</x><y>.</y><z>setClipboard</z>		</a><a href="expand.htm">
+			<x>ACtl</x><y>.</y><z>expand</z>		</a><a href="switchState.htm">
+			<x>ACtl</x><y>.</y><z>switchState</z>		</a><a href="var.htm">
+			<x>ACtl</x><y>.</y><z>var</z>		</a><a href="pubVar.htm">
+			<x>ACtl</x><y>.</y><z>pubVar</z>		</a><a href="on.htm">
+			<x>ACtl</x><y>.</y><z>on</z>		</a><a href="off.htm">
+			<x>ACtl</x><y>.</y><z>off</z>		</a><a href="sleep.htm">
+			<x>ACtl</x><y>.</y><z>sleep</z>		</a><a href="STOP_CHAIN.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_CHAIN</z>		</a><a href="STOP_FULL_SEQ.htm">
+			<x>ACtl</x><y>.</y><z const="">STOP_FULL_SEQ</z>		</a></apimenu>	</tile>
+	
+	</centercol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="../faq.htm">Frequent Questions</a> |
+			<a href="../update-history.htm">What's New</a> |
+			<a href="../donations.htm">Support the Project</a> |
+			<a href="../privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	
+	
+</body></html>

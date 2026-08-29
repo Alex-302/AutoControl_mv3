@@ -1,0 +1,215 @@
+<html><head>
+	<title>Use Ctrl+Tab to switch to last used tab in Google Chrome - AutoControl</title>
+
+
+
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel="stylesheet" href="styles.css">
+	<link rel="stylesheet" href="demo.css">
+			<link rel="stylesheet" href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+
+	<script src="basics.js" defer=""></script>
+
+
+
+
+
+	</head>
+	<body>
+
+	<header class="">
+		<logo class="notranslate"><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+
+		<btns>
+			<a forum="" href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install="" href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+
+		<hr>
+	</header>
+	<logoshw></logoshw>
+
+	<content><centercol>
+<tile highline="">
+	<h1>Switch to the last used tab in Google Chrome</h1>
+	<hr b="3">
+	<b>AutoControl</b> lets you redefine Chrome's factory shortcuts to perform any desired action.
+	<hr b="2">
+	Let's see how to redefine <key>Ctrl</key>+<key>Tab</key> for the following use cases:
+	<hr b="2">
+	<ol toc="">
+	<li><a href="#last-two-tabs">Switch back and forth between the last two used tabs</a></li>
+	<li><a href="switch-to-last-used-tab-in-chrome_MRU-tabs.htm">Cycle through all tabs in MRU order</a></li>
+	<li><a href="#tab-switcher">Cycle through a tab list with thumbnail previews</a></li>
+	<li><a href="#smart-switching">Combining use cases 2 and 3 in a smart way</a></li>
+	</ol>
+
+	<hr b="6">
+
+	<h2 orditem="" id="last-two-tabs">Switch back and forth between the last two used tabs</h2>
+	This is the simplest case. Just set <b>Ctrl+Tab</b> as the trigger and <b>Switch to previous tab</b> as the action.
+
+	<hr b="2"> <img src="img/ctrlTabSwitchPrevTab.png" center="">
+
+	<hr b="8"> <hr b="5">
+
+	<h2 orditem="" id="MRU-tabs">Cycle through all tabs in MRU order</h2>
+	<c bb="">M</c>ost <c bb="">R</c>ecently <c bb="">U</c>sed order means the opposite order in which you used each tab.
+	The idea is to keep switching back to a previously used tab until we find the one we want.
+	<hr b="2">
+	The usual technique to do this is to hold down <key>Ctrl</key> and then press <key>Tab</key> repeatedly.
+	Once we get to the desired tab, we release <key>Ctrl</key>.
+	<hr b="4">
+	So, we need two shortcuts for this: <hr b="2">
+	<b>1.</b> <key>Ctrl</key>+<key>Tab</key> for switching back without altering the used order of the tabs. <hr b="3">
+	<b>2.</b> Release of <key>Ctrl</key> for committing to the current tab. <hr b="4">
+
+	Follow this step by step demonstration for how to do it:
+
+	<hr b="2"> <center><video src="../https@www.youtube.com/watch@v=_dtoIT_xuVE.mp4" controls="" preload="metadata" style="width: 740px; max-width: 100%; background: #000;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">Your browser does not support the video tag.</video>
+	<a href="https://www.youtube.com/watch?v=_dtoIT_xuVE" target="_blank" style="display: none">Watch on YouTube</a></center>
+
+	<hr b="8"> <hr b="6">
+
+	<h2 orditem="" id="tab-switcher">Cycle through a tab list with thumbnail previews</h2>
+	For this use case, we want the equivalent of the <key>Alt</key>+<key>Tab</key> task switcher in Windows, but for switching between tabs, not programs.
+	<hr b="2">
+	AutoControl has the ability to display a menu with a list of tabs and other elements.
+	We use the <actstep>Open menu</actstep> action for this, as shown below:
+
+	<hr b="2"> <img src="img/openTabSwitcher.png" center=""> <hr b="6">
+
+	Which gives us a tab menu with thumbnail previews in MRU order, like this:
+
+	<hr b="2"> <img src="img/tabSwitcher.png" center=""> <hr b="4">
+
+	We can use the mouse or the arrow keys to select the tab we want, as a typical menu. <br>
+	But we can make it better. AutoControl menus have what's called an <b>Item Mark</b>,
+	which is an outline around an item that marks the item we want to select. <hr b="2">
+	We can use the <actstep>move item mark</actstep> action to move this mark from item to item, as shown below:
+
+	<hr b="2"> <img src="img/moveItemMark.png" center=""> <hr b="3">
+
+	Now, when we press <key>Ctrl</key>+<key>Tab</key>, two actions are done:
+	First, the tab menu is opened and then the <b>item mark</b> moves forward. <br>
+	If we press <key>Tab</key> again, those two actions will be done again, but since the menu is already open,
+	it won't be opened again and the <b>item mark</b> will move one more step forward, as shown below:
+
+	<hr b="3"> <img src="img/tabSwitcher.gif" center=""> <hr b="7">
+
+	Then, when we <b>release</b> <key>Ctrl</key>, we want the marked item (the one with the border around it) to be selected and the menu closed.
+	That's also done with two actions in sequence, as follows:
+
+	<hr b="2"> <img src="img/selectMarkedItem.png" center=""> <hr b="2">
+
+	We added the double wildcard (<wc>**</wc>) to the <b>Ctrl</b> key so that the shortcut works even if <b>Ctrl</b> is released while <b>Tab</b> is still pressed.
+	See the steps for the <a href="switch-to-last-used-tab-in-chrome_MRU-tabs.htm">Cycle through all tabs in MRU order</a> use case to see how that's done.
+	<hr b="3">
+
+	Watch the final result in this video: <hr b="2">
+	<video src="../https@www.youtube.com/watch@v=2HC7_EI8db4.mp4" controls="" preload="metadata" style="width: 740px; max-width: 100%; background: #000;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">Your browser does not support the video tag.</video>
+	<a href="https://www.youtube.com/watch?v=2HC7_EI8db4" target="_blank" style="display: none">Watch on YouTube</a>
+	<hr b="3">
+
+	<hr b="8"> <hr b="7">
+
+	<h2 orditem="" id="smart-switching">Combining use cases 2 and 3 in a smart way</h2>
+	Let's now see how to put together the two previous use cases, as follows: <hr b="3">
+	<b>1.</b> If <key>Ctrl</key>+<key>Tab</key> is held down for 0.4 seconds or more, a tab menu will popup (<a href="#tab-switcher">use case #3</a>) <hr b="3">
+	<b>2.</b> If <key>Tab</key> is released before 0.4 seconds, it will immediately switch to the previous tab (<a href="switch-to-last-used-tab-in-chrome_MRU-tabs.htm">use case #2</a>) <hr b="4">
+
+	This allows us to have both features in a single keyboard shortcut. <hr b="2">
+	The way to achieve this is slightly more complex than the two previous use cases. You can skip over the explanation of how it works and click on
+	the <b>Import</b> yellow button below. This will automatically add the necessary actions to your existing AutoControl settings.
+	<hr b="4">
+	<center>
+		<acs>
+			<img src="img/SmartCtrlTabSwich.png">
+			<div>
+				<hdr><img src="img/icon_AutoCtrl.png">AutoControl settings</hdr>
+				<tit>Smart Ctrl+Tab switching</tit>
+				<a href="settings/Smart Ctrl+Tab switching.acs">
+					<button value="imprtSttgs" title="Add these settings to your existing AutoControl setings">Import</button>
+					<button value="viewSttgs" title="Examine these settings in a separate window before importing">View</button>
+					<button dwnld="" title="Save these settings to a file on your computer">Download</button>
+				</a>
+			</div>
+		</acs>
+	</center>
+	<hr b="6">
+	As you can see, the above settings package contains 6 actions. Let's go one by one explaning what they do.
+
+	<hr b="3"> The first 4 actions implement <a href="#tab-switcher">use case #3</a>.
+
+	<hr b="3"> <img src="img/SCTS_act1.png" center=""> <hr b="">
+	When the <b>Tab switcher</b> menu is <u>not</u> open, holding down <key>Ctrl</key>+<key>Tab</key> for 0.4 secons will open the <b>Tab switcher</b> menu.
+
+	<hr b="5"> <img src="img/SCTS_act2.png" center=""> <hr b="">
+	When the <b>Tab switcher</b> menu is open, pressing <key>Ctrl</key>+<key>Tab</key> will move the item mark to the next tab.
+
+	<hr b="5"> <img src="img/SCTS_act3.png" center=""> <hr b="">
+	When the <b>Tab switcher</b> menu is open, pressing <key>Ctrl</key>+<key>Shift</key>+<key>Tab</key> will move the item mark to the previous tab.
+
+	<hr b="5"> <img src="img/SCTS_act4.png" center=""> <hr b="">
+	When the <b>Tab switcher</b> menu is open, releasing <key>Ctrl</key> will select the marked tab (i.e. the tab will be activated) and the
+	<b>Tab switcher</b> menu will be closed.
+
+	<hr b="7"> The last 2 actions implement <a href="switch-to-last-used-tab-in-chrome_MRU-tabs.htm">use case #2</a>.
+
+	<hr b="3"> <img src="img/SCTS_act5.png" center=""> <hr b="">
+	When the <b>Tab switcher</b> menu is <u>not</u> open, releasing <key>Tab</key> while <key>Ctrl</key> is held down (or vice versa) will activate
+	the <u>previous tab</u> without changing the tab's position in the MRU order.
+
+	<hr b="5"> <img src="img/SCTS_act6.png" center=""> <hr b="">
+	When the <b>Tab switcher</b> menu is <u>not</u> open, releasing <key>Ctrl</key> will put the <u>current tab</u> at the top of the MRU order.
+
+</tile>
+
+</centercol></content>
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+
+
+<script>
+(function(){
+	var acsLink = document.querySelector('acs a[href$=".acs"]');
+	if(!acsLink) return;
+	var rawUrl = acsLink.getAttribute('href');
+	var url = acsLink.href;
+	var fname = decodeURIComponent(rawUrl.split('/').pop());
+	function download(){
+		fetch(url).then(function(r){ return r.blob(); }).then(function(b){
+			var a = document.createElement('a');
+			a.href = URL.createObjectURL(b);
+			a.download = fname;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+		});
+	}
+	function view(){ window.open(url, '_blank'); }
+	acsLink.querySelectorAll('button').forEach(function(btn){
+		btn.addEventListener('click', function(ev){
+			if(btn.hasAttribute('dwnld')){ ev.preventDefault(); ev.stopPropagation(); download(); return; }
+			if(document.querySelector('ACtlExt[ver]')) return;
+			ev.preventDefault(); ev.stopPropagation();
+			if(btn.value == 'imprtSttgs') download();
+			else if(btn.value == 'viewSttgs') view();
+		});
+	});
+})();
+</script>
+</body></html>
