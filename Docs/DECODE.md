@@ -28,7 +28,8 @@
 | `_mo` | (domain) | `"www.autocontrol.app"` (file10.js) — site-bridge gate host |
 | `_Zo` | (endpoint base) | `"https://" + _mo + "/"` — `_Zo + "appEvent"` = the telemetry URL; `_4a` help links (file78) |
 | `_9n` | (mirror host) | `"alex-302.github.io"` (file10.js) — GitHub Pages mirror of the site; accepted by the webSettgs gate since 2026-08-29 |
-| `_Zr(tabId)` | Site-bridge injection (file62_mv3) | On `tabs.onUpdated` "complete" (`_Fd`=6) for a tab whose hostname is `_mo`/`_9n`: `chrome.scripting.executeScript({target:{tabId}, world:"ISOLATED", runAt:"document_start", func, args:["2025.4.22"]})` — MV2 parity (tabs.executeScript = isolated world; the MAIN-world `__acInjectCode` has no `chrome.runtime`). Injects: `window._ACtlExt[ver]`, a `webSettgs` listener sending `{[btn.value]: decodeURI(closest("a").href)}` to the SW, and an immediate `redirSttgs` probe |
+| `_Zr(tabId)` | Site-bridge injection (file62_mv3) | On `tabs.onUpdated` "complete" (`_Fd`=6) for a tab whose hostname is `_mo`/`_9n`: `chrome.scripting.executeScript({target:{tabId}, world:"ISOLATED", injectImmediately:true, func, args:["2025.4.22"]})` — MV2 parity (tabs.executeScript = isolated world; the MAIN-world `__acInjectCode` has no `chrome.runtime`). ⚠ `ScriptInjection` has NO `runAt` (only tabs.executeScript/contentScripts.register do) — using it throws `Unexpected property: 'runAt'` SYNCHRONOUSLY (the .catch never fires); the equivalent is `injectImmediately:true` (Chrome 102+). Injects: `window._ACtlExt[ver]`, a `webSettgs` listener sending `{[btn.value]: decodeURI(closest("a").href)}` to the SW, and an immediate `redirSttgs` probe. ⚠ Hardened 2026-08-29: `(document.head||document.documentElement)` (head can be NULL at document_start) + try/catch (listener registers FIRST). sw.js `__acReinjectSiteBridge()` also calls `_Zr` for already-open site tabs at SW start (MV2's `_zg` re-injection; a tab opened before SW start otherwise never gets the bridge — onUpdated "complete" won't re-fire). ⚠ Hardened 2026-08-30: `c()` guards `chrome.runtime.sendMessage` + the `webSettgs` listener wraps the call in try/catch — after an extension reload the OLD injected listener (dead context) throws `Extension context invalidated` / `chrome.runtime undefined` on every Import/View click (noise; the NEW injection still handles the event). The stale listener can only be purged by reloading the site tab |
+| `_ja(url)` | Site-import (SW re-implementation 2026-08-29) | MV2: file78 `_ja` = fetch the `.acs` (`_1p`+`_mg`) → `_kp(b,"add",!0)` → `_uw` → `_lj` (UI: toasts, permission prompts). MV3: file78 is NOT bundled → `window._ja` undefined → file48 `m()` `imprtSttgs` died in the SW. sw.js re-implements `window._ja` with the UI-free pipeline: fetch → `JSON.parse` → `_Qj({}.add(_2d,data))` (`_2d` = default shape `{trigActList:[],customEntities:{},toolbarBtns:{},sections:[]}`) → `_9i(_2d,cb)` (load existing) → `_K(l,merged,true,true)` (dedupe/renumber) → `_4p(l,merged,false)` (merge-add) → `_bd(out)` (save) → `_ku()` (config rebuild → native type 60). No toast (page-side `_lj` not ported). ⚠ file48 `m()` routes `{imprtSttgs}` via `(window._ja||l)(url)` — the MV2 `l` (`_Es` debounce → `_0j()` → settings-page window via `_0s()`/`chrome.extension.getViews({tabId})[0]`) CANNOT work in the MV3 SW (getViews is empty) — direct `window._ja` call required |
 | `webSettgs` bridge | page → extension | Site pages (basics.js) dispatch `webSettgs` from `acs button[value]` clicks ONLY when `ACtlExt[ver]` is in the DOM (i.e., the extension injected it). SW side (file48 `m()`): `imprtSttgs:<url>` → settings import (`_ja`), `viewSttgs:<url>` → open `main.html?file=<url>`, `redirSttgs:<url>` → update current tab |
 | `__acTel` | Telemetry gate (MV3) | `false` by default; read from `chrome.storage.local` `advOpts.telemetry`; live via `storage.onChanged`; gating `_Ot` |
 | `_9k` | localStorage setter | **`localStorage.setItem`/`removeItem`** (NOT `chrome.storage.local`!). `_9k(a,b)` = `setItem(a, JSON.stringify(b))`, `b==null` = `removeItem(a)`. Used for ephemeral flags: `showNotif`, `noStupEvt`, `extensionState`, `diagnostics`, `NHInitData`. **In the SW this is a no-op/undefined-safe — SW keeps such flags in memory instead.** |
@@ -84,6 +85,9 @@
 | `_mj` | 721 | ← | Window focus change |
 | `_9g` | 740 | ← | Clipboard format |
 | `_Hf` | 750 | ← | **Trigger event** |
+| `_b` | 170 | → | **Open menu** `{menuData:{style,items:[{title,icon}]}, menuEntityNum, position, alignHorz, alignVert, menuSystem, usePrvMsPos}` → `true` (file26 `_Bp`); menuNum 7 = the tab-switcher menu |
+| `_Ws` | 175 | → | **Menu state query / close** — `null` content = "is a menu open?" → `true`/falsy (file26 `H()`); the `closeMenu` action also sends `175 null` |
+| `_3f` | 185 | → | **Menu state detail** `{usePrvMsPos}` → `{hilited, hovered, marked}` item indices; `{}` when no menu open |
 | `_fo` | 760 | ← | Action/gesture event |
 | `_kw` | 800 | ← | Error |
 | `_xp` | 920 | → | Ping |
@@ -265,10 +269,29 @@
 | `_Ku` | 9 | Precond type: keyStateChange |
 | `_ot` | 2 | Precond type: chromeState active |
 | `_8` | 6 | Precond type: wildcard |
+| `_0y` | 13 | Precond type: menuState `{type:13,menuNum,negate?}` — **`negate:true` = "menu must NOT be open"** (the Smart Ctrl+Tab set depends on it; native evaluates it itself) |
 | `_2k` | 4 | Precond type: prevSeqStep |
 | PBC | — | Pressed-button-count: `{devId:count}`; up-event `{1:-1}` |
 | mapKey | keyId+22025 | Key in payload.map (key 2→22027, 1026→23051, 85→22110) |
 | `R()` (in `_mh`) | Compile | The `M||V` branch (`r.type==_mp && state/!state`) with `r.block&&I` emits `{type:0,block:true}` under key 2 AND key 1026 — **source of the RCM/LCM bug** |
+| `_lk(a)` | menuNum | `menuSpec:7` → 7 (negative when the entity is missing) — the `{type:13}` precond value |
+
+## Object.prototype patches (file67.js) — `.in` POLYFILL GOTCHA (2026-08-30)
+- file67 defines on `Object.prototype`: `in` (membership via `_Xt`), `includes`
+  (deep equality), `add` (merge), `del`, `keep` (in-place whitelist),
+  `sc` (shallow copy), `[Symbol.iterator]` (yields `[key,value]` pairs).
+- `keep(...names)` calls `b.in(a)` with **`a` = an ARRAY** — so `.in` MUST
+  support the array form `'x'.in(['x','y'])` AND the scalar form `'x'.in('x','y')`.
+- **The bundle is sloppy** (concatenation starts with `;` + comment, no
+  `'use strict'`) → file67's `_Xt(this,...a)` gets a BOXED `this` on
+  primitives (`new String('x') === 'x'` is false) → `.in` was broken for
+  EVERYTHING in the SW.
+- sw.js re-patches `.in` (unboxing + `[].concat(...a)` flatten + strict `===`).
+  **The earlier indexOf version broke the array form** → `keep()` deleted
+  every non-kept property INCLUDING `negate:true` on menuState preconds →
+  every Ctrl+Tab trigger compiled as "menu 7 IS open" → openMenu never
+  fired → the tab-switcher list never opened after a reload (2026-08-30).
+  mh_test B51 pins both forms + the compiled negate flags.
 
 ## Trigger decode — `_pg` keying
 - `b = _pg[a.id - _Sk + _su]` — lookup into the transform table (URL/tab

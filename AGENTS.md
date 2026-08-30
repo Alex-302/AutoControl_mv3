@@ -62,6 +62,81 @@ This includes comments, log strings, and error messages in `sw.js`,
 - When the project structure changes, keep the Repository layout section
   valid.
 
+## CDP debugging (Canary with --remote-debugging-port)
+
+- **Chrome 136+ gotcha**: `--remote-debugging-port=N` is SILENTLY IGNORED
+  unless a NON-DEFAULT `--user-data-dir` is also passed — passing the default
+  profile path counts as "not specified" (verified on Chrome 150). To debug
+  the REAL profile: create a junction to it and pass the junction path:
+  `New-Item -ItemType Junction -Path "...\Chrome SxS\User Data CDP" -Target "...\Chrome SxS\User Data"`
+  → launch `chrome.exe --remote-debugging-port=9223 "--user-data-dir=...\User Data CDP"`.
+  The extension/toggles survive (same directory). Also: PS `Start-Process
+  -ArgumentList` does NOT quote args — a path with spaces gets split into
+  URL args (launched a broken instance with the stable profile once).
+- **SW internals are IIFE-local**: `port`/`connected`/`handshakeDone` in
+  sw.js are NOT reachable from Runtime.evaluate (global scope); the bundle's
+  `var`-declared globals (`_Yp` tab cache, `_if` customEntities store, `_ek`
+  enabled-trigger action map, `_Qj`, `_K`, `_4p`, `_mh`, `_Gf`, `_Lk`, `_9i`,
+  `_bd`, `_bj`) ARE. `_Yp` = TAB CACHE keyed by tabId — NOT the config map!
+  The type-60 payload (`m.map`, `m.list`) is built by
+  `_mh(trigActList, mouseGest, advOpts)` (`_no`), sent via `_Lk(_4e=60, c)`
+  → sw.js postMsg.
+- **Config-map keys** (mapKey = keyId + 22025): 22027 = key 2 (RMB-down,
+  block:true = gesture start), 23051 = key 1026 (RMB-up, softened), 22034 =
+  key 9 (Tab; Ctrl+Tab entries have evtId 6145/delay 400/menuNum 7), 23058 =
+  1033 (Tab-up), 28170 = 6145 (Tab held), 23211/23212 = keys 186/187.
+- **Diagnostic scripts** (`Test/cdp_*.js`, Node ≥21, run against a live
+  Canary): `cdp_storage_dump.js` (storage + `_ek`/`_if`/`_Yp` dump),
+  `cdp_import_sim.js` (runs the `_ja` merge pipeline in-memory with a real
+  .acs file — NO save; proves `{}.add(_2d,data)`→`_Qj`→`_K`→`_4p`→`_bj`
+  preserves trigActList), `cdp_sw_state.js`, `cdp_native_check.js` (ping 920
+  via `_Lk`), `cdp_lk_trace.js` (wraps `_Lk` to capture type-60 payloads;
+  saves the original in `window.__acOrigLk`), `cdp_unwrap.js` (restores
+  `__acOrigLk` or the `_acNativeSend` alias), `cdp_menu_state.js` (type 185
+  menu state query), `cdp_action_probe2.js` + `_ac_keypress2.ps1` (real OS
+  key injection via `keybd_event` — passes through the native LL hooks;
+  wraps `_w` to trace action execution). 2026-08-30 additions:
+  `cdp_keytest2.js` (key-hold test: `hold 700` = Ctrl+Tab hold, `quick` =
+  tap, `esc` = Esc — captures SW console + `__acLogBuf`; THE regression
+  test for the `.in` polyfill / menu-state negate fix), `cdp_payload_dump.js`
+  (rebuilds the type-60 payload in-memory via `_Gf`→`_mh` and dumps the
+  compiled entries per mapKey — check `negate` on `{type:13,menuNum:7}`
+  preconds; writes `%TEMP%\ac_payload.json`), `cdp_hold_menu.js` (holds
+  Ctrl+Tab 4s and queries the native menu state via `_Lk(175,null)` —
+  `true` = menu open while holding), `cdp_negate_probe.js` (probe
+  `_mh`/`sc()`/`keep()` with a synthetic negate:true menuState trigger),
+  `cdp_in_probe.js` (runtime probe of `Object.prototype.in` — scalar AND
+  array forms), `cdp_full_trace.js` (wraps console + `_Lk`, injects a key
+  hold, dumps everything), `cdp_logbuf.js` (dump `__acLogBuf` with an
+  optional regex filter), `cdp_capture_state.js` (capture flags +
+  AC-CAPTURE log lines), `cdp_bundle_sync.js` (source↔bundle marker check
+  after rebuilds), `cdp_reload.js` (SW `chrome.runtime.reload()`),
+  `cdp_exts.js`/`cdp_msg_watch.js`/`cdp_native_probe.js`/
+  `cdp_marker.js`/`cdp_keytest.js`/`cdp_restore_lk.js`/
+  `cdp_rebuild_capture.js`/`cdp_fresh_trigger_test.js` (older one-offs —
+  superseded by the above, harmless to keep), `_ac_tabtap.ps1` (single Tab
+  tap for menu-mark moves), `_ac_keypress.ps1` (older keypress injector).
+- **⚠ NEVER `delete window._Lk`** — the shim's `_Lk` lives inside its IIFE
+  and `window._Lk` is the ONLY global reference; deleting it breaks
+  `closeMenu`/`moveSelectMark` (free-variable `_Lk` → ReferenceError → the
+  Tab switcher menu opens but never closes, mark never moves) until the SW
+  restarts (CDP attaches keep the SW alive!). Restore with
+  `window._Lk = (a,b,c,g) => _acNativeSend(a,b,c,g)` (exactly the shim's SW
+  behavior). Verified 2026-08-30 the hard way. Action runners take functions
+  from the DEEP-FROZEN `_Du` map — wrapping `window._Oa`/`_eu` does NOT
+  intercept; wrap `_w` (the lookup choke point) instead. Native-executed
+  actions (moveSelectMark) produce NO `[AC-ACT] ACT` log; extension-executed
+  ones do. Type 185 (menu state) returns `{hilited, hovered, marked}` item
+  indices; type 175 closes the menu; type 170 opens it (menuData).
+- **Import pipeline verified end-to-end (2026-08-30)**: with `! tabs test.acs`
+  (triggers 116-122 + section 6 + menuSpec 7) storage ends with all 6
+  triggers, `_ek` compiles 116-122, type 60 reaches the native with key 9
+  (Tab) + menuNum 7 entries, native answers ping 920. The earlier
+  "import left trigActList empty" reports were NOT reproducible — the
+  pipeline is sound; suspect stale pre-fix builds / SFE View boot race /
+  running storage scripts in the RUN SCRIPT sandbox (no `chrome` there —
+  use the settings-page F12 console instead).
+
 ## Test harnesses (used repeatedly — keep them working)
 
 - **`mv3-build/mh_test.js`** — Node `vm` harness loading `sw_core_bundle.js`
@@ -74,7 +149,7 @@ This includes comments, log strings, and error messages in `sw.js`,
   `_Yh` vs `self._Yh`), XHR-shim headers smoke, `_Yh` callback-style smoke,
   and userAPI dispatch (must be exactly 1 answering listener). Output
   `[PASS]`/`[FAIL]`/`[GAP ]`/`[FIXED?]`; exit 1 on FAIL. Path-independent
-  (`__dirname`). Current: 80 pass / 0 gaps / 0 FAIL.
+  (`__dirname`). Current: 92 pass / 0 gaps / 0 FAIL.
 - **`Test/SCRIPTING-API-TEST.js`** — in-browser self-test of the whole ACtl
   API (23 tests), run via RUN SCRIPT on a normal page. 23/23 stable. Every
   failure prints an unmissable banner (`[AC-API-TEST: FAIL]`) + a final
@@ -295,6 +370,16 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   flood ~8s after the OFF → `port.disconnect()` → fresh Zero+engine. Stage
   2→3: `chrome.runtime.reload()` (proven heal). Normal mode produces ZERO
   760s — any streak is unambiguous. Log `[AC-CAPTURE]`. mh_test B33/B35.
+  **Stale-armed release** (`AC_CAPTURE_STALE_ARMED_MS` = 5 min): an armed
+  capture with NO 750 for 5 min (760 handler + a 15s sweep) is released —
+  the page's own OFF never came (page died/reloaded / editor abandoned).
+  60s was TOO AGGRESSIVE (user 2026-08-30 D-15): the gesture tester
+  (file30) re-arms ONLY on a window focus event, so a >60s pause
+  mid-testing released the capture and the next draw was NOT recorded
+  ("line draws, gesture not recorded" — first draw fine, after a pause
+  nothing). 5 min keeps the heal for genuinely stuck sessions (the
+  original stuck-capture episodes lasted hours) without cutting a
+  thinking pause.
 - **Why no rate metric can detect recording**: each key = a down/up PAIR
   (vk + vk+1024, ~120-250ms apart) — human typing in the combo editor looks
   "dense" by every threshold. The `__acCaptureOn` flag is the ONLY reliable
@@ -420,9 +505,15 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   "Queue stuck" force-shifts).
 - **RCM/LCM bug (SOLVED v6+v7)** — gesture presets compile `block:true`
   under key 2 AND key 1026 → the native swallowed the RCM-up → LCM read as a
-  rocker combo. v6 `STRIP_RBTN_BLOCK` (soften block:true→false for both
-  keys) + v7 `RBTN-ESC` (synthetic Esc after a gesture closes the stray
-  context menu). Details: `Docs/archive/RIGHT-CLICK-ISSUE.md`.
+  rocker combo. v6 `STRIP_RBTN_BLOCK` + v7 `RBTN-ESC` (synthetic Esc after a
+  gesture closes the stray context menu). **UPDATE (2026-08-30)**: v6
+  originally softened BOTH keys — that KILLED mouse gestures (block on key 2
+  RMB-DOWN is what makes the native intercept the right button and start
+  gesture recognition; with block:false no gesture ever begins — user
+  report 2026-08-30: a freshly defined simple gesture stopped working
+  entirely). The RCM/LCM stick is
+  caused by the swallowed RMB-UP (1026) only → strip now softens ONLY key
+  1026, key 2 keeps its block. Details: `Docs/archive/RIGHT-CLICK-ISSUE.md`.
 - **Hover regions broken in Chrome 148+** ("Browser tab", "close button",
   "speaker icon", "new tab", "menu item") — native a11y hit-test regression,
   affects MV2 AND MV3 (NOT a port loss, NO extension-side fix exists; a
@@ -461,6 +552,13 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   returning 0 = no file → no import.
 - **mv3_shim double-map** — the SW already returns mapped results; do NOT
   `result.map(r => r.result)` again (crashes on null items).
+- **Settings page invisible on first open after reload (FIXED 2026-08-30)** —
+  main.html is hidden until n() (file2) finishes its boot chain (_Hu imports
+  + _Eu nativeConnected + SW ping); right after an extension reload the SW
+  is still starting and the boot can stall → blank hidden tab even for a
+  PLAIN open (not just SFE import). Safety net in mv3_shim (loads first):
+  after 8s, if `<html>` still lacks `visible`, force
+  `addClass("visible") + display:block` (idempotent).
 - **Mojibake in UI** — see Encoding rules (`<meta charset="utf-8">`).
 - **Toasts vs badge** — `_Cr` is the icon BADGE (works in the SW). The
   file71.html floating popups WORK from the SW since 2026-08-12 (FEATURES-MV3.md
@@ -564,6 +662,20 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   shared lexical env globals, accessible as free variables from sw.js
   (importScripts shares the SW's global lexical env) — but NOT as
   `self.X` properties (lexical bindings are not object properties).
+- **`Object.prototype.in` polyfill — BOTH call forms are load-bearing
+  (FIXED 2026-08-30)** — file67 defines `.in` as `_Xt(this,...a)` (strict
+  `===`); the bundle is SLOPPY (no `'use strict'` at the top of the
+  concatenation) → `this` gets BOXED on primitives → `'x'.in('x')` was
+  FALSE → sw.js re-patched `.in` with unboxing + `a.indexOf(t)`. That broke
+  the ARRAY idiom `x.in([...])` that `keep()` (file25 config compiler)
+  relies on → `keep("negate","oper")` deleted EVERY property → menuState
+  `negate:true` was stripped → every Ctrl+Tab trigger compiled as "menu 7
+  IS open" → openMenu never fired, the tab-switcher list never opened after
+  a reload (user 2026-08-30). The patch MUST flatten args one level
+  (`[].concat(...a)`) AND unbox AND strict-compare — mh_test B51 pins it.
+  When touching this patch, re-run the key hold test
+  (`Test/cdp_keytest2.js hold 700` → menu state 175 must return `true`
+  while holding).
 - **file37.js is minified** — when wrapping `if(a)a:if(...)` into
   `if(a){...a:if(...)}` add the extra closing brace (bundle compile error
   otherwise).
@@ -571,6 +683,174 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   chrome://extensions → service worker link; page: F12 on the settings tab).
 - **ID stability** — `postWithCb` derives the callback hash `l` from
   `chrome.runtime.id` substring.
+- **Site bridge (`webSettgs`) — GitHub Pages mirror (FIXED 2026-08-29)** —
+  the Import/View interception on site pages only fired when the tab
+  hostname == `_mo` (`www.autocontrol.app`, dead domain). The mirror lives
+  on `alex-302.github.io` → the gate now accepts `_9n` (file10) via
+  `hostname.in(_mo,_9n)` (file62_mv3), and `_Zr` injects the bridge with
+  `chrome.scripting.executeScript` + `world:"ISOLATED"` — do NOT route it
+  through `_wj`/`__acInjectCode` (MAIN world: no `chrome.runtime` →
+  sendMessage throws). ⚠ FOLLOW-UP: (a) at `document_start` `document.head`
+  can be NULL → `_Zr` uses `(document.head || document.documentElement)`
+  and try/catch (the listener registers first); (b) MV2 re-injected the
+  bridge into ALREADY-OPEN tabs after config load
+  (`_zg({url:"*://www.autocontrol.app/*"})…_Zr(d.id)` in file62.js) — the
+  port lost that block → a tab opened before the SW start never got the
+  bridge. sw.js `__acReinjectSiteBridge()` (at SW start) restores it for
+  both hosts. ⚠ FOLLOW-UP (2026-08-30): after an EXTENSION reload the old
+  injected listener (dead context) throws `Extension context invalidated` /
+  `chrome.runtime undefined` on every Import/View click (console noise —
+  the NEW injection still handles the event, so the import works). `_Zr`'s
+  `c()` now guards `chrome.runtime.sendMessage` and the `webSettgs`
+  listener wraps the call in try/catch (file62_mv3, IN the bundle —
+  rebuilt 2026-08-30). The stale listener of an already-open tab can only
+  be purged by reloading that tab. SW handler: file48 `m()` (`imprtSttgs`
+  import / `viewSttgs` open `main.html?file=` / `redirSttgs` redirect).
+  mh_test B47.
+- **SFE View (`main.html?file=…`) — two MV3-port bugs (FIXED 2026-08-30)** —
+  (1) LOCAL `file://` URLs: `_1` (file67) matches `file:` protocol → the SFE
+  read the path via the NATIVE (`_If`) which does NOT understand the
+  `file://` scheme → Windows "syntax error" toast. Fix (file91.js,
+  page-side, also in the SW bundle where it is inert): normalize
+  `_Uy.filePath` — strip `file://`(+`localhost`) and a leading `/` BEFORE
+  the load. (2) BOOT RACE: the storage proxy (`_Yk.storage.local.get`
+  inside `_Nh`) starts the loader `p` on the FIRST storage read (any
+  page-init read) and `p` nulls itself at start — `afterLoad` then sees
+  `p=null` and SKIPS the load, `n()` renders with an empty `m` → the
+  editor opens EMPTY (remote case; the manual Open works because the
+  re-navigation races differently). Fix: after `p&&(yield p())`,
+  `if(!p&&_Uy.filePath&&_ul(m)){for(50b&&_ul(m))yield _za(100)}` — wait
+  (≤5s) for the proxy-initiated load to fill `m`. Verified in Canary via
+  CDP: remote `#actions:6` + 6 triggers, local `C:/…` + 19 triggers,
+  mh_test 88/0/0. ⚠ `_ul(m)` is the CORRECT wait condition (m starts
+  empty) — `!_ul(m)` never waits (inverted).
+- **SFE Import ("Import all" in a View-opened editor) — no-op (FIXED
+  2026-08-30, take 2 — take 1 was insufficient)** — chain: file91 `impAll`
+  → confirm → `_uw(…_9i…)` → `_0j()` → `_0s()` → `_Qo("none")` finds the
+  first `main.html` tab → `_Yk.extension.getViews({tabId})`. TAKE 1 ROOT
+  CAUSE: mv3_shim.js stubbed ANY tabId lookup to `[]` → `_Xp(a)._Hu.wait()`
+  threw → `_0j()` hung → `_lj` never ran (the file78 `_uw` fallback was
+  unreachable — the hang is BEFORE it). TAKE 2 ROOT CAUSE: `chrome.
+  extension.getViews` DOES exist in MV3 extension pages (only the SW lacks
+  it) — my first fix returned `[window]` UNCONDITIONALLY, which routed
+  `_lj` into the SFE tab itself; there `_bd` writes through the SFE
+  **file-proxy** (`_Nh` override in file91, `_Uy` set → `_Yk.storage.
+  local.set` → `m.add` + `__dummy__` hack) into the editor's file model —
+  the REAL `chrome.storage.local` never changed → "import did nothing".
+  FIX: (a) mv3_shim `getViews({tabId})` calls the ORIGINAL
+  `origGetViews(opts)` (restores MV2 semantics: the window hosting that
+  tab → `_lj` runs in the settings window when it is open); (b) file78
+  `_lj` AND `_uw` fallback write via REAL `chrome.storage.local.set(_bj(a),h)`
+  instead of `_bd` (equivalent in the settings window where `_Yk===chrome`,
+  bypasses the proxy in the SFE tab) → SW picks it up via storage.onChanged
+  → `_Gf` → native type 60. Both files page-side (mv3_shim NOT in the
+  bundle; file78 NOT in the bundle — but file62_mv3 IS and was rebuilt for
+  the bridge-log guard). mh_test B48.
+- **SFE Import leaves an empty `#none` tab / blank page (FIXED 2026-08-30,
+  take 6 — forced `visible`; user-verified OK)** — when no settings page is
+  open, `_0s`→`_Qo("none")` creates a FRESH tab (`main.html#none`, `_Ou`),
+  and `_lj` runs there before its boot completed: `p()`/`n()` (file2) wait
+  for `_Hu` (imports) + `_Eu` (nativeConnected from the SW) + a SW ping —
+  on the FIRST import after an extension reload the SW is still starting,
+  so the page's sendMessage gets "Receiving end does not exist"
+  (`Unhandled promise rejection` ×N) → the boot chain aborts → `<html>`
+  never gets the `visible` class → the page stays HIDDEN (blank tab) even
+  though the import data is saved, the `_8f` retries render the panel and
+  the hash becomes `#actions:N` (that's why no "_lj _8f failed" appears).
+  Ctrl-F5 fixed it (second boot passes — SW is ready); the second import
+  works because `_Qo` finds the already-open live tab. FINAL FIX (file78
+  `_lj`): after the retries, force the page visible —
+  `$("html").addClass("visible").css("display","block")` (idempotent) +
+  diagnostic `console.log("[AC-MV3] _lj done: hash=… panels=… visible=…")`.
+  Also from take 5: `_uw` guarantees the section entries IN THE MERGED
+  DATA right after `_4p` (walk `a.trigActList`, for every `sctnId` missing
+  from `a.sections` push `{id:_sid, name:"Imported actions"}`) — an
+  imported file may carry NO `sections` array, `_4p`'s
+  `a.sections.push(...b.sections)` adds nothing, the section tab never
+  exists and `_8f` can never open the panel (SW config works — type 60 has
+  the triggers — only the UI tab is missing). ⚠ Do NOT read storage from
+  `_lj` via `yield q=>_9i({sections:[]},q,chrome)` — that call returned
+  undefined in the fresh #none tab (TypeError on every retry). `_lj` keeps:
+  try/catch `_9j._ku`, retry `_8f` (50×100ms), real navigation
+  `?_ac=#hash` as last resort. `_uw`: the resolved window is discarded
+  when it is the SFE editor itself (`/[?&]file=/.test(...)` → `w=null`) →
+  no-window fallback `tabs.create({url: main.html#actions:N})`. mh_test B48.
+- **False "Native Component not working" dialog after the first import
+  (FIXED 2026-08-30, take 7 — ping fast-path)** — after the forced-visible
+  fix, the fresh settings tab (first import after an extension reload)
+  showed the `natHostNotFound` dialog (`NH-noConnex` telemetry) although
+  the native WAS working (the import just read the file through it).
+  ROOT CAUSE: page boot `p()` runs `m(3,500)` (file2) — a native ping
+  `_9j._Vy(_xp=920,"",500)` → `_Lk(920,"",cb,500)` with a **500ms timeout**.
+  Right after a reload the native is BUSY with the SW startup burst (wmic
+  scans, window enum, ~30 type-400 moves, config chain) → every attempt
+  times out ("CB-TIMEOUT") → `m()` returns false → dialog. Previously the
+  dialog was invisible (hidden page); take-6 exposed it. FIX (sw.js
+  `case "postWithCb"`): when `msg.type === 920 && connected && port &&
+  handshakeDone` answer `{ok:true, result:"pong"}` DIRECTLY from the SW
+  (the SW holds the live native port — same semantics as the native ping
+  reply; the native's 920 answers only the SW's own keepalive). Plus a
+  safety net in `_lj`: `setTimeout(()=>_gs("dialog"), 3500)` dismisses the
+  modal if the handshake was too slow for `m()` to succeed (idempotent —
+  `_gs("dialog")` is the standard dialog close, see file2 `z()`). sw.js /
+  file78.js are NOT in the bundle — no rebuild needed. mh_test B48 (+sw
+  fast-path patterns).
+- **Site-bridge IMPORT (`imprtSttgs`) was dead in the SW (FIXED 2026-08-29)** —
+  file48 `m()` calls `window._ja(url)`; `_ja`/`_kp`/`_uw`/`_lj` live in
+  file78.js (settings-page UI: jQuery/toasts/permission prompts) which is
+  NOT in the SW bundle → TypeError, silent import failure. The bundle HAS
+  the whole merge pipeline (`_9i` load / `_K` dedupe / `_4p` merge / `_bd`
+  save / `_ku` rebuild → native type 60, `_1p`+`_mg` fetch shim), so sw.js
+  re-implements `window._ja` (download → JSON.parse → `_Qj({}.add(_2d,data))`
+  → `_K(l,merged,true,true)` → `_4p(l,merged,false)` → `_bd` → `_ku`).
+  MV2 showed a toast + opened the settings page on site import (file78
+  `_lj`/`_Rg`/`_u` — NOT in the SW bundle) → the SW import was SILENT; the
+  MV2-visible feedback is re-created in sw.js: `chrome.notifications`
+  "Settings imported successfully" + open/focus `main.html` (`_Qo`
+  equivalent via tabs.query/update/create). ⚠ PERMISSIONS (2026-08-30):
+  MV2 requested the perms required by the imported actions BEFORE
+  importing (`_lj` → `_Qk(_xk(a),"permMsgs/impSttgs",true)`; denial =
+  skipped). The SW port skipped that — `window._ja` now walks the parsed
+  data (recursive, MV2 `_xk` logic: runScript(!bkgrnd)/sendInput
+  intoPage/copyElemUrl/openElemUrl/saveElemUrl → `<all_urls>` — already
+  granted; saveUrl/saveElemUrl notif → `notifications`, dwnlApi →
+  `downloads`; closedTabs → `sessions`; bmFolder → `bookmarks`) and calls
+  `chrome.permissions.request` (promise+callback both handled; generator
+  callback-runner, NO `yield` of a raw Promise — that codebase convention
+  breaks in `_cg`). Denial → import skipped. mh_test B47.
+  ⚠ ALSO (2026-08-29, follow-up 3): even with `window._ja` defined, Import
+  still died — file48 `m()` routed `{imprtSttgs}` through
+  `l=_Es(-700,a=>_0j()(c=>_Xp(c)._ja(a)))`, and `_0s()` resolves the
+  SETTINGS-PAGE window via `chrome.extension.getViews({tabId})[0]` — EMPTY
+  in the MV3 SW → TypeError before `_ja` is called. `m()` now calls
+  `(window._ja||l)(a.imprtSttgs)` directly. ⚠ FOLLOW-UP 4 (user SW log):
+  `scripting.executeScript` REJECTS `runAt` (that's
+  `tabs.executeScript`/`contentScripts.register` territory) — the
+  injection threw "Unexpected property: 'runAt'" SYNCHRONOUSLY (the
+  `.catch` never fired) → `ACtlExt` never appeared → Import/View silently
+  fell back to the page. Use `injectImmediately:true` (Chrome 102+).  ⚠ FOLLOW-UP 5 (2026-08-29, user: "the buttons element differs"): the
+  SAVED mirror pages carry an INLINE fallback script (absent in the
+  original!) that intercepted Import/View clicks: `stopPropagation()`
+  killed the basics.js handler (the "not installed" nag alert broke) and
+  did `download()`/`view()` instead (the download started). With the
+  bridge present it returned early (no harm), but it masked missing
+  injection. FIXED in the 3 saved pages
+  (`switch-to-last-used-tab-in-chrome*.htm`): the inline script now ONLY
+  handles the `dwnld` button; Import/View go to basics.js (bridge →
+  webSettgs, no bridge → original alert). ⚠ If the site is ever
+  re-downloaded, this inline script will come back — check
+  `acsLink.querySelectorAll` before shipping.
+  ⚠ REMOVED 2026-08-30: the TEMP `file:`-protocol bridge gate
+  (`"file:"==(new URL(...)).protocol` in file62_mv3 onUpdated + the
+  `file://*/*` + `fileTabs`/`isAllowedFileSchemeAccess` block in sw.js
+  `__acReinjectSiteBridge`) — it existed only for testing the mirror
+  pages from disk; MV2 never bridged file://. The onUpdated gate still
+  has the `&&_id` guard (no injection noise on file:// when "Allow
+  access to file URLs" is OFF); `__acReinjectSiteBridge` now queries
+  the two web hosts only. If local file:// bridge testing is ever
+  needed again, re-add it deliberately.  View (`viewSttgs` → new tab `main.html?file=…`, the in-tab Settings
+  File Editor dialog) already worked (MV2 semantics — "examine in a
+  separate window"). mh_test B47/B49.
 
 ## Documentation rules (IMPORTANT — the code is obfuscated)
 

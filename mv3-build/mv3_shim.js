@@ -99,7 +99,26 @@
     const origGetViews = chrome.extension.getViews;
     chrome.extension.getViews = (opts) => {
       if (opts && opts.tabId) {
-        // Can't directly access, return empty
+        // AC-MV3 FIX (2026-08-30, SFE Import, take 2): MV2 `_0s("none")`
+        // (file67) resolves the settings window via
+        // `_Yk.extension.getViews({tabId: <main.html tab>})`. chrome.
+        // extension.getViews DOES exist in MV3 extension pages (only the
+        // SW lacks it), so the ORIGINAL function resolves the window that
+        // actually hosts that tab — the MV2-equivalent answer. The old
+        // stub returned [] (no-op import) and my first fix returned
+        // [window] unconditionally, which routed `_lj` into the SFE tab
+        // itself — where `_bd` writes through the SFE file-proxy into the
+        // editor's file model `m`, NOT into chrome.storage.local (file78
+        // _lj/_uw now bypass the proxy with a direct
+        // chrome.storage.local.set — see file78.js). Fallback [window]
+        // only when the native API is unavailable and THIS page is a
+        // main.html window (a main.html tab is the only thing _Qo("none")
+        // ever asks for).
+        try {
+          const views = origGetViews ? origGetViews(opts) : [];
+          if (views && views.length) return views;
+        } catch (e) {}
+        if (location.pathname.endsWith('/main.html')) return [window];
         return [];
       }
       // Return this window as fallback
@@ -372,6 +391,33 @@
 
   // ======== STUBS for symbols defined in late-loading scripts ========
   if (typeof _Ew === 'undefined') { window._Ew = function(a) { /* stub */ }; }
+
+  // ======== VISIBILITY SAFETY NET (2026-08-30) ========
+  // main.html is hidden by default (no `visible` class on <html>); n()
+  // (file2) reveals it after its boot chain (_Hu imports + _Eu nativeConnected
+  // + SW ping). On a reload right after an extension reload (or a gesture
+  // reload of the settings page) the SW is still starting, the boot can
+  // stall and the page stays INVISIBLE (white/blank tab) — the user sees a
+  // dead screen even though the data is there. This net reveals the page
+  // EARLY and repeatedly: at DOMContentLoaded + at 2s + at 5s, idempotent.
+  // (8s was too slow — the user already stared at a white screen.)
+  function __acForceVisible(reason) {
+    try {
+      const html = document.documentElement;
+      if (html && !html.classList.contains('visible')) {
+        html.classList.add('visible');
+        html.style.display = 'block';
+        console.warn("[AC-MV3] Visibility safety net: " + reason + " — forced visible");
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => __acForceVisible('DOMContentLoaded'));
+  } else {
+    __acForceVisible('readyState');
+  }
+  setTimeout(() => __acForceVisible('2s'), 2000);
+  setTimeout(() => __acForceVisible('5s'), 5000);
 
   console.log("[AC-MV3] Shim loaded");
 })();

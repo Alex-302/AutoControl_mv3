@@ -84,6 +84,107 @@
 
 ### Fixed
 
+#### Site integration
+
+- Import / View buttons on the site pages (settings blocks `<acs>`) did not
+  open the extension's import/view windows when the site was opened from the
+  GitHub Pages mirror — the interception bridge only activated on the
+  original `www.autocontrol.app` hostname (the domain is dead and has been
+  re-registered by a third party). The mirror host
+  `alex-302.github.io` is now recognized, and the bridge script runs in the
+  content-script (isolated) world as in MV2. Follow-up: the bridge is also
+  injected into already-open site tabs on extension start (as MV2 did after
+  loading the config) and tolerates the page being injected at the very
+  beginning of loading. The Import action itself was also broken in the
+  port: its implementation lived in the settings-page UI code that the
+  service worker does not load, so the import now runs in the worker using
+  the same merge pipeline as MV2 (download → merge → save → config
+  rebuild) and shows the result like MV2 did — a notification and the
+  settings page opening with the imported entries. Like MV2, the import
+  first asks for any permissions required by the imported actions (for
+  example download or notification access) and skips the import if they
+  are denied. The saved site pages also contained an added fallback script
+  that hijacked the Import/View buttons (silently downloading the settings
+  file instead of asking the extension); it now only powers the Download
+  button, restoring the original behavior — Import, View and the
+  settings-redirect work on the mirror in all cases.
+
+#### Triggers & actions
+
+- **Ctrl+Tab "Smart switching" no longer opened the tab list after a
+  reload.** The imported action set ("Smart Ctrl+Tab switching" from the
+  site) is built on menu-state conditions: the tab menu must be *closed*
+  for the open-menu trigger and *open* for the mark-move/select triggers.
+  Those conditions carry a "negate" flag that was silently stripped when
+  the config was compiled in the service worker: a shared membership
+  helper (`in`) that the config compiler relies on worked for single
+  values but not for arrays, so the compiler deleted the flag from every
+  condition. Result: the native believed the menu was already open,
+  refused to open it again, and let Ctrl+Tab fall through to Chrome's own
+  tab switching. The helper now handles both call forms (and the harness
+  pins it), so holding Ctrl+Tab opens the tab list with previews, Tab
+  moves the mark, and releasing Ctrl selects the marked tab and closes the
+  list; a quick Ctrl+Tab press still switches to the previous tab.
+- Mouse gestures could stop working entirely after a reload: the
+  right-button fix softened the *pressed* button too, and the pressed
+  right button is what tells the native to start gesture recognition.
+  Only the right-button *release* is softened now — gestures start and
+  are recognized again, while the "stuck" left-click bug stays fixed.
+- An abandoned recording session (combo editor / gesture tester left
+  armed) could leave the native in raw-capture mode forever — hotkeys and
+  gestures silently dead. An armed capture that sees no trigger for
+  several minutes is now released automatically; a live recording re-arms
+  instantly on the next editor action. (The initial one-minute threshold
+  proved too aggressive — a pause of over a minute in the gesture tester
+  released the recording session; the threshold is five minutes.)
+
+#### Settings File Editor
+
+- The file-open dialog timed out after 5 seconds — too short for a modal
+  dialog the user may take longer to answer, which made the import/view
+  flow report a failure or treat the dialog as cancelled. The dialog now
+  waits up to a minute, and a timeout means "no file picked", not an
+  error.
+
+- View ("examine in a separate window") opened the Settings File Editor
+  empty on the first load: the file load raced with the page boot (the
+  editor's storage proxy started the loader and the boot skipped it), and
+  local `file://` copies failed with a Windows "filename syntax" error
+  (the `file://` scheme was passed to the native reader). The editor now
+  waits for the file to finish loading and accepts `file://` paths — View
+  shows the file content on the first open, for both the mirror and local
+  copies.
+- The "Import all" button inside a View-opened editor did nothing: the
+  port stubbed `chrome.extension.getViews` with an empty result, so the
+  import never found the settings window and silently gave up. The stub
+  now delegates to the real API (which exists on extension pages, only
+  the worker lacks it), and the import saves through the real storage
+  directly instead of the editor's file proxy — so the actions are merged
+  into the real settings, the config is rebuilt and the result is
+  reported like the import from the settings page, whether the settings
+  page is open or not.
+- After such an import, when the settings page was not open, a new empty
+  tab appeared instead of the actions list: the freshly opened settings
+  page was not ready yet — on the first import after an extension reload
+  its startup chain (which waits for the service worker) aborts, and the
+  page stays hidden even though the import data is already saved. The
+  import now guarantees the imported section exists in the settings data,
+  retries the panel switch, forces the page visible and, if needed,
+  reloads the tab onto the right section (`#actions:…` with a
+  cache-busting query) — the page opens the imported section directly on
+  load, matching the MV2 behavior. The settings page itself is never used
+  as the import target when only the file editor tab is open; a dedicated
+  tab is opened instead.
+- The freshly opened settings page could show a false "Native Component
+  not working" warning on the first import after an extension reload: the
+  page's startup check pings the native component with a very short
+  timeout, and right after a reload the native is still busy with the
+  extension's own startup — so the check failed even though the component
+  was working (the import itself had just read the file through it). The
+  service worker now answers the liveness check itself once it holds a
+  live connection (the check's purpose is exactly that), and the import
+  dismisses the warning if it still appeared.
+
 #### Scripting engine
 
 - Scripts failed with "ACtl is not defined"; several APIs crashed or hung

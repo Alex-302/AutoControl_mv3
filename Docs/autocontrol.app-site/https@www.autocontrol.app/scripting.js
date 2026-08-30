@@ -47,7 +47,7 @@ function loadPage(urlObj, pushState){
 		.then( res => res.text() )
 		.then( contHtml =>{
 			showBusySign(false) ;
-			if( !contHtml || /<!doctype|^\s*<html/i.test(contHtml) ){ // сервер не поддержал mode=content — обычный переход
+			if( !contHtml || /<!doctype|^\s*<html/i.test(contHtml) ){ // server did not honor mode=content — plain navigation
 				location.href = urlObj.href ;
 				return ;
 			}
@@ -59,7 +59,7 @@ function loadPage(urlObj, pushState){
 			Prism.highlightAll() ;
 			loadAutomatDemos() ;
 		})
-		.catch( err =>{ // fetch недоступен (file:// и т.п.) — обычный переход
+		.catch( err =>{ // fetch unavailable (file:// etc.) — plain navigation
 			showBusySign(false) ;
 			location.href = urlObj.href ;
 		}) ;
@@ -69,7 +69,7 @@ function loadPage(urlObj, pushState){
 listenEvt('click', 'a[href^="../scripting"], a[locRef]', function(evt){
 	//console.log('LINK CLICK:', this.pathname) ;
 	if(evt.button!=0 || evt.ctrlKey || evt.shiftKey) return ;
-	if(location.protocol=='file:') return ; // локально fetch запрещён — обычная навигация
+	if(location.protocol=='file:') return ; // fetch is forbidden locally — plain navigation
 	if(this.pathname!=location.pathname)
 		loadPage(this, true) ;
 	evt.preventDefault() ;
