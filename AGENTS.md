@@ -64,6 +64,32 @@ This includes comments, log strings, and error messages in `sw.js`,
 
 ## CDP debugging (Canary with --remote-debugging-port)
 
+- **Launching the debug browser — ALWAYS ask the user which Chrome
+  variant they want** (e.g. stable `chrome.exe` vs SxS/Canary
+  `"...\Chrome SxS\Application\chrome.exe"` — the user knows which
+  profile carries the test extension). The reference launch (Canary SxS,
+  this repo's default):
+  ```powershell
+  Start-Process "$env:LOCALAPPDATA\Google\Chrome SxS\Application\chrome.exe" `
+    -ArgumentList '--remote-debugging-port=9223', `
+                 '--user-data-dir=C:\Users\alxbr\AppData\Local\Google\Chrome SxS\User Data CDP', `
+                 '--lang=en-US'
+  ```
+  - **port**: `9223` (CDP endpoint: `http://127.0.0.1:9223/json/version`).
+  - **profile dir**: the junction `...\Chrome SxS\User Data CDP` → the REAL
+    `...\Chrome SxS\User Data` (Chrome 136+ silently ignores
+    `--remote-debugging-port` without a NON-DEFAULT `--user-data-dir`).
+    The extension/toggles survive (same directory).
+  - **`--lang=en-US`**: fixes the chrome://extensions UI language so the
+    card's reload button is always "Reload" (test scripts match that
+    label; without it the label is localized to the OS UI language and
+    `cdp_ext_reload.js` fails to find the button).
+  - Before launching: stop any running instance of that variant
+    (`Get-Process chrome | Where-Object { $_.Path -like '*Chrome SxS*' } |
+    Stop-Process -Force`) — an already-running process without the flags
+    wins the profile lock and the new flags are ignored.
+  - Verify the endpoint answers before running CDP scripts:
+    `curl.exe -s -m 5 http://127.0.0.1:9223/json/version`.
 - **Chrome 136+ gotcha**: `--remote-debugging-port=N` is SILENTLY IGNORED
   unless a NON-DEFAULT `--user-data-dir` is also passed — passing the default
   profile path counts as "not specified" (verified on Chrome 150). To debug
@@ -101,14 +127,19 @@ This includes comments, log strings, and error messages in `sw.js`,
   test for the `.in` polyfill / menu-state negate fix), `cdp_payload_dump.js`
   (rebuilds the type-60 payload in-memory via `_Gf`→`_mh` and dumps the
   compiled entries per mapKey — check `negate` on `{type:13,menuNum:7}`
-  preconds; writes `%TEMP%\ac_payload.json`), `cdp_hold_menu.js` (holds
+  preconds; writes `%TEMP%\ac_payload.json`; ⚠ it DOES send a live type-60
+  via `_no`), `cdp_hold_menu.js` (holds
   Ctrl+Tab 4s and queries the native menu state via `_Lk(175,null)` —
   `true` = menu open while holding), `cdp_negate_probe.js` (probe
   `_mh`/`sc()`/`keep()` with a synthetic negate:true menuState trigger),
   `cdp_in_probe.js` (runtime probe of `Object.prototype.in` — scalar AND
   array forms), `cdp_full_trace.js` (wraps console + `_Lk`, injects a key
   hold, dumps everything), `cdp_logbuf.js` (dump `__acLogBuf` with an
-  optional regex filter), `cdp_capture_state.js` (capture flags +
+  optional regex filter — NOTE: the SW's own logs bypass `console.log`
+  wrappers via `__acOrigConsole`, and `Runtime.consoleAPICalled` REPLAYS
+  the session backlog on attach — a capture shows history, not only live
+  events; use hooks or side effects (pin state, storage) to distinguish),
+  `cdp_capture_state.js` (capture flags +
   AC-CAPTURE log lines), `cdp_bundle_sync.js` (source↔bundle marker check
   after rebuilds), `cdp_reload.js` (SW `chrome.runtime.reload()`),
   `cdp_exts.js`/`cdp_msg_watch.js`/`cdp_native_probe.js`/
@@ -116,6 +147,26 @@ This includes comments, log strings, and error messages in `sw.js`,
   `cdp_rebuild_capture.js`/`cdp_fresh_trigger_test.js` (older one-offs —
   superseded by the above, harmless to keep), `_ac_tabtap.ps1` (single Tab
   tap for menu-mark moves), `_ac_keypress.ps1` (older keypress injector).
+  2026-08-30 issue-#1 additions: `cdp_rbtn_block_test.js` (compiles an RMB
+  block:2 trigger in-memory, shows the strip effect on keys 2/1026),
+  `cdp_rbtn_gesture_test.js` (same + rightButton gesture preset — verifies
+  the selective-strip discriminator: only mouseGestState-gated blocks are
+  softened), `cdp_rmb_probe.js` (installs `contextmenu` listeners on the
+  page, injects a REAL OS RMB/LMB via `_ac_mouse.ps1`, reports whether the
+  button reached Chrome — 0 events = native swallowed it = no menu),
+  `cdp_swlog_rmb.js` (captures SW console while injecting a click),
+  `cdp_ctxmenu_watch.js` (event-listener watcher), `cdp_eval.js` (generic
+  SW eval helper), `cdp_import_live.js` (imports an .acs via the REAL
+  `window._ja` path), `cdp_ext_reload.js` (reloads the unpacked extension
+  via chrome://extensions UI — pierces the shadow DOM; the card's reload
+  button is matched by its "Reload" label — launch Chrome with `--lang=en-US`
+  so the UI language is fixed),
+  `cdp_cleanup_test.js` (restores the test trigger + unwraps `_Lk`),
+  `cdp_break_postmsg.js` (Debugger breakpoint in postMsg to capture the
+  real call stack), `_ac_mouse.ps1` (REAL OS mouse injection via
+  `mouse_event` — rmb/lmb/move; foregrounds the SxS window with the
+  ALT-hold unlock trick and VERIFIES the foreground), `_ac_fgcheck.ps1`
+  (reports which window holds the foreground).
 - **⚠ NEVER `delete window._Lk`** — the shim's `_Lk` lives inside its IIFE
   and `window._Lk` is the ONLY global reference; deleting it breaks
   `closeMenu`/`moveSelectMark` (free-variable `_Lk` → ReferenceError → the
@@ -503,22 +554,63 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   seen by every call site). ⚠ Do NOT hook `console.warn` — the async logging
   patch replaces it and the hook dies silently (that caused spurious
   "Queue stuck" force-shifts).
-- **RCM/LCM bug (SOLVED v6+v7)** — gesture presets compile `block:true`
-  under key 2 AND key 1026 → the native swallowed the RCM-up → LCM read as a
-  rocker combo. v6 `STRIP_RBTN_BLOCK` + v7 `RBTN-ESC` (synthetic Esc after a
-  gesture closes the stray context menu). **UPDATE (2026-08-30)**: v6
-  originally softened BOTH keys — that KILLED mouse gestures (block on key 2
-  RMB-DOWN is what makes the native intercept the right button and start
-  gesture recognition; with block:false no gesture ever begins — user
-  report 2026-08-30: a freshly defined simple gesture stopped working
-  entirely). The RCM/LCM stick is
-  caused by the swallowed RMB-UP (1026) only → strip now softens ONLY key
-  1026, key 2 keeps its block. Details: `Docs/archive/RIGHT-CLICK-ISSUE.md`.
-- **Hover regions broken in Chrome 148+** ("Browser tab", "close button",
-  "speaker icon", "new tab", "menu item") — native a11y hit-test regression,
-  affects MV2 AND MV3 (NOT a port loss, NO extension-side fix exists; a
-  TAB-GATE workaround was tried and ROLLED BACK). Use region 4 (Title area)
-  for top-row triggers; the UI marks the broken options.
+- **RCM/LCM bug (SOLVED v6+v7, updated 2026-08-30)**: gesture presets
+  compile `block:true` under key 2 AND key 1026 → the native swallowed the
+  RCM-up → the next left click was read as a rocker combo. v6
+  `STRIP_RBTN_BLOCK` + v7 `RBTN-ESC` (synthetic Esc after a gesture closes
+  the stray context menu). v6 originally softened BOTH keys — that KILLED
+  mouse gestures (block on key 2 RMB-DOWN is what makes the native
+  intercept the right button and start gesture recognition).
+  **UPDATE (2026-08-30, issue #1 "right click menu override not working")**:
+  the strip used to soften EVERY block:true under key 1026 — including the
+  USER's own right-click override entry (block mode "up" compiles
+  `1026→{type:0,block:true,preconds:[actionDone]}` — the thing that makes
+  the native swallow the RMB release so the context menu stays closed).
+  Softening it let the context menu open after every right-click action
+  ("action fires but the menu appears"). The strip is now SELECTIVE:
+  soften ONLY the gesture-preset entries — recognizable by their
+  mouseGestState precond (`PRECOND_MOUSE_GEST_STATE=11`) — and preserve
+  the user's actionDone-gated block entries. VERIFIED LIVE (real OS RMB
+  injection via `Test/_ac_mouse.ps1` + page `contextmenu` event probe):
+  RMB → NO menu (page gets zero events), trigger fires, LMB after RMB
+  works, no spontaneous re-fires (16s idle), gestures' 1026 block still
+  softened ("softened 1 gesture block entries"). The RCM/LCM stick is
+  caused by the swallowed right-button-UP (1026), not the DOWN — soften
+  ONLY the gesture-generated 1026 blocks and leave key 2's block intact.
+  mh_test B50 pins the selective behavior (compiles the issue trigger +
+  gesture preset via the REAL `_mh` and asserts user block:up preserved /
+  gesture block softened — needs the `.in` re-patch first, the vm bundle
+  is sloppy like the SW).
+  ⚠ The mouseOver (hover-region) preconds do NOT gate triggers on Chrome
+  150 AT ALL (verified live 2026-08-30: region 3 "Web page" and region 4
+  "Title area" both fire everywhere — native a11y hit-test regression, ALL
+  regions, not just the top-row ones; same native in MV2 — the user's
+  Edge/MV2 test works because Edge's a11y differs). No extension-side
+  workaround exists (no cursor-position API). Do NOT promise hover
+  conditions as working on Chrome 148+.
+- **Toggle actions (pin/mute) missed clicks (FIXED 2026-08-30, B52)** —
+  "right-btn => pin tab toggles only every 2-5 clicks". ROOT CAUSE: `_9f`
+  (file8, pinTabs) read `_Yp[c].pinned` — the SW tab cache, refreshed ONLY
+  by the async window enum `_Fu`, which `_Rf` gates behind a 1500ms cache
+  (`__acEnumCacheMs`). Clicks closer than ~1.5s after the last enum read a
+  STALE pinned state → toggled the tab to the SAME value (no-op) →
+  "working-click, dead-click" pairs (verified live: 16 user clicks → 16
+  750s + 32 `_w` lookups but only 3-4 visible toggles; update log showed
+  true,true,false,false,true — pairs of no-ops). FIX: toggle mode now
+  reads the FRESH state via `chrome.tabs.get` before `tabs.update` (same
+  for `_Rh`/muteTabs). Verified: 12/12 rapid clicks (400ms apart) all
+  toggle; LMB after RMB passes. ⚠ Bundle build list: file77.js MUST be
+  AFTER file48.js (the sw.js comment list is authoritative now — the old
+  comment missed file77 and a rebuild dropped it → the B-tests failed).
+- **Hover regions broken in Chrome 148+** (ALL regions, verified 2026-08-30
+  on Chrome 150: "Web page" and "Title area" included — the native a11y
+  hit-test regression ignores `{type:14}` mouseOver preconds entirely;
+  affects MV2 AND MV3, NOT a port loss, NO extension-side fix exists — no
+  cursor-position API). Previously only the top-row regions ("Browser tab",
+  "close button", "speaker icon", "new tab", "menu item") were known
+  broken; testing shows the gate never fires regardless of region. Do NOT
+  use hover conditions in test triggers on Chrome 148+; the UI still offers
+  them (they worked pre-148).
 
 ### UI / settings
 

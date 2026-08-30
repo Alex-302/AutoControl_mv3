@@ -4,6 +4,27 @@
 
 ---
 
+## Issue #1 follow-up (2026-08-30): "right click menu override not working"
+
+**Report (github issue #1):** with a trigger "RMB → action, block mode 'up'" the action fires but the context menu still appears. Export: `triggers:[{combins:[{block:2,eventId:2,wildcard:2}]}]`.
+
+**Root cause:** the 2026-08-30 strip update softened EVERY `block:true` under key 1026 — including the USER's own block-up entry (`1026→{type:0,block:true,preconds:[{type:8,value:1,actIdx}]}` — actionDone-gated), which is what makes the native swallow the RMB release so the menu stays closed. Softening it let the menu open after every right-click action.
+
+**Fix (v6.2):** the strip is now SELECTIVE — soften ONLY gesture-preset entries (mouseGestState precond, `type:11`) and preserve the user's actionDone-gated block entries.
+
+**Verified live (Chrome 150, real OS RMB injection):**
+- RMB → NO menu (page receives ZERO `mousedown/mouseup/contextmenu` events — the native swallows the whole click), trigger fires (pinTabs), LMB after RMB works, no spontaneous re-fires (16s idle), gestures' 1026 block still softened.
+- mouseOver (hover) conditions are a separate NATIVE regression on Chrome 150 (see below).
+
+**Also confirmed live:** the type-60 config chain works (the earlier "stale config" confusion was `Runtime.consoleAPICalled` REPLAYING the SW console backlog on debugger attach — hooks (`_Lk`/`_mh`/`_acNativeSend`) proved the live sends contain the current storage data).
+
+### Hover-region conditions broken on Chrome 148+ (native, NOT the port)
+
+2026-08-30 verification: a RMB trigger with `preconds:{mouseOver:[{region:4}]}` ("Title area") AND with `region:3` ("Web page") fired EVERYWHERE (page AND tab strip) — the native ignores `{type:14}` mouseOver preconds entirely (a11y hit-test regression). Affects MV2 and MV3 equally (same native; the user's Edge/MV2 test works because Edge's a11y differs). No extension-side workaround (no cursor-position API). Do NOT promise hover conditions as working on Chrome 148+.
+
+---
+
+
 ## Symptoms (original, before the fix)
 
 1. The right-button gesture worked (trail + action).

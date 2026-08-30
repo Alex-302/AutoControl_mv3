@@ -1151,6 +1151,33 @@ setTimeout(() => {
     ok, 'phNp=' + ok);
 }
 
+// B52. file8 _9f/_Rh/_7f toggle actions read the FRESH tab state (2026-08-30,
+// user issue: "right-btn => pin tab toggles only every 2-5 clicks").
+// ROOT CAUSE: `_9f` (pinTabs) read `_Yp[c].pinned` — the SW tab cache that
+// is only refreshed by the async window enum `_Fu`, which _Rf gates behind
+// a 1500ms cache (`__acEnumCacheMs`). Clicks closer than ~1.5s after the
+// last enum read a STALE pinned state → toggled the tab to the SAME value
+// (a no-op) → "every other click does nothing" (verified live: 5 clicks →
+// updates true,true,false,false,true — pairs of no-ops; 16 clicks → 32 _w
+// lookups but only 3-4 visible toggles). FIX: in toggle mode (mode==_fa)
+// read the state via a fresh `chrome.tabs.get` before the update. Same
+// staleness applied to `_Rh` (muteTabs, read `_Yp[c].mutedInfo.muted`) and
+// `_7f` (highlightTabs, read `_Yp[].highlighted` via `_go`).
+{
+  const b = fs.readFileSync(path.join(MV3, 'sw_core_bundle.js'), 'utf8');
+  const f8 = fs.readFileSync(path.join(MV3, 'file8.js'), 'utf8');
+  const ok =
+    f8.includes('_Yk.tabs.get(c,t=>{t?_Yk.tabs.update(c,{[b.propName]:!t[b.propName]},d.onReady()):d.onReady()})') &&
+    f8.includes('_Yk.tabs.get(c,t=>{t?_Yk.tabs.update(c,{muted:!(t.mutedInfo&&t.mutedInfo.muted)},d.onReady()):d.onReady()})') &&
+    f8.includes('_Yk.tabs.get(g,t=>{let e=t?t.highlighted:_go(c)') &&
+    !f8.includes('!_Yp[c][b.propName]') &&
+    !f8.includes('!_Yp[c].mutedInfo.muted') &&
+    b.includes('_Yk.tabs.get(c,t=>{t?_Yk.tabs.update(c,{[b.propName]:!t[b.propName]}') &&
+    b.includes('_Yk.tabs.get(g,t=>{let e=t?t.highlighted:_go(c)');
+  check('file8 _9f/_Rh/_7f: toggle reads FRESH tabs.get state (stale-_Yp enum-cache fix, 2026-08-30)',
+    ok, 'freshToggle=' + ok);
+}
+
 // B28. Logging switches in the UI (2026-08-08): MV2-like silent console was a
 // hardcoded flag; now it is three checkboxes in Options → Advanced Options
 // (advOpts): "Log service worker" (logSw), "Log page scripts" (logPage),
@@ -1904,20 +1931,101 @@ vm.runInContext(`
 // entirely; config dump showed 2→{type:4,state:true,block:false} after
 // stripping).
 // The RCM/LCM stick is caused by the swallowed right-button-UP (1026), not
-// the DOWN — soften ONLY 1026. Also: visibility safety net in mv3_shim
-// (first open right after a reload can stall the boot → page stays hidden).
+// the DOWN — soften ONLY 1026.
+// UPDATE (2026-08-30, issue #1 "right click menu override not working"):
+// the strip used to soften EVERY block:true under 1026 — including the
+// USER's own right-click override entry (block mode "up" compiles
+// 1026→{type:0,block:true,preconds:[actionDone]} — the thing that makes the
+// native swallow the RMB release so the context menu stays closed).
+// Softening it let the context menu open after every right-click action.
+// The strip now softens ONLY the gesture-preset entries — recognizable by
+// their mouseGestState precond (type 11) — and preserves the user's
+// actionDone-gated block entries (verified live: RMB → no menu + trigger
+// fires + LMB works, no PBC stick). Also: visibility safety net in
+// mv3_shim (first open right after a reload can stall the boot → page
+// stays hidden).
 {
   const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
   const shim = fs.readFileSync(path.join(MV3, 'mv3_shim.js'), 'utf8');
-  const ok =
+  const srcOk =
     sw.includes('if (keyId !== RCM_UP_KEY) { newMap[k] = payload.map[k]; continue; }') &&
-    sw.includes('block entries (key 1026)') &&
+    sw.includes('PRECOND_MOUSE_GEST_STATE') &&
+    sw.includes('user block:up entries preserved') &&
     !sw.includes('keyId !== 2 && keyId !== RCM_UP_KEY') &&
     !sw.includes('block entries (key 2/1026)') &&
     shim.includes('Visibility safety net') &&
     shim.includes('!html.classList.contains(\'visible\')');
-  check('STRIP_RBTN_BLOCK softens ONLY RMB-up (gestures keep working) + settings-page visibility safety net (2026-08-30)',
-    ok, 'stripUpOnly=' + ok);
+  // Runtime: compile the issue-#1 RMB trigger (block:2 = block-up) TOGETHER
+  // with the rightButton gesture preset via the REAL _mh, then apply the
+  // sw.js strip logic and assert: the gesture block on 1026 (mouseGestState
+  // precond) is softened, the user's actionDone-gated block:up is PRESERVED,
+  // and key 2 keeps its blocks (gesture start intact).
+  const rt = vm.runInContext(`(() => {
+    // mirror sw.js's .in re-patch (the vm bundle is sloppy too — file67's
+    // _Xt boxes primitives → the mouse-button detection (_Ys via
+    // a.type.in(_Lo,_mk)) would silently fail and the whole mouse
+    // compilation (PBC, block-up entries) would be skipped — exactly the
+    // B51 class of bug; the live SW has the patch, so the vm must too).
+    try {
+      Object.defineProperty(Object.prototype, 'in', {
+        writable: true,
+        value: function(...a) {
+          const t = (this !== null && typeof this === 'object') ? this.valueOf() : this;
+          for (const v of [].concat(...a)) if (v === t) return true;
+          return false;
+        }
+      });
+    } catch (e) { return { ok: false, detail: { patchErr: String(e) } }; }
+    const ta = [
+      ['54', {
+        actions: [{ sequence: [{ action: 'setVolume', params: { mode: 'toggle', target: ':sys' } }], targets: 'hoveredTabs' }],
+        sctnId: '3',
+        triggers: [{ combins: [{ block: 2, eventId: 2, wildcard: 2 }] }]
+      }]
+    ];
+    const mouseGest = _0p({ triggers: { preset: 'rightButton' }, timeout: 1.5 });
+    const p = _mh(ta, mouseGest, {});
+    const dumpAll = {};
+    for (const k of Object.keys(p.map)) dumpAll[k] = p.map[k].map(i => p.list[i]);
+    const up = (p.map[23051] || []).map(i => p.list[i]);
+    const down = (p.map[22027] || []).map(i => p.list[i]);
+    const userBlockUp = up.find(e => e.type === 0 && Array.isArray(e.preconds) && e.preconds.some(q => q && q.type === 8));
+    const gestBlockUp = up.find(e => e.type === 0 && Array.isArray(e.preconds) && e.preconds.some(q => q && q.type === 11));
+    const downBlocks = down.filter(e => e && e.block).length;
+    // sw.js strip logic (mirror)
+    const strip = (payload) => {
+      const RBTN_KEY_OFFSET = 22025, RCM_UP_KEY = 1026, PRECOND_MOUSE_GEST_STATE = 11;
+      const newMap = {}, newList = payload.list.slice();
+      let softened = 0;
+      for (const k of Object.keys(payload.map)) {
+        const keyId = Number(k) - RBTN_KEY_OFFSET;
+        if (keyId !== RCM_UP_KEY) { newMap[k] = payload.map[k]; continue; }
+        const idxs = [];
+        for (const idx of payload.map[k]) {
+          const entry = newList[idx];
+          const isGest = entry && entry.block && Array.isArray(entry.preconds) && entry.preconds.some(q => q && q.type === PRECOND_MOUSE_GEST_STATE);
+          if (isGest) { newList[idx] = Object.assign({}, entry, { block: false }); softened++; }
+          idxs.push(idx);
+        }
+        if (idxs.length) newMap[k] = idxs;
+      }
+      return { payload: softened ? { map: newMap, list: newList } : payload, softened };
+    };
+    const st = strip(p);
+    const upAfter = (st.payload.map[23051] || []).map(i => st.payload.list[i]);
+    const userAfter = upAfter.find(e => e.type === 0 && Array.isArray(e.preconds) && e.preconds.some(q => q && q.type === 8));
+    const gestAfter = upAfter.find(e => e.type === 0 && Array.isArray(e.preconds) && e.preconds.some(q => q && q.type === 11));
+    return {
+      ok: !!(userBlockUp && userBlockUp.block === true && gestBlockUp && gestBlockUp.block === true &&
+        downBlocks === 3 && st.softened === 1 &&
+        userAfter && userAfter.block === true && gestAfter && gestAfter.block === false),
+      detail: { downBlocks, userBlockUp: !!userBlockUp, gestBlockUp: !!gestBlockUp, softened: st.softened,
+        userAfter: userAfter && userAfter.block, gestAfter: gestAfter && gestAfter.block,
+        dump: JSON.stringify(dumpAll) }
+    };
+  })()`, ctx);
+  check('STRIP_RBTN_BLOCK selective: softens ONLY gesture blocks on 1026, preserves user block:up override (issue #1) + visibility safety net (2026-08-30)',
+    srcOk && rt.ok, 'src=' + srcOk + ' rt=' + JSON.stringify(rt.detail));
 }
 
 // B51. Object.prototype.in polyfill must handle BOTH call forms (2026-08-30):

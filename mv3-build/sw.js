@@ -125,25 +125,41 @@
 
   // Softens right-button block entries in a type 60 payload (v6, updated
   // 2026-08-30): key 1026 (right-button-up) carries the gesture preset's
-  // end entries with block:true — while the gesture is in state S and the
-  // action in D, the native swallows the right-button-up. Softening ONLY
-  // the UP key lets the release reach the native's state machine (fixing
-  // the RCM/LCM stick) WITHOUT disabling gesture start (key 2 DOWN keeps
-  // its block so the native still intercepts the right button). Details:
+  // block entries — while the gesture is in state S and the action in D, the
+  // native swallows the right-button-up. Softening ONLY the UP key lets the
+  // release reach the native's state machine (fixing the RCM/LCM stick)
+  // WITHOUT disabling gesture start (key 2 DOWN keeps its block so the
+  // native still intercepts the right button). Details:
   // Docs/archive/RIGHT-CLICK-ISSUE.md.
+  //
+  // AC-MV3 FIX (2026-08-30, issue #1): the strip used to soften EVERY
+  // block:true under key 1026 — including the USER's own right-click
+  // override entries (block mode "up"): a RMB trigger compiles
+  //   1026→{type:0, block:true, preconds:[{type:8(actionDone),value:1,actIdx}]}
+  // which is what makes the native swallow the RMB release and keeps the
+  // context menu closed (MV2 behavior). Softening it let the context menu
+  // open after every right-click override ("right click menu override not
+  // working"). The strip now softens ONLY the gesture-preset entries —
+  // recognizable by their mouseGestState precond (type 11, the native
+  // gesture state machine) — and leaves the user's actionDone-gated block
+  // entries intact.
   /**
-   * Soften the right-button-UP block entries (v6, RCM/LCM fix; key 2 DOWN is
-   * deliberately left intact — its block:true is what starts gesture
-   * recognition): for key 1026 every entry with block:true gets block:false,
-   * so the native always sees the right-button release and never sticks its
-   * pressed-button state.
+   * Soften the gesture-preset right-button-UP block entries (v6, RCM/LCM
+   * fix; key 2 DOWN is deliberately left intact — its block:true is what
+   * starts gesture recognition). Only entries gated on the native gesture
+   * state machine (mouseGestState precond, type 11) are softened — those
+   * are the ones that make the native swallow the RCM-up and stick its
+   * pressed-button state. The user's own block:up entries (actionDone-
+   * gated type:0, the right-click override) are PRESERVED so the context
+   * menu stays suppressed after a right-click action (issue #1).
    * @param {object} payload — type-60 config payload
-   * @returns {object} payload with softened blocks (or the original unchanged)
+   * @returns {object} payload with softened gesture blocks (or the original unchanged)
    */
   function stripRightButtonBlocks(payload) {
     if (!payload || typeof payload !== 'object' || !payload.map || !payload.list) return payload;
     const RBTN_KEY_OFFSET = 22025; // mapKey = keyId + 22025 (native trigger id base)
     const RCM_UP_KEY = 1026;       // right-button-up eventId (2 | _mk)
+    const PRECOND_MOUSE_GEST_STATE = 11; // {type:11,value:83('S')} — gesture-state gate (gesture-preset marker)
     let softened = 0;
     const newMap = {};
     const newList = payload.list.slice();
@@ -153,7 +169,10 @@
       const idxs = [];
       for (const idx of payload.map[k]) {
         const entry = newList[idx];
-        if (entry && entry.block) {
+        const isGestureBlock = entry && entry.block &&
+          Array.isArray(entry.preconds) &&
+          entry.preconds.some(p => p && p.type === PRECOND_MOUSE_GEST_STATE);
+        if (isGestureBlock) {
           // Keep the entry (gesture end entries are REQUIRED for the user's
           // gesture trigger to work), but drop the pass-through block so the
           // native's button-state machine sees the right-button release.
@@ -165,7 +184,7 @@
       if (idxs.length) newMap[k] = idxs; // key may now be empty → omit entirely
     }
     if (softened) {
-      console.log("[AC-MV3] STRIP_RBTN_BLOCK: softened", softened, "block entries (key 1026)");
+      console.log("[AC-MV3] STRIP_RBTN_BLOCK: softened", softened, "gesture block entries (key 1026; user block:up entries preserved)");
       return Object.assign({}, payload, { map: newMap, list: newList });
     }
     return payload;
@@ -305,10 +324,12 @@
   // <script> tags (shared global lexical environment).
   //
   // Regenerate sw_core_bundle.js after editing any core file:
-  //   $f=@('sw_prelude.js','file67.js','file91.js','file10.js','file32.js','file17.js','file13.js','file34_mv3.js','file56.js','file57.js','file74.js','file47.js','file73.js','file70.js','file25.js','file8.js','file95.js','file15.js','file48.js','file37.js','file3.js','file24.js','file18.js','file41.js','file45.js','file50.js','file52.js','file59.js','file89.js','file93.js','file62_mv3.js','mv3_native_shim.js','file26.js','file49.js'); $o=foreach($x in $f){";`n/* ===== $x ===== */`n"+(Get-Content -Raw $x)}; Set-Content sw_core_bundle.js $o -Encoding utf8 -NoNewline
-  // NOTE: file26.js (menu renderer) + file49.js (saveUrl) come LAST — they use
-  // _cu/_Lk from mv3_native_shim.js. Deliberately NOT bundled (page/content
-  // script only): file2/file30/file36/file75/file78*/file87/file0/file12 (UI),
+  //   $f=@('sw_prelude.js','file67.js','file91.js','file10.js','file32.js','file17.js','file13.js','file34_mv3.js','file56.js','file57.js','file74.js','file47.js','file73.js','file70.js','file25.js','file8.js','file95.js','file15.js','file48.js','file77.js','file37.js','file3.js','file24.js','file18.js','file41.js','file45.js','file50.js','file52.js','file59.js','file89.js','file93.js','file62_mv3.js','mv3_native_shim.js','file26.js','file49.js'); $o=foreach($x in $f){";`n/* ===== $x ===== */`n"+(Get-Content -Raw $x)}; Set-Content sw_core_bundle.js $o -Encoding utf8 -NoNewline
+  // NOTE: file77.js MUST stay right after file48.js (its _Yh/userAPI needs
+  // file48's top-level let; _Yh is a TDZ top-level let of file48). file26.js
+  // (menu renderer) + file49.js (saveUrl) come LAST — they use _cu/_Lk from
+  // mv3_native_shim.js. Deliberately NOT bundled (page/content script only):
+  // file2/file30/file36/file75/file78*/file87/file0/file12 (UI),
   // file42/file43 (injected into tabs), file23.html (eval sandbox),
   // file53.js (playAudio — needs speechSynthesis), file77.js (userAPI page bridge).
   try {

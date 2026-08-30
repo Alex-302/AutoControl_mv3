@@ -130,6 +130,31 @@
   right button is what tells the native to start gesture recognition.
   Only the right-button *release* is softened now — gestures start and
   are recognized again, while the "stuck" left-click bug stays fixed.
+- **Right-click menu override did not work** ("action fires but the
+  context menu still appears", GitHub issue #1). A right-button trigger
+  with the block mode "up" is what makes the native swallow the
+  right-button release so Chrome never opens the context menu — but the
+  same release-softening that keeps mouse gestures alive also softened
+  the user's own override entry, so the menu opened after every
+  right-click action. The softening is now selective: only the
+  gesture-generated entries are softened (recognizable by their
+  gesture-state condition), and user override entries are left intact.
+  Verified with a real right-click: the menu stays closed, the trigger
+  still fires, the left button works normally afterwards, and nothing
+  fires spontaneously. Note: hover ("mouse over …") conditions on
+  triggers are broken on Chrome 148+ at the native level (the native
+  ignores them entirely — an a11y hit-test regression that affects the
+  original MV2 extension on this Chrome version too; on Edge the MV2
+  extension still works, which is why the report only appeared on the
+  MV3 port).
+- **Pin/unpin (and mute) actions only worked on every other click** —
+  the action read the tab state from the extension's internal tab cache,
+  which is refreshed by an asynchronous window re-enumeration gated by a
+  1.5-second cache — so clicks faster than that read a stale state and
+  "toggled" the tab to the same value (a visible no-op). Pin and mute
+  toggles now read the live tab state from the browser right before the
+  update, so every click toggles (verified: 12 rapid clicks, all
+  toggled; the left button stays responsive).
 - An abandoned recording session (combo editor / gesture tester left
   armed) could leave the native in raw-capture mode forever — hotkeys and
   gestures silently dead. An armed capture that sees no trigger for
