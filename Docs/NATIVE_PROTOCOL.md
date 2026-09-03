@@ -497,6 +497,16 @@ The `M||V` branch in `_mh R()`: `if(r.block && I) { ...; if(M||V) n(e.eventId,{t
 
 **v6 side effect:** RCM-up now passes through to Chrome → a context menu pops open after every gesture.
 
+**UPDATE (2026-08-30, issue #1 "right click menu override not working"):**
+1. v6 softened BOTH keys — that KILLED mouse gestures (the `block:true` on key 2 DOWN is what makes the native intercept the right button and start gesture recognition). The strip now leaves key 2 untouched and softens ONLY key 1026.
+2. Softening EVERY 1026 block also killed the user's **right-click menu override** — the trigger "RMB, block mode 'up'" compiles
+   ```
+   1026→{type:0, block:true, preconds:[{type:8(actionDone), value:1, actIdx}]}
+   ```
+   which is what makes the native swallow the RMB release so the context menu stays closed (MV2 behavior). The strip is now SELECTIVE: only entries gated on the native gesture state machine (mouseGestState precond, `type:11`) are softened — the gesture-preset blocks — while the user's actionDone-gated block:up entries are PRESERVED.
+3. VERIFIED LIVE (2026-08-30, Chrome 150, real OS RMB via `Test/_ac_mouse.ps1` + page `contextmenu` event probe): with the user's block:up intact — RMB → **NO contextmenu event reaches the page** (native swallows down+up), the trigger fires (pinTabs executed), LMB after RMB passes through normally, no spontaneous re-fires, no PBC stick. The gesture-preset 1026 block still gets softened ("STRIP_RBTN_BLOCK: softened 1 gesture block entries").
+4. ⚠ `{type:14}` mouseOver preconds do NOT gate triggers on Chrome 150 AT ALL (verified 2026-08-30: region 3 "Web page" and region 4 "Title area" both fire everywhere — native a11y hit-test regression; affects MV2 AND MV3; no extension-side fix — no cursor-position API).
+
 ### v7 — auto-Esc after gesture
 
 `scheduleGestureEsc()` — after a gesture (type 750) sends a synthetic Esc after 50ms:
