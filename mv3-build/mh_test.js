@@ -1303,6 +1303,17 @@ setTimeout(() => {
     sw.includes('!__acCaptureOn &&') &&
     sw.includes('tabs.length === 0 && __acCaptureOn && __acCaptureStage === 0') &&
     sw.includes('__acRaw760Start = 0;') &&
+    // stale-armed release (2026-08-30): an armed capture with no 750 for
+    // AC_CAPTURE_STALE_ARMED_MS (5 min — raised from 60s, user D-15: the
+    // gesture tester file30 re-arms only on window focus, so a 60s pause
+    // released a LIVE test session) is a dead editor/test session (page
+    // died/reloaded without OFF) — release it; a live recording re-arms on
+    // the next editor action
+    sw.includes('AC_CAPTURE_STALE_ARMED_MS = 300000') &&
+    sw.includes('__acNoToggle > AC_CAPTURE_STALE_ARMED_MS') &&
+    sw.includes('Date.now() - __acCaptureT > AC_CAPTURE_STALE_ARMED_MS') &&
+    sw.includes('750 arrived while armed — capture actually released') &&
+    sw.includes('setInterval(() => {') &&
     // negative: the SW must never ARM capture on its own
     !sw.includes('postMsg(40, true)') &&
     !sw.includes('postMsg(40, {mouseGest');
@@ -1734,6 +1745,260 @@ vm.runInContext(`
   // a flag: we record the JSON, then assert it at SUMMARY time.
   ctx.__b46Sw = swB46;
   ctx.__b46Src = srcOk;
+}
+
+// B47. Site bridge (webSettgs) for the GitHub Pages mirror (2026-08-29):
+// the Import/View/redirSttgs interception on the site pages fires when the
+// tab hostname matches the site host. The mirror lives on
+// alex-302.github.io → the gate now accepts _9n alongside _mo. The bridge
+// script must run in the ISOLATED world — __acInjectCode (userScripts/MAIN)
+// has no chrome.runtime, so the original _wj path would throw on
+// sendMessage; chrome.scripting.executeScript with world:"ISOLATED" +
+// func/args restores MV2 semantics (tabs.executeScript). NOTE: ScriptInjection
+// has NO `code` property (that's tabs.executeScript) and NO `runAt` (use
+// injectImmediately) — both throw "Unexpected property". _Zr hardened:
+// (document.head||document.documentElement) at document_start + try/catch.
+// sw.js __acReinjectSiteBridge() re-injects into ALREADY-OPEN tabs at SW
+// start (MV2's _zg re-injection) + 2/6/12s later. file48 m() calls
+// (window._ja||l)(url) directly (the MV2 l → _0s() → getViews path is
+// EMPTY in the SW). sw.js re-implements window._ja with the bundle's
+// UI-free pipeline (_1p/_mg fetch, _Qj, _9i, _K dedupe, _4p merge, _bd
+// save, _ku rebuild) + MV2-style permission request (notifications/
+// downloads/sessions/bookmarks from the imported actions; <all_urls> is
+// already granted) — denial skips the import. TEMP file:// bridge
+// REMOVED 2026-08-30 (was only for local testing; MV2 never bridged
+// file:// — the reinject query now matches the two web hosts only).
+{
+  const f62 = fs.readFileSync(path.join(MV3, 'file62_mv3.js'), 'utf8');
+  const f10 = fs.readFileSync(path.join(MV3, 'file10.js'), 'utf8');
+  const f48 = fs.readFileSync(path.join(MV3, 'file48.js'), 'utf8');
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const srcOk =
+    f10.includes('_9n="alex-302.github.io"') &&
+    f62.includes('hostname.in(_mo,_9n)') &&
+    f62.includes('"file:"==(new URL(_zh(_Yp[c]))).protocol') &&
+    f62.includes('world:"ISOLATED"') &&
+    f62.includes('injectImmediately:true') &&
+    f62.includes('func:b=>') &&
+    f62.includes('args:["2025.4.22"]') &&
+    f62.includes('__acBridge') &&
+    !f62.includes('code:`(function(){') &&
+    !f62.includes('runAt') &&
+    f62.includes('_Yk.scripting.executeScript') &&
+    f48.includes('(window._ja||l)(a.imprtSttgs)') &&
+    sw.includes('__acReinjectSiteBridge') &&
+    sw.includes('_Zr(t.id)') &&
+    sw.includes('*://alex-302.github.io/*') &&
+    sw.includes('*://www.autocontrol.app/*') &&
+    // TEMP file:// bridge removed 2026-08-30 — must NOT be in the query
+    // or the reinject loop anymore
+    !sw.includes("'file://*/*'") &&
+    !sw.includes('fileTabs') &&
+    !sw.includes('TEMP (2026-08-29)') &&
+    sw.includes('window._ja = _cg') &&
+    sw.includes('_K(l, merged, true, true)') &&
+    sw.includes('_4p(l, merged, false)') &&
+    sw.includes('_bd(out') &&
+    sw.includes('_ku(() => {}') &&
+    sw.includes('chrome.permissions.request') &&
+    sw.includes('import skipped') &&
+    sw.includes("needPerms.push('notifications')") &&
+    sw.includes("chrome.notifications.create('acImportOk'") &&
+    sw.includes('Settings imported successfully') &&
+    sw.includes('chrome.tabs.create({ url: optsUrl })');
+  // NOTE: the bundle as a whole legitimately contains `runAt` (file70 _wj
+  // default for the tabs.executeScript shim) — assert only the _Zr
+  // injection shape here.
+  const bndOk = bundle.includes('_9n="alex-302.github.io"') &&
+    bundle.includes('world:"ISOLATED"') &&
+    bundle.includes('injectImmediately:true') &&
+    bundle.includes('func:b=>') &&
+    bundle.includes('(window._ja||l)(a.imprtSttgs)') &&
+    bundle.includes('function _K(') && bundle.includes('function _4p(') &&
+    bundle.includes('function _9i(') && bundle.includes('function _bd(');
+  check('site bridge: mirror host + ISOLATED injectImmediately func + re-inject + SW _ja import + perms + m() direct call (2026-08-29)',
+    srcOk && bndOk, 'src=' + srcOk + ' bundle=' + bndOk);
+}
+
+// B48. SFE Import (Import all in a View-opened editor tab) (2026-08-30):
+// MV2 `_0s("none")` (file67) resolves the settings window via
+// chrome.extension.getViews({tabId}) — mv3_shim.js stubbed ANY tabId lookup
+// to [] → `a` stayed undefined → `_Xp(a)._Hu.wait()` threw → `_0j()` hung →
+// file78 `_uw` never reached `_lj` → the import was a silent no-op. FIX
+// (take 2): (a) chrome.extension.getViews DOES exist in MV3 extension pages
+// (only the SW lacks it) — mv3_shim now calls the ORIGINAL for {tabId},
+// restoring the MV2 semantics (the window that hosts that tab → _lj runs
+// in the settings window when it is open); (b) file78 `_lj`/`_uw` write the
+// merged result through REAL chrome.storage.local.set(_bj(a),h) instead of
+// `_bd` — in the SFE tab `_Yk` is the file-proxy (file91 _Nh override), so
+// `_bd` would write into the editor's file model `m` and the real settings
+// would never change. The SW picks the write up via storage.onChanged →
+// _Gf → native type 60. The [window] fallback remains only when the native
+// getViews is unavailable and THIS page is main.html.
+{
+  const shim = fs.readFileSync(path.join(MV3, 'mv3_shim.js'), 'utf8');
+  const f78 = fs.readFileSync(path.join(MV3, 'file78.js'), 'utf8');
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const srcOk =
+    shim.includes('origGetViews(opts)') &&
+    shim.includes('take 2') &&
+    shim.includes("location.pathname.endsWith('/main.html')") &&
+    shim.includes('return [window];');
+  const swOk =
+    sw.includes('msg.type === 920 && connected && port && handshakeDone') &&
+    sw.includes('sendRes({ ok: true, result: "pong" })');
+  const f78Ok =
+    f78.includes('AC-MV3 FIX (2026-08-30)') &&
+    f78.includes('chrome.storage.local.set(_bj(a),h)') &&
+    f78.includes('REAL chrome.storage.local') &&
+    f78.includes('Settings imported successfully') &&
+    f78.includes('_lj _8f failed') &&
+    f78.includes('_lj _ku failed') &&
+    f78.includes('let _hsh="#"+_hp(b)') &&
+    f78.includes('location.hash!=_hsh') &&
+    f78.includes('_ids[_sid]=1;a.sections.push({id:_sid,name:"Imported actions"})') &&
+    f78.includes('location.replace(location.pathname+"?_ac="+Date.now()+_hsh)') &&
+    f78.includes('$("html").addClass("visible").css("display","block")') &&
+    f78.includes('_lj done: hash=') &&
+    f78.includes('_gs("dialog")') &&
+    f78.includes('w.location&&/[?&]file=/.test(w.location.href') &&
+    f78.includes('_Yk.tabs.create({url:_fuh,active:!0},g)') &&
+    f78.split('chrome.storage.local.set(_bj(a),h)').length - 1 >= 2;
+  check('SFE Import: orig getViews for tabId + _lj/_uw bypass the SFE file-proxy into real storage + fresh-tab #hash fallback + ping fast-path (2026-08-30)',
+    srcOk && swOk && f78Ok, 'shim=' + srcOk + ' sw=' + swOk + ' file78=' + f78Ok);
+}
+
+// B49. File-open dialog (type 240) must not time out after 5s (2026-08-30):
+// mv3_native_shim `_Lk` applies a DEFAULT 5s timeout to EVERY callback call
+// (`g || 5000`). The MV2 file-open dialog is MODAL — the user may take
+// longer than 5s to pick a file, so the native reply arrives after the
+// SW's postWithCb timer fired → shim resolves the callback with `_g`
+// ("CB-TIMEOUT") → `_xg` returned "CB-TIMEOUT" as the picked path →
+// `?file=CB-TIMEOUT` → `_1()` false → fetch branch → "Unreachable URL"
+// toast. FIX (file13 `_xg`): pass an explicit 60s timeout to `_Vy(_e,…)`
+// and treat a "CB-TIMEOUT" answer as "no file picked" (return "") so the
+// page never navigates to a garbage path. file13 is IN the bundle — rebuilt.
+// Same cherry-pick: file62_mv3 onUpdated file:// gate (`&&_id` — no bridge
+// injection noise on file:// when "Allow access to file URLs" is OFF).
+// The sw.js __acReinjectSiteBridge file:// gate is GONE (TEMP bridge
+// removed 2026-08-30 — the reinject query matches web hosts only).
+{
+  const f13 = fs.readFileSync(path.join(MV3, 'file13.js'), 'utf8');
+  const f62 = fs.readFileSync(path.join(MV3, 'file62_mv3.js'), 'utf8');
+  const bnd = bundle.includes('saveAs:c},6E4') && bundle.includes('"CB-TIMEOUT"==e?"":e') &&
+    bundle.includes('protocol&&_id)&&_Zr(c)');
+  const srcOk =
+    f13.includes('saveAs:c},6E4') &&
+    f13.includes('"CB-TIMEOUT"==e?"":e') &&
+    f13.includes('let _xg=') &&
+    f62.includes('protocol&&_id)&&_Zr(c)');
+  check('file-open dialog: _xg 60s timeout + CB-TIMEOUT returns "" + file62 onUpdated file:// gate (2026-08-30)',
+    srcOk && bnd, 'src=' + srcOk + ' bundle=' + bnd);
+}
+
+// B50. STRIP_RBTN_BLOCK must NOT kill mouse gestures (2026-08-30): v6
+// softened block:true→false on BOTH keys 2 (RMB down) and 1026 (RMB up).
+// block on key 2 DOWN is what makes the native INTERCEPT the right button
+// and start gesture recognition — with block:false no gesture ever begins
+// (user 2026-08-30: a freshly defined simple gesture stopped working
+// entirely; config dump showed 2→{type:4,state:true,block:false} after
+// stripping).
+// The RCM/LCM stick is caused by the swallowed right-button-UP (1026), not
+// the DOWN — soften ONLY 1026. Also: visibility safety net in mv3_shim
+// (first open right after a reload can stall the boot → page stays hidden).
+{
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const shim = fs.readFileSync(path.join(MV3, 'mv3_shim.js'), 'utf8');
+  const ok =
+    sw.includes('if (keyId !== RCM_UP_KEY) { newMap[k] = payload.map[k]; continue; }') &&
+    sw.includes('block entries (key 1026)') &&
+    !sw.includes('keyId !== 2 && keyId !== RCM_UP_KEY') &&
+    !sw.includes('block entries (key 2/1026)') &&
+    shim.includes('Visibility safety net') &&
+    shim.includes('!html.classList.contains(\'visible\')');
+  check('STRIP_RBTN_BLOCK softens ONLY RMB-up (gestures keep working) + settings-page visibility safety net (2026-08-30)',
+    ok, 'stripUpOnly=' + ok);
+}
+
+// B51. Object.prototype.in polyfill must handle BOTH call forms (2026-08-30):
+// the bundle is sloppy (no 'use strict' at the top of the concatenation) →
+// file67's `_Xt(this,...a)` boxes primitives → 'x'.in('x') was FALSE →
+// sw.js re-patched .in with `a.indexOf(t)` — which BROKE the array idiom
+// `x.in([...])` that keep() (file25 config compiler) relies on →
+// keep("negate","oper") deleted EVERY property incl. negate:true on
+// menuState preconds → every Ctrl+Tab trigger compiled as "menu 7 IS open"
+// → openMenu (menu-closed trigger) NEVER fired → the tab-switcher list
+// never opened after a reload (user 2026-08-30). The fix keeps file67's
+// _Xt semantics (flatten args one level, strict ===) AND unboxes this.
+// Source check: sw.js must contain the flattening implementation and NOT
+// the indexOf version. Runtime check: patch .in like sw.js does, then
+// compile the imported Smart Ctrl+Tab triggers via the REAL _mh and assert
+// the menuState preconds carry their negate flags (closed-menu triggers
+// negate:true, open-menu triggers plain).
+{
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const srcOk =
+    sw.includes('for (const v of [].concat(...a)) if (v === t) return true;') &&
+    !sw.includes('return a.indexOf(t) !== -1;');
+  const rt = vm.runInContext(`(() => {
+    // mirror sw.js's .in re-patch (the vm bundle is sloppy too — file67's
+    // _Xt boxes primitives → broken the same way as in the SW)
+    try {
+      Object.defineProperty(Object.prototype, 'in', {
+        writable: true,
+        value: function(...a) {
+          const t = (this !== null && typeof this === 'object') ? this.valueOf() : this;
+          for (const v of [].concat(...a)) if (v === t) return true;
+          return false;
+        }
+      });
+    } catch (e) { return { err: String(e) }; }
+    const scalarOk = 'x'.in('x') === true && 'y'.in('x') === false;
+    const arrOk = 'negate'.in(['negate', 'oper']) === true && 'menuId'.in(['negate', 'oper']) === false;
+    // the imported Smart Ctrl+Tab openMenu trigger (menuState negate:true)
+    const ta = [
+      ['116', {
+        actions: [{ sequence: [{ action: 'openMenu', params: { menuId: 'menuSpec:7', style: 'dark' } }], targets: 'currentTab' }],
+        triggers: [{
+          combins: [{ block: 1, eventId: 9, holdPeriod: 400, noAutoRep: true, preconds: [{ keyEvt: 17 }], wildcard: 2 }],
+          preconds: { menuState: [{ menuId: 'menuSpec:7', negate: true }] }
+        }]
+      }],
+      ['117', {
+        actions: [{ sequence: [{ action: 'moveSelectMark', params: { dir: 1 } }], targets: 'currentTab' }],
+        triggers: [{
+          combins: [{ block: 1, eventId: 9, holdPeriod: 0, noAutoRep: true, preconds: [{ keyEvt: 17 }], wildcard: 2 }],
+          preconds: { menuState: [{ menuId: 'menuSpec:7', negate: false }] }
+        }]
+      }]
+    ];
+    const payload = _mh(ta, {}, {});
+    // collect every type:13 (menuState) precond across ALL entries of a map key
+    const menuPreconds = (key) => {
+      const idxs = payload.map[key];
+      if (!idxs) return null;
+      const out = [];
+      for (const i of idxs) {
+        const pre = payload.list[i] && payload.list[i].preconds;
+        if (!pre) continue;
+        for (const p of pre) {
+          if (p && p.type === 13 && p.menuNum === 7) out.push(!!p.negate);
+        }
+      }
+      return out;
+    };
+    const n6145 = menuPreconds('28170');  // Tab held → openMenu (menu NOT open)
+    const n9 = menuPreconds('22034');     // key 9: hold-arm (negate) + moveSelectMark (positive)
+    return {
+      scalarOk, arrOk,
+      holdNeg: n6145 && n6145.includes(true) && !n6145.includes(false),
+      key9HasNeg: n9 && n9.includes(true),
+      key9HasPos: n9 && n9.includes(false)
+    };
+  })()`, ctx);
+  const rtOk = rt && rt.scalarOk && rt.arrOk && rt.holdNeg === true && rt.key9HasNeg === true && rt.key9HasPos === true;
+  check('.in polyfill: unboxes + flattens args (keep() preserves menuState negate → Ctrl+Tab smart switching compiles) (2026-08-30)',
+    srcOk && rtOk, 'src=' + srcOk + ' rt=' + JSON.stringify(rt));
 }
 
 // ---------- A4b. file:// toggle-ON runtime branch (2026-08-10, FEATURES-MV3.md §7-8) ----------

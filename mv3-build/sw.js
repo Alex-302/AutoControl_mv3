@@ -112,18 +112,31 @@
   // right click). v6 softens those blocks (stripRightButtonBlocks below),
   // v7 sends a synthetic Esc after a gesture (scheduleGestureEsc) to close
   // the stray context menu. Full chronology: Docs/archive/RIGHT-CLICK-ISSUE.md.
+  //
+  // AC-MV3 FIX (2026-08-30): v6 softened BOTH keys 2 and 1026 — that KILLED
+  // mouse gestures: block:true on key 2 (right-button DOWN) is what makes the
+  // native INTERCEPT the right button and start gesture recognition; with
+  // block:false no gesture ever begins (user 2026-08-30: a freshly defined
+  // simple gesture stopped working entirely; config dump showed
+  // 2→{type:4,state:true,block:false} after stripping). The RCM/LCM bug is
+  // caused by the swallowed right-button-UP (1026), not the DOWN — soften
+  // ONLY 1026 and leave key 2's block intact.
   const STRIP_RBTN_BLOCK = true; // ← flip to false to send the original config
 
-  // Softens right-button block entries in a type 60 payload (v6): keys 2 and
-  // 1026 carry the gesture preset's begin/end entries with block:true — while
-  // the gesture is in state S and the action in D, the native swallows the
-  // right-button-up. Softening both keys lets the release reach the native's
-  // state machine; the v5 heal tap is backup. Details:
+  // Softens right-button block entries in a type 60 payload (v6, updated
+  // 2026-08-30): key 1026 (right-button-up) carries the gesture preset's
+  // end entries with block:true — while the gesture is in state S and the
+  // action in D, the native swallows the right-button-up. Softening ONLY
+  // the UP key lets the release reach the native's state machine (fixing
+  // the RCM/LCM stick) WITHOUT disabling gesture start (key 2 DOWN keeps
+  // its block so the native still intercepts the right button). Details:
   // Docs/archive/RIGHT-CLICK-ISSUE.md.
   /**
-   * Soften the right-button block entries (v6, RCM/LCM fix): for keys 2 and
-   * 1026 every entry with block:true gets block:false, so the native always
-   * sees the right-button release and never sticks its pressed-button state.
+   * Soften the right-button-UP block entries (v6, RCM/LCM fix; key 2 DOWN is
+   * deliberately left intact — its block:true is what starts gesture
+   * recognition): for key 1026 every entry with block:true gets block:false,
+   * so the native always sees the right-button release and never sticks its
+   * pressed-button state.
    * @param {object} payload — type-60 config payload
    * @returns {object} payload with softened blocks (or the original unchanged)
    */
@@ -136,14 +149,14 @@
     const newList = payload.list.slice();
     for (const k of Object.keys(payload.map)) {
       const keyId = Number(k) - RBTN_KEY_OFFSET;
-      if (keyId !== 2 && keyId !== RCM_UP_KEY) { newMap[k] = payload.map[k]; continue; }
+      if (keyId !== RCM_UP_KEY) { newMap[k] = payload.map[k]; continue; }
       const idxs = [];
       for (const idx of payload.map[k]) {
         const entry = newList[idx];
         if (entry && entry.block) {
-          // Keep the entry (gesture begin/end entries are REQUIRED for the
-          // user's gesture trigger to work), but drop the pass-through block so
-          // the native's button-state machine sees the right-button press AND release.
+          // Keep the entry (gesture end entries are REQUIRED for the user's
+          // gesture trigger to work), but drop the pass-through block so the
+          // native's button-state machine sees the right-button release.
           newList[idx] = Object.assign({}, entry, { block: false });
           softened++;
         }
@@ -152,7 +165,7 @@
       if (idxs.length) newMap[k] = idxs; // key may now be empty → omit entirely
     }
     if (softened) {
-      console.log("[AC-MV3] STRIP_RBTN_BLOCK: softened", softened, "block entries (key 2/1026)");
+      console.log("[AC-MV3] STRIP_RBTN_BLOCK: softened", softened, "block entries (key 1026)");
       return Object.assign({}, payload, { map: newMap, list: newList });
     }
     return payload;
@@ -206,6 +219,15 @@
   const AC_CAPTURE_HEAL_EVENTS_NOPAGE = 6; // page-closed: nobody can record without the settings page
   const AC_CAPTURE_HEAL_STREAK_NOPAGE = 3000;
   const AC_CAPTURE_HEAL_GRACE_NOPAGE = 3000;
+  // Stale-armed release threshold (2026-08-30): an armed capture with NO 750
+  // for this long is treated as a dead editor/test session and released.
+  // 60s was too aggressive — the gesture tester (file30) re-arms ONLY on a
+  // window focus event, so a >60s pause mid-testing released the capture and
+  // the next draw was NOT recorded (user 2026-08-30 D-15: "line draws but
+  // the gesture is not recorded" — first draw fine, after a pause nothing).
+  // 5 min keeps the heal for genuinely stuck sessions (the user's original
+  // stuck-capture episodes lasted hours) without cutting a thinking pause.
+  const AC_CAPTURE_STALE_ARMED_MS = 300000;
   /**
    * Release a stuck native capture mode: send type 40 false twice (the two
    * capture modes — event / gesture — are tracked separately) and arm the
@@ -321,6 +343,158 @@
       return r;
     };
   }
+
+  // AC-MV3 FIX (2026-08-29, site bridge): MV2 re-injected the webSettgs
+  // bridge into ALREADY-OPEN site tabs after the config load
+  // (`_zg({url:"*://www.autocontrol.app/*"})(c=>c.forEach(d=>_Zr(d.id)))`
+  // in file62.js). The MV3 port (file62_mv3.js) lost that block — a tab
+  // opened BEFORE the SW started (or before an extension reload) never
+  // fires tabs.onUpdated "complete" again → Import/View stayed dead on
+  // open pages even though the hostname gate matched. Re-inject at SW
+  // start for both site hosts (mirror pages under /AutoControl_mv3/).
+  // _Zr is a bundle global (top-level function declaration) — free
+  // variable access from sw.js, same pattern as _Qj above.
+  function __acReinjectSiteBridge() {
+    if (typeof _Zr !== 'function') { console.error('[AC-SITE] reinject: _Zr not found'); return; }
+    try {
+      // file:// is NOT bridged (MV2 never supported it; needs the "Allow
+      // access to file URLs" toggle to inject — the site bridge is for the
+      // web hosts only). TEMP file:// bridge removed 2026-08-30.
+      chrome.tabs.query({ url: ['*://www.autocontrol.app/*', '*://alex-302.github.io/*'] }, (tabs) => {
+        const list = tabs || [];
+        console.log('[AC-SITE] reinject: found ' + list.length + ' site tab(s)');
+        for (const t of list) {
+          try {
+            const u = (t && (t.url || t.pendingUrl)) || '';
+            if (!u) continue;
+            if (u.indexOf('alex-302.github.io') !== -1 && u.indexOf('/AutoControl_mv3/') === -1) continue;
+            console.log('[AC-SITE] reinject: tab ' + t.id + ' -> ' + u.slice(0, 120));
+            try { _Zr(t.id); } catch (e) { console.error('[AC-SITE] reinject _Zr failed: ' + (e && e.message)); }
+          } catch (e) {}
+        }
+      });
+    } catch (e) { console.error('[AC-SITE] reinject query threw: ' + (e && e.message)); }
+  }
+  __acReinjectSiteBridge();
+  // Re-inject a few times after SW start — covers tabs that reloaded after
+  // the SW booted (injection is one-shot; onUpdated may have fired while
+  // the SW was still starting or the page reloaded later).
+  [2000, 6000, 12000].forEach((ms) => {
+    setTimeout(() => { try { __acReinjectSiteBridge(); } catch (e) {} }, ms);
+  });
+
+  // AC-MV3 FIX (2026-08-29, site bridge Import): the site pages' Import
+  // button reaches the SW as {imprtSttgs:<url>} and file48 m() calls
+  // window._ja(url). In MV2 _ja lived in file78.js (background page); the
+  // MV3 port does NOT bundle file78 (settings-page UI: jQuery, toasts,
+  // permission prompts) → window._ja is undefined in the SW → the import
+  // silently died (TypeError inside the onMessage listener). The SW bundle
+  // DOES contain the whole merge pipeline (_9i storage load / _K dedupe /
+  // _4p merge / _bd save / _ku config rebuild + native type 60, plus the
+  // fetch shim _1p/_mg), so _ja is re-implemented here with the UI-free
+  // parts (download → parse → merge-add → save → rebuild). _kp/_uw/_lj
+  // (UI toasts, permission prompts) stay page-side.
+  window._ja = _cg(function* (url) {
+    const [text, xhr] = yield _mg(_1p(url, 'text'));
+    if (!xhr || xhr.status !== 200) {
+      console.error('[AC-MV3] site import: fetch failed - ' + url + ' (' + (xhr && xhr.status) + ')');
+      return;
+    }
+    let data;
+    try { data = JSON.parse(text); } catch (e) {
+      console.error('[AC-MV3] site import: not a valid settings file - ' + url);
+      return;
+    }
+    // AC-MV3 FIX (2026-08-30, site import permissions): MV2 asked for the
+    // permissions required by the imported actions BEFORE importing
+    // (file78 _lj → _Qk(_xk(a), "permMsgs/impSttgs", true)) — on denial the
+    // import was skipped. The SW port skipped that step. The MV3 manifest
+    // already grants scripting + <all_urls> (the "script" / site-access
+    // perms), but notifications/downloads/bookmarks/sessions are OPTIONAL
+    // and must be requested. Re-implement the MV2 _xk logic here (a
+    // recursive walk of trigActList looking for action objects):
+    //   runScript(!bkgrnd)/sendInput intoPage/copyElemUrl/openElemUrl/
+    //   saveElemUrl → <all_urls> (already granted — skip)
+    //   saveUrl/saveElemUrl method notif → notifications
+    //   saveUrl/saveElemUrl method dwnlApi → downloads
+    //   closedTabs trigger → sessions; bmFolder trigger → bookmarks
+    const needPerms = [];
+    const wantOrigins = [];
+    (function walk(v) {
+      if (!v || typeof v !== 'object') return;
+      if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+      if (typeof v.action === 'string') {
+        const a = v.action, p = (v.params || {});
+        if ((a === 'runScript' && !p.bkgrnd) || (a === 'sendInput' && p.intoPage) ||
+            a === 'copyElemUrl' || a === 'openElemUrl' || a === 'saveElemUrl') {
+          wantOrigins.push('<all_urls>');
+        } else if (a === 'saveUrl' || a === 'saveElemUrl') {
+          if (p.method === 'notif') needPerms.push('notifications');
+          else if (p.method === 'dwnlApi') needPerms.push('downloads');
+        }
+        return;
+      }
+      if (v.type === 'closedTabs') needPerms.push('sessions');
+      else if (v.type === 'bmFolder') needPerms.push('bookmarks');
+      for (const k in v) walk(v[k]);
+    })(data);
+    const uniq = (arr) => arr.filter((x, i) => arr.indexOf(x) === i);
+    const reqPerms = uniq(needPerms);
+    const reqOrigins = uniq(wantOrigins);
+    if (reqPerms.length || reqOrigins.length) {
+      // chrome.permissions.request: promise-style in MV3 SW, callback-style
+      // in some Chrome builds — handle both through the generator's
+      // callback-runner (no `yield` of a raw Promise in this codebase).
+      const granted = yield (cb) => {
+        let done = false;
+        const fin = (res) => { if (!done) { done = true; cb(!!res); } };
+        try {
+          const r = chrome.permissions.request(
+            { permissions: reqPerms, origins: reqOrigins },
+            (res) => { if (res !== undefined) fin(res); }
+          );
+          if (r && typeof r.then === 'function') r.then((res) => fin(res), () => fin(false));
+          else if (r === undefined && !done) setTimeout(() => fin(false), 3000);
+        } catch (e) { fin(false); }
+      };
+      if (!granted) {
+        console.warn('[AC-MV3] site import: permission(s) denied — import skipped (' +
+          reqPerms.join(',') + ' ' + reqOrigins.join(',') + ')');
+        return;
+      }
+    }
+    const _2d = { trigActList: [], customEntities: {}, toolbarBtns: {}, sections: [] };
+    const merged = _Qj({}.add(_2d, data));
+    _9i(_2d, (l) => {
+      try {
+        _K(l, merged, true, true);       // dedupe/renumber imported entities (MV2 _uw)
+        const out = _4p(l, merged, false); // merge-add into existing settings
+        _bd(out, () => { _ku(() => {}); }); // save + rebuild config → native type 60
+        console.log('[AC-MV3] site import: settings imported from ' + url);
+        // MV2 parity: on a site import the settings page opened (+ toast).
+        // The toast machinery (_u/_Rg/_lj) is page-side (file78, not in the
+        // SW bundle) — give visible feedback from the SW instead: a
+        // notification + open/focus the settings page.
+        try {
+          chrome.notifications.create('acImportOk', {
+            type: 'basic',
+            iconUrl: 'AutoCtrl/logo32.png',
+            title: 'AutoControl',
+            message: 'Settings imported successfully.'
+          });
+        } catch (e) {}
+        try {
+          const optsUrl = chrome.runtime.getURL('main.html');
+          chrome.tabs.query({ url: optsUrl }, (tabs) => {
+            if (tabs && tabs[0]) { chrome.tabs.update(tabs[0].id, { active: true }); }
+            else { chrome.tabs.create({ url: optsUrl }); }
+          });
+        } catch (e) {}
+      } catch (e) {
+        console.error('[AC-MV3] site import: merge failed - ' + (e && e.message));
+      }
+    });
+  });
 
   // ZERO-PROXY BUILD (2026-08-03): the native host chain is
   // AutoControlZero.exe (proxy/launcher, host manifest path) -> spawns
@@ -503,6 +677,15 @@
   // that script strict → no boxing.) This silently broke _fr (variant), _eh
   // isDownUp checks, and config compilation (spurious entries). Re-patch with
   // unboxing + indexOf so .in works in sloppy mode.
+  // AC-MV3 FIX (2026-08-30): the indexOf version broke the bundle's ARRAY
+  // idiom `x.in([...])` — keep() (file25 config compiler) calls `b.in(a)`
+  // with a = the keep-list ARRAY; indexOf on the args array never matched →
+  // keep("negate","oper") deleted EVERY property, incl. `negate:true` on
+  // menuState preconds → every Ctrl+Tab trigger compiled as "menu 7 IS
+  // open" → openMenu (needs menu closed) NEVER fired → the tab-switcher
+  // list never opened after a reload (user 2026-08-30). Fix: keep file67's
+  // _Xt semantics (flatten args one level via [].concat, strict ===) and
+  // ADD the unboxing.
   try {
     // file67 defined 'in' via defineProperties → configurable:false (default),
     // but writable:true — so we can redefine the VALUE without configurable.
@@ -510,10 +693,13 @@
       writable: true,
       value: function(...a) {
         const t = (this !== null && typeof this === 'object') ? this.valueOf() : this;
-        return a.indexOf(t) !== -1;
+        for (const v of [].concat(...a)) if (v === t) return true;
+        return false;
       }
     });
-    console.log("[AC-MV3] .in polyfill re-patched → 'x'.in('x') =", "x".in("x"), "| 'y'.in('x') =", "y".in("x"));
+    console.log("[AC-MV3] .in polyfill re-patched → 'x'.in('x') =", "x".in("x"),
+      "| 'y'.in('x') =", "y".in("x"),
+      "| 'negate'.in(['negate','oper']) =", "negate".in(["negate", "oper"]));
   } catch(e) {
     console.warn("[AC-MV3] .in patch failed:", e.message);
   }
@@ -1860,6 +2046,22 @@
       __acRaw760++;
       const __acNow = Date.now();
       const __acNoToggle = __acNow - __acCaptureT;
+      // AC-MV3 FIX (2026-08-30): stale-armed release. The page arms capture
+      // (combo editor file68 / gesture tester file30 / devInput file79) and
+      // is SUPPOSED to send OFF on close (file68 E(), file30 blur /
+      // testGestureEnd, file79 f()). If the page died, reloaded or the OFF
+      // was lost, __acCaptureOn stays true FOREVER and the recording gate
+      // ("never heal while armed") blocks every heal — gestures/hotkeys die
+      // silently while raw 760s keep flowing (user 2026-08-30: "gestures
+      // fire on micro-moves, no trail drawn" — the native was in raw
+      // capture, 750s suppressed). Release armed sessions that have seen no
+      // 750 for AC_CAPTURE_STALE_ARMED_MS (5 min — NOT 60s: the gesture
+      // tester file30 re-arms only on window focus, so a 60s pause released
+      // a live test session, user D-15). If the user is still editing, the
+      // next editor action re-arms capture immediately.
+      if (__acCaptureOn && __acNoToggle > AC_CAPTURE_STALE_ARMED_MS) {
+        __acCaptureRelease("capture armed for >" + (AC_CAPTURE_STALE_ARMED_MS / 60000) + "min with no 750 — stale editor/test session", 1);
+      }
       if (__acCaptureStage === 0) {
         const __acNoPage = __acExtPagesOpen === 0;
         const __acEnough = __acNoPage
@@ -1926,6 +2128,14 @@
       __acRaw760 = 0;
       __acRaw760Start = 0;
       __acCaptureStage = 0;
+      // AC-MV3 FIX (2026-08-30): 750s are suppressed while the native is in
+      // raw capture — their arrival proves capture is NOT active. Clear the
+      // armed flag so a later 760 flood (a re-stuck native) is healable
+      // instead of being blocked by the recording gate forever.
+      if (__acCaptureOn) {
+        __acCaptureOn = false;
+        console.warn("[AC-CAPTURE] 750 arrived while armed — capture actually released, clearing armed flag");
+      }
       const decoded = data && data.id ? (16777215 & (data.id - handshakeSk)) : '?';
       console.warn(`[AC-MV3-SW] ← Trigger 750 id=${data && data.id} (handshakeSk=${handshakeSk} → triggerId=${decoded})`);
       // Full payload — CRITICAL for the left-click-stick bug: we need to see whether
@@ -2806,6 +3016,19 @@
           sendRes({ ok: false, error: "native not ready" });
           return true;
         }
+        // AC-MV3 FIX (2026-08-30): page boot ping (file2 m(3,500), type 920).
+        // On the FIRST import after an extension reload the fresh settings tab
+        // boots while the native is still busy with the SW startup burst (wmic
+        // scans, window enum, ~30 type-400 moves, config chain) — it cannot
+        // answer within the page's 500ms timeout → m() returns false → FALSE
+        // "Native Component not working" dialog (NH-noConnex) on a healthy
+        // install (previously hidden by the invisible page, exposed by the
+        // forced-visible fix). The SW holds the live native port — answer
+        // "pong" directly (same semantics as the native's ping reply).
+        if (msg.type === 920 && connected && port && handshakeDone) {
+          sendRes({ ok: true, result: "pong" });
+          return true;
+        }
         // Rate limit ping messages (type 920) to prevent native component overload
         if (msg.type === 920) {
           const now = Date.now();
@@ -3107,6 +3330,19 @@
     // capture fast (the page can no longer send its own type-40 OFF).
     if (chrome.tabs && chrome.tabs.onRemoved) chrome.tabs.onRemoved.addListener(() => __acCheckExtPages());
     __acCheckExtPages();
+    // AC-MV3 FIX (2026-08-30): stale-armed sweep — independent of the 760
+    // stream (a stuck capture with an IDLE mouse produces no 760s, but still
+    // suppresses 750s). Every 15s: release an armed capture that has seen no
+    // 750 for AC_CAPTURE_STALE_ARMED_MS (5 min — see the 760 handler; the
+    // page's own OFF never came — page died/reloaded or the editor session
+    // was abandoned).
+    setInterval(() => {
+      try {
+        if (__acCaptureOn && Date.now() - __acCaptureT > AC_CAPTURE_STALE_ARMED_MS) {
+          __acCaptureRelease("capture armed for >" + (AC_CAPTURE_STALE_ARMED_MS / 60000) + "min with no 750 (sweep) — stale editor/test session", 1);
+        }
+      } catch(e) {}
+    }, 15000);
   } catch (e) {}
 
   // Local command bridge: the in-SW core engine emits commands via

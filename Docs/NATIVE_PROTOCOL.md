@@ -463,6 +463,7 @@ Payload of type 60 is an object assembled by `_mh()` (file25.js):
 | 7 | `_5a` | actionState `{type:7, value:68('D'), actIdx}` |
 | 9 | `_Ku` | keyStateChange (value:0/1) |
 | 11 | `_5` | mouseGestState `{type:11, value:83('S')}` (83='S', 73='I', 67='C') |
+| 13 | `_0y` | menuState `{type:13, menuNum, negate?}` — menuNum = the menu entity id (`_lk("menuSpec:7")` → 7). **`negate:true` = the menu must NOT be open.** The native evaluates this itself (it owns the menu overlay). Verified 2026-08-30: the Smart Ctrl+Tab set compiles openMenu (menu-closed) as `{type:13,menuNum:7,negate:true}` and moveSelectMark/selectMarkedItem (menu-open) as `{type:13,menuNum:7}` — with the negation the native fires the closed-menu triggers only when NO menu is open |
 | 14 | `_bt` | mouseOver region |
 
 ### PBC (Pressed Button Count)
@@ -556,7 +557,10 @@ Tuples `[2|_N, x, y, hold]` (mouse moves) are only used by the full sendInput en
 | 136 | `_Mu` | → | Tab replaced `[oldTabId, newTabId]` |
 | 140 | `_5t` | → | Tab state `{tabId, win, time, popup}` |
 | 150 | `_ta` | → | Tab focus `{tabId, win}` |
-| 160–197 | — | → | (—) |
+| 160–197 | — | → | (—) — see 170/175/185 below |
+| 170 | `_b` | → | **Open menu** `{menuData:{style,items:[{title,icon(base64),...}]}, menuEntityNum, position, alignHorz, alignVert, menuSystem, usePrvMsPos}` → `true` = accepted/drawn (file26 `_Bp`; the tab-switcher list is such a menu, menuNum 7) |
+| 175 | `_Ws` | → | **Menu state query / close** — with `null` content it is the bundle's `H()` "is a menu open?" check (file26): → `true` = a menu is open, `false`/falsy = none; the `closeMenu` action ALSO sends `175 null` (the actual close happens native-side, e.g. after `selectMarkedItem` selection). Verified 2026-08-30: `true` while the tab-switcher menu is open |
+| 185 | `_3f` | → | **Menu state detail query** `{usePrvMsPos}` → `{hilited, hovered, marked}` item indices; `{}` when no menu is open (per 2026-08-30 CDP probe) |
 | 200 | `_Jo` | → | Preview maker params `{interval}` |
 | 205 | `_Ia` | → | (—) |
 | 210 | `_Ww` | → | (—) |
@@ -724,3 +728,32 @@ type 760: { actionType: <number>, actionSpec: <...> }
 > list: `FEATURES-MV3.md` §7 (port gaps), §8 (impossible in MV3).
 
 
+
+---
+
+## 20. Ctrl+Tab "Smart switching" — compiled trigger map (verified 2026-08-30)
+
+The imported set "Smart Ctrl+Tab switching" (site
+`switch-to-last-used-tab-in-chrome.htm`, 6 triggers) compiles to this map
+(`mapKey = keyId + 22025`):
+
+| mapKey | keyId | What the native sees |
+|--------|-------|----------------------|
+| 22034 | 9 (Tab down) | hold-arm `{type:8, evtId:6145, delay:400, block:true, preconds:[menuState 7 negate:true, chromeState, keyEvt Ctrl(162), wildcard 2]}` + moveSelectMark entries (param 811 = entry+_su, no menuState negate) |
+| 28170 | 6145 (Tab held, fired by the native after the 400ms delay) | **openMenu** `{type:1, param:812, block:true, preconds:[menuState 7 negate:true, chromeState, keyEvt Ctrl, wildcard 2]}` → the extension builds the tab list (menuData, TSE currWinTabsMruOrder) and sends type 170 |
+| 23058 | 1033 (Tab-up) | activateTabs prevUsedTab (menuState 7 negate:true, block:2) — quick-press MRU switch |
+| 23211/23212 | 186/187 (Ctrl left/right; up-events encoded as PBC `{"0":-1}`) | selectMarkedItem+closeMenu (no negate — menu open), activateTabs prevUsedTab (Ctrl-up with Tab held, negate), activateTabs currentTab (Ctrl-up, negate) |
+
+Trigger ids on the wire: `triggerId = entryId + _su` (`_su` = salt from the
+extension id, `parseInt(id.substr(22,2),36)`; entry 6 → 812 for the current
+build). The SW decodes with `16777215 & (id - _Sk)` where `_Sk =
+Date.now()/864E5|0` frozen at handshake.
+
+**Root cause found 2026-08-30 ("tab list does not open after reload")**:
+the SW-side `Object.prototype.in` re-patch used `a.indexOf(t)` which broke
+the bundle's array-passing idiom `x.in([...])`; `keep()` (file25 config
+compiler) then deleted the `negate:true` flag from every menuState precond →
+ALL triggers compiled as "menu 7 IS open" → openMenu (menu-closed trigger)
+never fired, Tab/Ctrl passed through to Chrome's own Ctrl+Tab. Fixed by
+restoring file67's `_Xt` semantics (flatten args one level, strict `===`)
+plus the unboxing. See AGENTS.md "Object.prototype .in" gotcha.
