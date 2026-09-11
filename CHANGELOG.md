@@ -119,7 +119,9 @@
   restore). Keyboard Open URL of `chrome://extensions` often painted;
   history and bookmarks did not. After creating a `chrome://` /
   `edge://` tab the extension now reloads it once (new-tab pages and
-  ordinary https URLs are left alone). A refresh still works if needed.
+  ordinary https URLs are left alone). The reload waits only for a
+  pending gesture Esc (~0–20 ms), not a long delay, so the first stuck
+  paint does not sit on screen. A refresh still works if needed.
 - **Ctrl+Tab "Smart switching" no longer opened the tab list after a
   reload.** The imported action set ("Smart Ctrl+Tab switching" from the
   site) is built on menu-state conditions: the tab menu must be *closed*

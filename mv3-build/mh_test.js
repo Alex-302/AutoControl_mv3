@@ -2114,15 +2114,21 @@ vm.runInContext(`
 // (tabs.create / windows.create — do NOT fold into the restore wrap).
 // sw.js wraps both creates and reloads chrome:// / edge:// tabs once
 // (skip about:blank and the new-tab page; do NOT reload https).
+// Reload is immediate unless a gesture Esc is pending — then flush on
+// the next tick after Esc (a fixed 150ms wait made the first paint flash).
 {
   const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
   const wrapOk = sw.includes('function __acWrapChromeUiCreate') &&
     sw.includes('function __acNeedsChromeUiReload') &&
     sw.includes('function __acReloadChromeUiTab') &&
-    sw.includes('AC_CHROME_UI_RELOAD_MS') &&
+    sw.includes('__acPendingChromeUiReloads') &&
+    sw.includes('function __acFlushChromeUiReloads') &&
     sw.includes('__acChromeUiReload') &&
     /wrap\(chrome\.tabs,\s*"create"/.test(sw) &&
     /wrap\(chrome\.windows,\s*"create"/.test(sw);
+  const afterEscOk = sw.includes('if (escTimer)') &&
+    sw.includes('__acFlushChromeUiReloads') &&
+    !sw.includes('AC_CHROME_UI_RELOAD_MS = 150');
   const skipOk = sw.includes('about:blank') &&
     sw.includes('chrome://newtab') &&
     sw.includes('chrome://new-tab-page');
@@ -2130,8 +2136,8 @@ vm.runInContext(`
     sw.includes('u.indexOf("edge://") === 0');
   const noHttpsReload = !/https Open URL is left alone/.test(sw) ? false : true;
   check('sw.js: tabs.create wrap reloads chrome:// Open URL tabs (2026-09-11)',
-    wrapOk && skipOk && chromeOnly && noHttpsReload,
-    'wrap=' + wrapOk + ' skip=' + skipOk + ' chromeOnly=' + chromeOnly + ' noHttps=' + noHttpsReload);
+    wrapOk && afterEscOk && skipOk && chromeOnly && noHttpsReload,
+    'wrap=' + wrapOk + ' afterEsc=' + afterEscOk + ' skip=' + skipOk + ' chromeOnly=' + chromeOnly + ' noHttps=' + noHttpsReload);
 }
 
 // ---------- A4b. file:// toggle-ON runtime branch (2026-08-10, FEATURES-MV3.md §7-8) ----------

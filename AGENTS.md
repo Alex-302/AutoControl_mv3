@@ -704,10 +704,12 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   `_Mh` → `_6a`/`_3g` → `tabs.create` runner; gestures also fire RBTN-ESC
   (type 300 Esc, 20ms) which can race onto the new WebUI. FIX: wrap
   `chrome.tabs.create` + `chrome.windows.create` in sw.js; reload
-  `chrome://` / `edge://` tabs once at 150ms (skip about:blank and the
-  new-tab page). Do NOT reload https Open URL (would flash). `_Yk ===
-  chrome` in the SW so `_6a` picks up the wrap. mh_test B55. NO bundle
-  rebuild. Independent PR from `master` — do not fold into the restore wrap.
+  `chrome://` / `edge://` immediately unless a gesture Esc is still
+  queued, then on the next tick after Esc (~0–20ms — a fixed 150ms wait
+  made the first stuck paint flash). Skip about:blank and the new-tab
+  page. Do NOT reload https Open URL (would flash). `_Yk === chrome` in
+  the SW so `_6a` picks up the wrap. mh_test B55. NO bundle rebuild.
+  Independent PR from `master` — do not fold into the restore wrap.
 - **Play audio (FIXED 2026-08-09)** — the original lazy-loads file53.js via
   a script tag (a NO-OP in the SW) → the action hung the chain AND the
   queue; file53 also needs AudioContext/speechSynthesis (no worker APIs).

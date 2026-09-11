@@ -384,7 +384,7 @@
 | `_live` flag | Added to live (non-buffered) broadcasts |
 | `stripRightButtonBlocks()` | **v6**: softens block:true→false under key 2 AND 1026 in type 60 |
 | `scheduleGestureEsc()` | **v7**: 20ms after a gesture sends type 300 `[27,1051]` (Esc) |
-| `__acWrapChromeUiCreate()` | After importScripts: wrap `tabs.create` + `windows.create`; reload chrome:// / edge:// tabs once at 150ms (skip about:blank / newtab). Heals Open URL of history/bookmarks stuck on Loading (2026-09-11, B55) |
+| `__acWrapChromeUiCreate()` | After importScripts: wrap `tabs.create` + `windows.create`; reload chrome:// / edge:// immediately, or on the next tick after a pending gesture Esc (skip about:blank / newtab). Heals Open URL of history/bookmarks stuck on Loading (2026-09-11, B55) |
 | `lastRaw760Time` | TS of last type 760 — gesture fingerprint for v7 |
 | `handshakeSk` | `_Sk` at handshake (daily offset) |
 | `startupSent` | Flag: type 21 sent (after config chain) |

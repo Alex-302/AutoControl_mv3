@@ -209,10 +209,22 @@
   // v5 (RCM+Esc synth) is REPLACED: a synthetic RCM click would land INSIDE
   // the just-opened context menu and activate a menu item — bad. Esc only.
   const RBTN_ESC_ENABLE = true;     // flip false to disable v7
-  const RBTN_ESC_DELAY_MS = 20;   // delay after gesture fire (menu opens ~instantly; 20ms is safe). chrome:// Open URL reloads at AC_CHROME_UI_RELOAD_MS (150) so a racing Esc onto the new WebUI is healed.
+  const RBTN_ESC_DELAY_MS = 20;   // delay after gesture fire (menu opens ~instantly; 20ms is safe)
   const GESTURE_WINDOW_MS = 2000;  // a 750 preceded by 760 within this window counts as a gesture
   let lastRaw760Time = 0;          // ts of the most recent type 760 (gesture stream)
   let escTimer = null;
+  // chrome:// tabs created while a gesture Esc is pending: reload AFTER Esc
+  // (Esc can interrupt WebUI paint). Keyboard Open URL reloads immediately.
+  let __acPendingChromeUiReloads = [];
+  function __acDoChromeUiReload(id) {
+    try { chrome.tabs.reload(id, () => void chrome.runtime.lastError); }
+    catch (e) {}
+  }
+  function __acFlushChromeUiReloads() {
+    const ids = __acPendingChromeUiReloads;
+    __acPendingChromeUiReloads = [];
+    for (let i = 0; i < ids.length; i++) __acDoChromeUiReload(ids[i]);
+  }
 
   // ============ AC-CAPTURE heal (type 40 watchdog, 2026-08-09) ============
   // While ANY capture mode (type 40) is ON, the native streams raw 760s and
@@ -305,6 +317,10 @@
       } catch(e) {
         console.warn("[AC-MV3] RBTN-ESC failed:", e.message);
       }
+      // Heal chrome:// Open URL after Esc so the key does not abort the reload.
+      if (__acPendingChromeUiReloads.length) {
+        setTimeout(__acFlushChromeUiReloads, 0);
+      }
     }, RBTN_ESC_DELAY_MS);
   }
 
@@ -347,10 +363,11 @@
   // Open URL (_Mh → _6a / _3g) uses _Yk.tabs.create === chrome.tabs.create
   // in the SW, so wrapping here covers gestures AND hotkeys. Gestures also
   // fire a synthetic Esc 20ms later (RBTN-ESC) which can race onto the new
-  // WebUI; the reload is delayed past that. https Open URL is left alone
-  // (would flash every site). Skip about:blank and the new-tab page.
-  // No bundle rebuild.
-  const AC_CHROME_UI_RELOAD_MS = 150;
+  // WebUI. A fixed 150ms reload wait made the first stuck paint visible
+  // (flicker). Reload immediately when no Esc is pending (keyboard);
+  // if Esc is still queued, reload on the next tick after Esc fires
+  // (~0–20ms). https Open URL is left alone (would flash every site).
+  // Skip about:blank and the new-tab page. No bundle rebuild.
   function __acNeedsChromeUiReload(url) {
     if (!url || typeof url !== "string") return false;
     const u = url.trim().toLowerCase();
@@ -366,10 +383,11 @@
       if (id == null) return;
       const url = tab.pendingUrl || tab.url || createUrl || "";
       if (!__acNeedsChromeUiReload(url)) return;
-      setTimeout(() => {
-        try { chrome.tabs.reload(id, () => void chrome.runtime.lastError); }
-        catch (e) {}
-      }, AC_CHROME_UI_RELOAD_MS);
+      if (escTimer) {
+        if (__acPendingChromeUiReloads.indexOf(id) < 0) __acPendingChromeUiReloads.push(id);
+        return;
+      }
+      __acDoChromeUiReload(id);
     } catch (e) {}
   }
   function __acWrapChromeUiCreate() {
