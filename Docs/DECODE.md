@@ -392,7 +392,7 @@
 |-------|-------|-----|-------------|
 | 50 | `_Qw` | → | Trigger event injection `{evtId, trigInstId}` |
 | 55 | `_vh` | → | Emergency repair / diagnostics |
-| 90 | `_Xa` | → | Icons (toolbar buttons) |
+| 90 | `_Xa` | → | Gesture-display HUD icons (`_6t`; not toolbar buttons) |
 | 100/110 | `_fk`/`_Cf` | → | Gesture trail draw/move |
 | 136 | `_Mu` | → | Tab replaced `[oldId,newId]` (tabs.onReplaced) |
 | 140 | `_5t` | → | Tab state `{tabId,win,time,popup}` (`_Sh`) |

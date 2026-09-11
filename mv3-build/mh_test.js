@@ -423,6 +423,27 @@ setTimeout(() => {
       'vxAlpha=' + ok);
   }
 
+  // A7c. Gesture display ON by default when `enabled` is missing (2026-09-11):
+  // MV2 `_6t` only clears icons on `0==b.enabled`. The SW patch used
+  // `!b.enabled`, so a checkbox that LOOKS checked (UI defaults null→true)
+  // sent type 90 with [] and native drew nothing.
+  {
+    const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+    const shim = fs.readFileSync(path.join(MV3, 'mv3_shim.js'), 'utf8');
+    const css = fs.readFileSync(path.join(MV3, 'file46.css'), 'utf8');
+    const gateOk = sw.includes('if (0 == b.enabled)') &&
+      !sw.includes('if (!b.enabled) { send([]); return; }');
+    const pushOk = sw.includes('function __acPushGestureDisplay') &&
+      sw.includes('changes.mouseGest') &&
+      sw.includes('case "gestureDisplay":');
+    const pageOk = shim.includes("cmd: 'gestureDisplay'") &&
+      css.includes("font-family: gestureDirs") &&
+      css.includes('gestureDirs.woff2');
+    check('gesture display: missing enabled is ON (MV2 0==b.enabled) + SW re-push (2026-09-11)',
+      gateOk && pushOk && pageOk,
+      'gate=' + gateOk + ' push=' + pushOk + ' page=' + pageOk);
+  }
+
   // A8. Zero-proxy chain invariant (verified 2026-08-03): the host manifest
   // MUST point at AutoControlZero.exe (proxy/launcher) - the full engine
   // AutoCtrl_2025.4.22.0.exe crashes with a C++ exception when launched
@@ -2130,6 +2151,24 @@ vm.runInContext(`
   } catch (e) {
     check('_As scheme gate: file:// NOT restricted with toggle ON (stub=true)', false, 'ctx2 load error: ' + e.message);
   }
+}
+
+// B53. Gesture display checkbox did nothing (2026-09-11). Native HUD uses
+// type 90 icons from `_6t`. The SW patch treated a missing `enabled` as OFF
+// (`!b.enabled`) while the settings UI defaults the checkbox to ON (`_ga`:
+// null → true) — so the box looked checked and native received []. Also
+// the page `_6t` (file3 canvas) could not load gestureDirs (that @font-face
+// lived on MV2's background file63.html; file46.css had logoFont/symbols/
+// icons only). FIX: MV2 gate `0==b.enabled`, SW re-push after configLoaded
+// + storage.onChanged, page `_6t` routed to the SW, CSS @font-face added.
+// Numbered B53 on master (B53/B54 in other pending PRs are independent).
+{
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const ok = sw.includes('if (typeof __acPushGestureDisplay === \'function\')') &&
+    sw.includes('payload.enabled = !(0 == b.enabled)') &&
+    sw.includes('[AC-MV3] _6t type 90');
+  check('gesture display: configLoaded re-pushes type 90 after native handshake (2026-09-11)',
+    ok, 'repush=' + ok);
 }
 
 // ---------- summary ----------

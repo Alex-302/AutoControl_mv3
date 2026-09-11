@@ -287,8 +287,8 @@ not present in stuck-capture floods). Earlier watchdog designs used it as a
 ```
 _lr():
   type 70 → [joystickOrder]
-  (??)   → mouseGest.params (via _Jp)
-  (??)   → mouseGest.display (via _6t)
+  (??)   → mouseGest.params (via _Jp) — type 80 `_Ei`
+  type 90 → mouseGest.display (via _6t / `_Xa`: HUD icons + enabled/pos/size)
   type 65 → advOpts (via _Jf)
 
 _6s():
@@ -560,7 +560,7 @@ Tuples `[2|_N, x, y, hold]` (mouse moves) are only used by the full sendInput en
 | 70 | `_5r` | → | Joystick order |
 | 72 | `_mu` | → | Switch states `{states:{id:bool}}` |
 | 80 | `_Ei` | → | (—) |
-| 90 | `_Xa` | → | Icons (toolbar buttons) |
+| 90 | `_Xa` | → | Gesture-display icons (`_6t`: `{icons:[base64 PNG…], enabled, posRef, posAnchor, size, color, bgColor}`). Empty `icons` hides the HUD. Not toolbar buttons (`_Pk` / TBBtn*). |
 | 100 | `_fk` | → | Gesture trail (draw) |
 | 110 | `_Cf` | → | Gesture trail (move) |
 | 122/125/130/135 | — | → | (—) |

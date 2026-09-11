@@ -155,6 +155,14 @@
   toggles now read the live tab state from the browser right before the
   update, so every click toggles (verified: 12 rapid clicks, all
   toggled; the left button stays responsive).
+- **Mouse gesture preview (Gesture display) never appeared on screen**,
+  even with the checkbox ticked. The settings page shows the option as
+  on when it has never been saved, but the worker treated that missing
+  flag as off and sent the native an empty icon set — so the native had
+  nothing to draw. The preview is on by default again (as in the original
+  extension), the icons are re-sent after the native connects and when
+  the checkbox changes, and the direction font is available on the
+  settings page.
 - An abandoned recording session (combo editor / gesture tester left
   armed) could leave the native in raw-capture mode forever — hotkeys and
   gestures silently dead. An armed capture that sees no trigger for

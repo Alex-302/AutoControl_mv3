@@ -878,16 +878,32 @@
 
   // Display-config icons (type _Xa) — re-implemented for the SW (see above).
   // Original protocol preserved: {icons: [...base64...], ...display, colors}.
+  // AC-MV3 FIX (2026-09-11): the previous `if (!b.enabled) send([])` treated a
+  // MISSING `enabled` as OFF. MV2 used `0==b.enabled` (only 0/false disable)
+  // and the settings UI (`_ga`) draws the checkbox checked when the key is
+  // null. Result: Gesture display looked ON, type 90 went out with empty
+  // icons, native drew nothing. Match MV2; set enabled:true when generating;
+  // re-push on storage changes (the page's `_6t` is the DOM/canvas copy and
+  // is not this SW pipeline — and file46.css had no gestureDirs @font-face).
   if (typeof _6t === 'function') {
     _6t = (b = {}) => {
+      b = b || {};
       const colors = b.colors === 'dark'
         ? { color: 'white', bgColor: 2130706432 }
         : { color: '#555555', bgColor: 2147483647 };
       const send = icons => {
-        try { _Lk(_Xa, Object.assign({ icons }, b, colors)); }
+        try {
+          const payload = Object.assign({ icons }, b, colors);
+          // Native shows the HUD when icons are non-empty; be explicit so a
+          // missing storage key cannot look like "disabled" at the engine.
+          payload.enabled = !(0 == b.enabled);
+          _Lk(_Xa, payload);
+          console.log("[AC-MV3] _6t type 90", "enabled=" + payload.enabled,
+            "icons=" + ((icons && icons.length) || 0), "size=" + (b.size || 30));
+        }
         catch(e) { console.warn("[AC-MV3] _6t send error:", e); }
       };
-      if (!b.enabled) { send([]); return; }
+      if (0 == b.enabled) { send([]); return; }
       swGenGestureIcons(b.size || 30, colors.color)
         .then(send)
         .catch(e => {
@@ -896,6 +912,28 @@
         });
     };
   }
+
+  /**
+   * Re-read mouseGest.display from storage and push type 90. Used after the
+   * config chain (native is up) and when the settings page writes storage
+   * (page `_6t` is the unpatched DOM copy — it must not be the only path).
+   */
+  function __acPushGestureDisplay() {
+    try {
+      chrome.storage.local.get({ mouseGest: {} }, r => {
+        try {
+          if (typeof _6t === 'function') _6t(((r && r.mouseGest) || {}).display || {});
+        } catch (e) {}
+      });
+    } catch (e) {}
+  }
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes.mouseGest) return;
+      const d = ((changes.mouseGest.newValue) || {}).display;
+      try { if (typeof _6t === 'function') _6t(d || {}); } catch (e) {}
+    });
+  } catch (e) {}
 
   // ======== RUN SCRIPT (background mode) — OFFSCREEN SANDBOX ========
   // file48.js `_A`/`_xj(0)` → `e()` creates `<iframe id=BGScript src="file23.html">`
@@ -3093,6 +3131,11 @@
         // Page finished _lr/_Gf config chain — now safe to send type 21 (startup)
         finishStartup();
         sendRes({ ok: true }); return true;
+      case "gestureDisplay":
+        // Settings page _6t is routed here (DOM/canvas copy cannot load
+        // gestureDirs — that @font-face lived on MV2's background file63.html).
+        try { if (typeof _6t === 'function') _6t(msg.data || {}); } catch (e) {}
+        sendRes({ ok: true }); return true;
       case "windowEnumDone":
         // Page finished _Ry/_oj window enumeration — now safe to send type 72
         sendType72();
@@ -3393,6 +3436,10 @@
       // window enum → fill the _7o cache for all known tabs (first menu
       // open shows icons).
       if (typeof __acFavSweep === 'function') { try { __acFavSweep(); } catch (e) {} }
+      // Gesture display (type 90): _lr already called _6t, but icon generation
+      // is async and can finish before the native port is ready. Re-push now
+      // that the handshake is complete (idempotent).
+      if (typeof __acPushGestureDisplay === 'function') { try { __acPushGestureDisplay(); } catch (e) {} }
       finishStartup();
       cb && cb({ ok: true });
     },

@@ -419,5 +419,20 @@
   setTimeout(() => __acForceVisible('2s'), 2000);
   setTimeout(() => __acForceVisible('5s'), 5000);
 
+  // Gesture display: page `_6t` (file3) uses document.fonts + canvas. MV2
+  // loaded gestureDirs from the background page (file63.html @font-face);
+  // the MV3 settings page never had that face, so fonts.load failed and
+  // type 90 never left the page. Route `_6t` to the SW OffscreenCanvas
+  // pipeline (file3 assigns `var _6t` later — re-apply after it loads).
+  function __acPatchPage6t() {
+    window._6t = function(b) {
+      try { chrome.runtime.sendMessage({ cmd: 'gestureDisplay', data: b || {} }); }
+      catch (e) {}
+    };
+  }
+  __acPatchPage6t();
+  setTimeout(__acPatchPage6t, 0);
+  setTimeout(__acPatchPage6t, 500);
+
   console.log("[AC-MV3] Shim loaded");
 })();

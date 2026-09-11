@@ -602,6 +602,18 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   toggle; LMB after RMB passes. ⚠ Bundle build list: file77.js MUST be
   AFTER file48.js (the sw.js comment list is authoritative now — the old
   comment missed file77 and a rebuild dropped it → the B-tests failed).
+- **Gesture display HUD never shown (FIXED 2026-09-11, A7c/B53)** —
+  native draws the live direction preview from type 90 (`_6t` / `_Xa`).
+  The SW patch used `if (!b.enabled) send([])` — a MISSING `enabled` key
+  (the settings UI `_ga` defaults the checkbox to ON when null) sent
+  empty icons → nothing on screen. MV2 used `0==b.enabled` (only 0/false
+  disable). Also: the page `_6t` (file3 canvas) could not load
+  `gestureDirs` (that `@font-face` lived on MV2 background `file63.html`;
+  `file46.css` had logoFont/symbols/icons only). FIX in sw.js (no bundle
+  rebuild): MV2 gate, explicit `enabled:true` on generate, re-push after
+  `configLoaded` + `storage.onChanged(mouseGest)`, `cmd:gestureDisplay`;
+  page `_6t` routed via `mv3_shim.js`; CSS `@font-face gestureDirs`.
+  Do NOT revert to `!b.enabled`.
 - **Hover regions broken in Chrome 148+** (ALL regions, verified 2026-08-30
   on Chrome 150: "Web page" and "Title area" included — the native a11y
   hit-test regression ignores `{type:14}` mouseOver preconds entirely;
