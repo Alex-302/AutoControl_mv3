@@ -151,7 +151,8 @@ are **byte-identical** to MV2 → full parity, except the items listed below.
 
 ### 2.2 Actions
 
-**Tabs:** Activate ✅, Reload ✅, Go back/forward ✅, Go upper URL ✅, Load URLs ✅,
+**Tabs:** Activate ✅, Reload ✅, Go back/forward ✅, Go upper URL ✅, Load URLs ✅
+(enum cache invalidated after tab create/close — Open URL + switchRight sees the new tab, 2026-09-11),
 Highlight/select ✅, Pin ✅, Zoom ✅, Mute ✅, Move ✅, Detach ✅, Group ✅,
 Duplicate ✅, Open in incognito ⚠️ (requires incognito access — same as MV2),
 Close ✅, Reopen/undoClose ✅ (sessions), Unload/discard ✅, Favorite lists ✅,

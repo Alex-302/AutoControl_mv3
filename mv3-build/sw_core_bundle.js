@@ -564,8 +564,8 @@ function _hw(a){"string"==typeof a&&(a=[{menuId:0,negate:"closed"==a}]);return a
 _2u(5)&&_Yk.runtime.requestUpdateCheck((a,c)=>{"update_available"==a&&_co(2)});function _ze(a){let c=[],b=d=>{if(a){let e=a.shift();if("object"==typeof e)d[_Jw(d)?"push":"add"](...e)}else c.push(d)};b(_Ft);b(_ea);b(_n);b(_Mo);b(_hd);b(_da);b(_He);return c}function _co(a=0,c=!1,b){c&&(_Cr("Wait","#F00"),_9k("showNotif",!0));_9k("noStupEvt",!0);_Lk(_vh,null,d=>{if(a){_9k("extensionState",_ze());if(1==a){/* AC-MV3 FIX (2026-08-08): the SW performs the native restart (type 55 -> engine taskkill -> port drop -> reconnect) and shows the " OK " badge itself once reconnected (MV2 shows OK after the background-page reload reconnects). Here: reload the current page only. */try{_Yk.tabs.query({url:"chrome-extension://"+_Yk.runtime.id+"/*"},r=>{r.forEach(t=>{try{_Yk.tabs.reload(t.id)}catch(e){}})})}catch(e){}}else try{_Yk.runtime.reload()}catch(e){}}else _Xg()(b)})}_ze(_nt("extensionState"));
 _nt("showNotif")&&_ti(function*(){var a=yield _Eu.wait();a?_Cr(" OK ","#0BAD01"):_Cr("Error","#F00");setTimeout(()=>_Cr(""),1E3);let c=_nt("diagnostics");if(c)if(_Ot("userReload",c.add({NHConnect:a})),_ji(c,"downKeys","length"))_Kg(c.downKeys);else if(0==c.actWinMine){let b=c.lastFocusId||c.focusedId||c.hndlToId[c.focusWin];a=b?yield d=>_Ms(b,!0,d):null;_Ht(a)}});function _Ij(){this.queue=[]}
 _Ij.prototype={execNext(){let a=this.queue[0];if(a)a(()=>{this.queue.shift();this.execNext()});else if(a=this.onEmptyCallback)delete this.onEmptyCallback,a()},addFunc(a){this.queue.push(a);1==this.queue.length&&this.execNext()},empty(){return!this.queue.length},onEmpty(a){this.empty()?a():this.onEmptyCallback=a}};let _Lw=new _Ij;
-{let a=!1,c=[];var _Mt=(b,d)=>e=>_ti(function*(){if(a)c.push([d,e,b]);else for(;;){a=!0;_zw=b;try{for(;;){var g=d();if(_Lw.empty())break;yield f=>_Lw.onEmpty(f)}}catch(f){_Ot("error",{stack:f.stack,context:"runAsyncSeqProc"})}a=!1;e(g);if(a||0==c.length)break;[d,e,b]=c.shift()}})}function _ai(a,c,...b){return _Mt(a,()=>c(...b))}function _3g(a,c){_Yk.windows.create(a,b=>{b&&"normal"==b.type&&"about:blank"==_zh(b.tabs[0])&&(_Vg[b.tabs[0].id]=!0);c(b)})}
-function _6a(a,c){_Yk.tabs.create(a,b=>{b&&"about:blank"==_zh(b)&&(_Vg[b.id]=!0);c(b)})}function _Dw(...a){return[].concat(...a).filter(c=>_Yp[c])};
+{let a=!1,c=[];var _Mt=(b,d)=>e=>_ti(function*(){if(a)c.push([d,e,b]);else for(;;){a=!0;_zw=b;try{for(;;){var g=d();if(_Lw.empty())break;yield f=>_Lw.onEmpty(f)}}catch(f){_Ot("error",{stack:f.stack,context:"runAsyncSeqProc"})}a=!1;e(g);if(a||0==c.length)break;[d,e,b]=c.shift()}})}function _ai(a,c,...b){return _Mt(a,()=>c(...b))}function _3g(a,c){_Yk.windows.create(a,b=>{try{__acInvalidateEnumCache()}catch(e){}b&&"normal"==b.type&&"about:blank"==_zh(b.tabs[0])&&(_Vg[b.tabs[0].id]=!0);c(b)})}
+function _6a(a,c){_Yk.tabs.create(a,b=>{try{__acInvalidateEnumCache()}catch(e){}b&&"about:blank"==_zh(b)&&(_Vg[b.id]=!0);c(b)})}function _Dw(...a){return[].concat(...a).filter(c=>_Yp[c])};
 ;
 /* ===== file56.js ===== */
 'use strict';const _7s=10,_ro=20,_zu=21,_Z=30,_6k=35,_Qr=40,_Qw=50,_vh=55,_4e=60,_hk=65,_Ma=67,_5r=70,_mu=72,_Ei=80,_Xa=90,_fk=100,_Cf=110,_Cj=122,_Yj=125,_yg=130,_1d=135,_Mu=136,_5t=140,_ta=150,_Rw=160,_b=170,_Ws=175,_rd=180,_3f=185,_vy=190,_ej=195,_wr=197,_Jo=200,_Ia=205,_Ww=210,_e=240,_Q=250,_0f=255,_vr=256,_7e=260,_Qa=270,_tl=280,_t=285,_Hi=286,_gw=292,_5f=293,_od=294,_Wj=295,_Dt=300,_bg=305,_je=310,_be=315,_8p=320,_Ua=330,_uo=335,_Eo=336,_bw=340,_6f=344,_Hr=350,_tp=355,_ng=360,_si=365,_3k=370,
@@ -806,12 +806,17 @@ let __acLogSeq=0,__acActCtx=null;
 function __acLog(t,m){try{const e=__acActCtx,r=e?Math.round(performance.now()-e.t0):0;console.warn('[AC-ACT] #'+(e?e.id:'-')+' '+t+' '+m+(e?' +'+r+'ms':''))}catch(x){}}
 // AC-MV3: cache window enumeration to avoid ~1s+ chrome.windows.getAll before every action.
 // _Fk=!0 is set after EVERY action in _rf, forcing _Rf to enumerate before the next action.
-// chrome.windows.getAll({populate:true}) is expensive — cache results for 1500ms.
-// The window/tab state is maintained incrementally by event listeners
-// (file62_mv3.js: onCreated/onActivated/onRemoved/onFocusChanged), so a 1.5s
-// staleness is harmless for action targeting and makes rapid re-presses cheap.
+// chrome.windows.getAll({populate:true}) is expensive — cache results for 1500ms
+// when the tab STRIP has not changed (rapid wheel-spin switchRight/Left).
+// ⚠ onCreated/_Zf updates _Yp but NOT _Gk / _cd[w].tabs (the ordered lists
+// _gt("rightTabWrap") uses). A 1.5s cache after loadUrls therefore made
+// Open URL (to the right) + Switch to right tab land on the OLD right
+// neighbor — one tab too far. Structural tab/window events set
+// __acEnumDirty so the next _Rf MUST re-enum even inside the cache window.
 let __acLastEnum=0;const __acEnumCacheMs=1500;
-var _Rf=_we(function*(a=!1){if(a||_Fk){const _now=Date.now();if(_now-__acLastEnum>__acEnumCacheMs){__acLastEnum=_now;const t0=performance.now();yield b=>_Fu(()=>{__acLog('ENUM','windows.getAll took '+(performance.now()-t0).toFixed(0)+'ms');b()});}_wd();_Fk=!1}});function _wd(){_kg=_hu=_Bk=_1i=_Kt=null;_Jr={}}
+let __acEnumDirty=false;
+function __acInvalidateEnumCache(){__acEnumDirty=true;}
+var _Rf=_we(function*(a=!1){if(a||_Fk){const _now=Date.now();if(__acEnumDirty||_now-__acLastEnum>__acEnumCacheMs){__acLastEnum=_now;__acEnumDirty=!1;const t0=performance.now();yield b=>_Fu(()=>{__acLog('ENUM','windows.getAll took '+(performance.now()-t0).toFixed(0)+'ms');b()});}_wd();_Fk=!1}});function _wd(){_kg=_hu=_Bk=_1i=_Kt=null;_Jr={}}
 // AC-MV3: queueing instead of blanket drop. The native component fires TWO
 // trigger ids per hotkey press (~100-200ms apart, e.g. 14+34). They may be
 // DUPLICATES (identical actions — drop the second) or INDEPENDENT actions
@@ -948,8 +953,8 @@ function _F(c,a){_ba(c,a)&&_ti(function*(){for(var b=1;5>b;++b){var d=yield _4u(
 ;
 /* ===== file62_mv3.js ===== */
 'use strict';try{_Yk.browserAction&&_Yk.browserAction.onClicked.addListener(()=>{_ru("brwrAction","trigActId")(a=>{a&&_ek?_6y(a):_sh()})})}catch(e){}_Yk.windows.getLastFocused({populate:!0,windowTypes:_Ge},a=>{_4t=_ji(a,"id");_Np=_js(_ji(a,"tabs",0)||{})});_Yk.tabs.onCreated.addListener(_Zf);
-function _Zf(a){let b=a.id=_js(a);_ea.push(b);_Yp[b]=a;a.openerTabId&&(_He[b]=a.openerTabId,Object.keys(_He).length.in(50,75,100,150,200,300)&&_Fu(()=>{for(let c in _He)(_He[c]=_gg(_Yp[c],"openerTabId"))||delete _He[c];for(let c in _He)c in _Yp||delete _He[c]}));a.active||_0k(b,a.windowId);_Wo(_Ui,b)}
-{let a=_so(400,_5s);_Yk.tabs.onRemoved.addListener(b=>{b==_Np&&(_Np=null);_0k(b,0);_ea.remove(b);_Ft.remove(b);delete _da[b];delete _Hs[b];_dg.push({id:b,time:Date.now()/1E3});a();_Wo(_5k,b);_Fy&&(_m[b]=_zh(_Yp[b]),setTimeout(()=>{delete _m[b]},3E3))})}function _Cp(a,b,c){b=a.indexOf(b);~b&&(a[b]=c)}function _ew(a,b,c){b in a&&(a[c]=a[b],delete a[b])}let _se;
+function _Zf(a){try{__acInvalidateEnumCache()}catch(e){}let b=a.id=_js(a);_ea.push(b);_Yp[b]=a;a.openerTabId&&(_He[b]=a.openerTabId,Object.keys(_He).length.in(50,75,100,150,200,300)&&_Fu(()=>{for(let c in _He)(_He[c]=_gg(_Yp[c],"openerTabId"))||delete _He[c];for(let c in _He)c in _Yp||delete _He[c]}));a.active||_0k(b,a.windowId);_Wo(_Ui,b)}
+{let a=_so(400,_5s);_Yk.tabs.onRemoved.addListener(b=>{try{__acInvalidateEnumCache()}catch(e){}b==_Np&&(_Np=null);_0k(b,0);_ea.remove(b);_Ft.remove(b);delete _da[b];delete _Hs[b];_dg.push({id:b,time:Date.now()/1E3});a();_Wo(_5k,b);_Fy&&(_m[b]=_zh(_Yp[b]),setTimeout(()=>{delete _m[b]},3E3))})}function _Cp(a,b,c){b=a.indexOf(b);~b&&(a[b]=c)}function _ew(a,b,c){b in a&&(a[c]=a[b],delete a[b])}let _se;
 // Tab replacement
 _Yk.tabs.onReplaced.addListener((a,b)=>{_Lk(_Mu,[b,a]);_Np==b&&(_Np=a);_Cp(_ea,b,a);_Cp(_Ft,b,a);_ew(_Yp,b,a);_ew(_da,b,a);_ew(_Hs,b,a);_ew(_He,b,a);for(let [c,d]of _He)d==b&&(_He[c]=a);for(let [,c]of _Mo)_Cp(c,b,a);_se||(_se={});_se[b]=a});
 // Tab activation: track active tab per window
@@ -965,15 +970,16 @@ function _au(a,b){_kk&&(3E3>Math.abs(Date.now()-_kk)&&b.startsWith("https://www.
 (d=_ig(_zh(_Yp[c])),delete _7o[d],_Zs(d)(_ay));e==_Fd&&_rr&&_Lk(_Ww,{tabId:c});e==_Fd&&((new URL(_zh(_Yp[c]))).hostname.in(_mo,_9n)||"file:"==(new URL(_zh(_Yp[c]))).protocol&&_id)&&_Zr(c)})}
 function _Zr(a){try{_Yk.scripting.executeScript({target:{tabId:a},world:"ISOLATED",injectImmediately:true,func:b=>{try{let c=d=>{try{if(d&&chrome&&chrome.runtime&&chrome.runtime.sendMessage)chrome.runtime.sendMessage({[d.value]:decodeURI(d.closest("a").href)})}catch(e){/* stale/revoked context after an extension reload — the NEW injection handles the event */}};if(!window.__acBridge){window.__acBridge=1;addEventListener("webSettgs",d=>{try{c(d.target)}catch(e){}});console.log("[AC-BRIDGE] installed ver="+b+" url="+location.href)}let el=document.querySelector("ACtlExt");if(!el){el=document.createElement("ACtlExt");(document.head||document.documentElement).appendChild(el)}el.setAttribute("ver",b);try{c(document.querySelector("a [value=redirSttgs]"))}catch(e){}}catch(e){console.error("[AC-BRIDGE] error: "+(e&&e.message||e))}},args:["2025.4.22"]}).then(()=>{console.log("[AC-SITE] bridge injected into tab "+a)}).catch(e=>{console.error("[AC-SITE] bridge injection FAILED tab "+a+": "+(e&&e.message||e))})}catch(e){console.error("[AC-SITE] bridge injection THREW tab "+a+": "+(e&&e.message||e))}}
 // Tab attached to different window
-_Yk.tabs.onAttached.addListener((a,b)=>{_lf(_Yp,a).windowId=b.newWindowId});
+_Yk.tabs.onAttached.addListener((a,b)=>{try{__acInvalidateEnumCache()}catch(e){}_lf(_Yp,a).windowId=b.newWindowId});
+try{_Yk.tabs.onMoved&&_Yk.tabs.onMoved.addListener(()=>{try{__acInvalidateEnumCache()}catch(e){}})}catch(e){}
 
 // Window event handlers
 _Yk.windows.onFocusChanged.addListener(a=>{_na[a]||!_cd[a]&&!_Ld[a]||(_Ld[a]&&delete _Ld[a],_8u([a])())});
 _Yk.windows.onCreated.addListener(_yh);
-function _yh(a){a.cTime=Date.now();clearTimeout(_6i);_n.push(a.id);_cd[a.id]=a;a.state.in("normal","maximized")&&(a.prevState=a.state);_8u([a.id])();_Wo(_wf,a.id)}
+function _yh(a){try{__acInvalidateEnumCache()}catch(e){}a.cTime=Date.now();clearTimeout(_6i);_n.push(a.id);_cd[a.id]=a;a.state.in("normal","maximized")&&(a.prevState=a.state);_8u([a.id])();_Wo(_wf,a.id)}
 _Yk.windows.onRemoved.addListener(_q);
 function _fy(a){_n.remove(a);_hd.remove(a);_0o(a,null);delete _cd[a];a==_4t&&_Yk.windows.getLastFocused({windowTypes:_Ge},b=>_4t=_Aw()?null:b.id)}
-function _q(a){_fy(a);_Wo(_Ff,a)}
+function _q(a){try{__acInvalidateEnumCache()}catch(e){}_fy(a);_Wo(_Ff,a)}
 // Display change
 _Yk.system.display&&_Yk.system.display.onDisplayChanged.addListener(()=>{_Sf(()=>_iy())});
 // Update available + idle

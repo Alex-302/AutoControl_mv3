@@ -4,12 +4,17 @@ let __acLogSeq=0,__acActCtx=null;
 function __acLog(t,m){try{const e=__acActCtx,r=e?Math.round(performance.now()-e.t0):0;console.warn('[AC-ACT] #'+(e?e.id:'-')+' '+t+' '+m+(e?' +'+r+'ms':''))}catch(x){}}
 // AC-MV3: cache window enumeration to avoid ~1s+ chrome.windows.getAll before every action.
 // _Fk=!0 is set after EVERY action in _rf, forcing _Rf to enumerate before the next action.
-// chrome.windows.getAll({populate:true}) is expensive — cache results for 1500ms.
-// The window/tab state is maintained incrementally by event listeners
-// (file62_mv3.js: onCreated/onActivated/onRemoved/onFocusChanged), so a 1.5s
-// staleness is harmless for action targeting and makes rapid re-presses cheap.
+// chrome.windows.getAll({populate:true}) is expensive — cache results for 1500ms
+// when the tab STRIP has not changed (rapid wheel-spin switchRight/Left).
+// ⚠ onCreated/_Zf updates _Yp but NOT _Gk / _cd[w].tabs (the ordered lists
+// _gt("rightTabWrap") uses). A 1.5s cache after loadUrls therefore made
+// Open URL (to the right) + Switch to right tab land on the OLD right
+// neighbor — one tab too far. Structural tab/window events set
+// __acEnumDirty so the next _Rf MUST re-enum even inside the cache window.
 let __acLastEnum=0;const __acEnumCacheMs=1500;
-var _Rf=_we(function*(a=!1){if(a||_Fk){const _now=Date.now();if(_now-__acLastEnum>__acEnumCacheMs){__acLastEnum=_now;const t0=performance.now();yield b=>_Fu(()=>{__acLog('ENUM','windows.getAll took '+(performance.now()-t0).toFixed(0)+'ms');b()});}_wd();_Fk=!1}});function _wd(){_kg=_hu=_Bk=_1i=_Kt=null;_Jr={}}
+let __acEnumDirty=false;
+function __acInvalidateEnumCache(){__acEnumDirty=true;}
+var _Rf=_we(function*(a=!1){if(a||_Fk){const _now=Date.now();if(__acEnumDirty||_now-__acLastEnum>__acEnumCacheMs){__acLastEnum=_now;__acEnumDirty=!1;const t0=performance.now();yield b=>_Fu(()=>{__acLog('ENUM','windows.getAll took '+(performance.now()-t0).toFixed(0)+'ms');b()});}_wd();_Fk=!1}});function _wd(){_kg=_hu=_Bk=_1i=_Kt=null;_Jr={}}
 // AC-MV3: queueing instead of blanket drop. The native component fires TWO
 // trigger ids per hotkey press (~100-200ms apart, e.g. 14+34). They may be
 // DUPLICATES (identical actions — drop the second) or INDEPENDENT actions
