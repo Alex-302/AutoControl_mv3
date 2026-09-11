@@ -209,7 +209,7 @@
   // v5 (RCM+Esc synth) is REPLACED: a synthetic RCM click would land INSIDE
   // the just-opened context menu and activate a menu item — bad. Esc only.
   const RBTN_ESC_ENABLE = true;     // flip false to disable v7
-  const RBTN_ESC_DELAY_MS = 20;   // delay after gesture fire (menu opens ~instantly; 20ms is safe)
+  const RBTN_ESC_DELAY_MS = 20;   // delay after gesture fire (menu opens ~instantly; 20ms is safe). chrome:// Open URL reloads at AC_CHROME_UI_RELOAD_MS (150) so a racing Esc onto the new WebUI is healed.
   const GESTURE_WINDOW_MS = 2000;  // a 750 preceded by 760 within this window counts as a gesture
   let lastRaw760Time = 0;          // ts of the most recent type 760 (gesture stream)
   let escTimer = null;
@@ -338,6 +338,72 @@
   } catch(e) {
     console.error("[AC-MV3] ✗ Core bundle load failed:", e.message);
   }
+
+  // AC-MV3 FIX (2026-09-11): chrome:// / edge:// tabs opened via
+  // tabs.create (or windows.create) from a service worker often fail to
+  // paint — chrome://history stuck on "Loading…", chrome://bookmarks
+  // sometimes blank. F5 always heals. Same Chrome WebUI-from-SW class as
+  // chrome.sessions.restore (separate PR — that wrap is restore-only).
+  // Open URL (_Mh → _6a / _3g) uses _Yk.tabs.create === chrome.tabs.create
+  // in the SW, so wrapping here covers gestures AND hotkeys. Gestures also
+  // fire a synthetic Esc 20ms later (RBTN-ESC) which can race onto the new
+  // WebUI; the reload is delayed past that. https Open URL is left alone
+  // (would flash every site). Skip about:blank and the new-tab page.
+  // No bundle rebuild.
+  const AC_CHROME_UI_RELOAD_MS = 150;
+  function __acNeedsChromeUiReload(url) {
+    if (!url || typeof url !== "string") return false;
+    const u = url.trim().toLowerCase();
+    if (u === "about:blank") return false;
+    if (u.indexOf("chrome://newtab") === 0) return false;
+    if (u.indexOf("chrome://new-tab-page") === 0) return false;
+    if (u.indexOf("edge://newtab") === 0) return false;
+    return u.indexOf("chrome://") === 0 || u.indexOf("edge://") === 0;
+  }
+  function __acReloadChromeUiTab(tab, createUrl) {
+    try {
+      const id = tab && tab.id;
+      if (id == null) return;
+      const url = tab.pendingUrl || tab.url || createUrl || "";
+      if (!__acNeedsChromeUiReload(url)) return;
+      setTimeout(() => {
+        try { chrome.tabs.reload(id, () => void chrome.runtime.lastError); }
+        catch (e) {}
+      }, AC_CHROME_UI_RELOAD_MS);
+    } catch (e) {}
+  }
+  function __acWrapChromeUiCreate() {
+    function wrap(api, method, after) {
+      if (!api || typeof api[method] !== "function" || api[method].__acChromeUiReload) return;
+      const orig = api[method].bind(api);
+      const wrapped = function(props, callback) {
+        const url = props && props.url;
+        const finish = (result) => {
+          try { after(result, url); } catch (e) {}
+          if (typeof callback === "function") {
+            try { callback(result); } catch (e) {}
+          }
+          return result;
+        };
+        if (typeof callback === "function") return orig(props, finish);
+        try {
+          const p = orig(props);
+          if (p && typeof p.then === "function") return p.then(finish);
+          return finish(p);
+        } catch (e) {
+          return orig(props, finish);
+        }
+      };
+      wrapped.__acChromeUiReload = true;
+      api[method] = wrapped;
+    }
+    wrap(chrome.tabs, "create", (tab, url) => { __acReloadChromeUiTab(tab, url); });
+    wrap(chrome.windows, "create", (win, url) => {
+      const tabs = (win && win.tabs) || [];
+      for (let i = 0; i < tabs.length; i++) __acReloadChromeUiTab(tabs[i], url);
+    });
+  }
+  __acWrapChromeUiCreate();
 
   // AC-MV3 FIX (2026-08-02, round 10): ACtl.switchState crashes with
   // "_if.binSwtch is not iterable" when the user has no binary switches —

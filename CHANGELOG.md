@@ -111,6 +111,15 @@
 
 #### Triggers & actions
 
+- **Open URL of a Chrome page (`chrome://history`, bookmarks, …) from a
+  mouse gesture could stick on "Loading…" or come up blank** until a
+  refresh. Opening from the service worker often fails to paint those
+  built-in pages (the same class of Chrome bug as reopening a closed
+  tab, but a different API — this is `tabs.create`, not session
+  restore). Keyboard Open URL of `chrome://extensions` often painted;
+  history and bookmarks did not. After creating a `chrome://` /
+  `edge://` tab the extension now reloads it once (new-tab pages and
+  ordinary https URLs are left alone). A refresh still works if needed.
 - **Ctrl+Tab "Smart switching" no longer opened the tab list after a
   reload.** The imported action set ("Smart Ctrl+Tab switching" from the
   site) is built on menu-state conditions: the tab menu must be *closed*
