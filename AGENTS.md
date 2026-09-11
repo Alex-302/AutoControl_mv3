@@ -739,6 +739,18 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   acceptable). mh_test A2b.
 - **Save URL audio method** — type 294 system sounds need "Allow access to
   file URLs" (same as MV2).
+- **Reopen closed tab blank pages (FIXED 2026-09-11, B53)** —
+  `chrome.sessions.restore()` (undoClose / Reopen closed tab, Ctrl+Shift+T
+  equivalent) reopens the tab URL but Chrome often fails to paint the
+  renderer from a service worker: chrome://history AND regular https
+  pages (e.g. jisho.org) show the URL and a white page until F5. Native
+  Ctrl+Shift+T does not have this bug. sw.js wraps
+  `chrome.sessions.restore` (optional `sessions` permission — wrap at SW
+  start and again on `permissions.onAdded`) and reloads every restored
+  tab once (skip about:blank). Back/forward history is kept; in-page form
+  state on the restored document may be dropped. Also: `sessRestore`
+  used to `sendRes({})` — the Session object is now returned so callers
+  can read tab/window ids. mh_test B53. NO bundle rebuild.
 
 ### Shims & globals
 

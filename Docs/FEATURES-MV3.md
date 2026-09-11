@@ -154,7 +154,7 @@ are **byte-identical** to MV2 → full parity, except the items listed below.
 **Tabs:** Activate ✅, Reload ✅, Go back/forward ✅, Go upper URL ✅, Load URLs ✅,
 Highlight/select ✅, Pin ✅, Zoom ✅, Mute ✅, Move ✅, Detach ✅, Group ✅,
 Duplicate ✅, Open in incognito ⚠️ (requires incognito access — same as MV2),
-Close ✅, Reopen/undoClose ✅ (sessions), Unload/discard ✅, Favorite lists ✅,
+Close ✅, Reopen/undoClose ✅ (sessions; restored tabs are reloaded once — Chrome paints them blank otherwise, 2026-09-11), Unload/discard ✅, Favorite lists ✅,
 Alter target tabs ✅
 
 **Windows:** Focus ✅, Move/Resize ✅ (native 400/335), Fit to grid ✅, Tile ✅,

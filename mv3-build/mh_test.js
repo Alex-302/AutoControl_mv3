@@ -2109,6 +2109,29 @@ vm.runInContext(`
     srcOk && rtOk, 'src=' + srcOk + ' rt=' + JSON.stringify(rt));
 }
 
+// B53. Reopen closed tab left ALL pages blank (2026-09-11).
+// chrome.sessions.restore() from the SW reopens the tab URL but Chrome
+// often does not paint the renderer (chrome://history AND https pages
+// like jisho.org: URL in the omnibox, white content until F5). sw.js
+// wraps sessions.restore to reload every restored tab (skip about:blank),
+// and sessRestore must return the Session object (not {}).
+{
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const wrapOk = sw.includes('function __acWrapSessionsRestore') &&
+    sw.includes('function __acReloadRestoredTabs') &&
+    sw.includes('__acRestoredTabsNeedReload') &&
+    /api\.restore\s*=\s*wrapped/.test(sw) &&
+    sw.includes('api.restore.__acWrapped');
+  const allTabsOk = sw.includes('successful restore, reload every restored tab once') &&
+    !sw.includes('chrome|edge|chrome-extension|devtools|about');
+  const skipBlankOk = sw.includes('about:blank');
+  const sessResOk = /case "sessRestore":[\s\S]{0,280}?sendRes\(session \|\| \{\}\)/.test(sw) &&
+    !/case "sessRestore":\s*chrome\.sessions\.restore\(msg\.sessionId,\s*\(\)\s*=>\s*sendRes\(\{\}\)\)/.test(sw);
+  check('sw.js: sessions.restore wrap reloads ALL restored tabs after reopen (2026-09-11)',
+    wrapOk && allTabsOk && skipBlankOk && sessResOk,
+    'wrap=' + wrapOk + ' allTabs=' + allTabsOk + ' skipBlank=' + skipBlankOk + ' sessRes=' + sessResOk);
+}
+
 // ---------- A4b. file:// toggle-ON runtime branch (2026-08-10, FEATURES-MV3.md §7-8) ----------
 // The main ctx stub returns false (toggle OFF) — deterministic. This second
 // context simulates the "Allow access to file URLs" toggle ON: the prelude's

@@ -147,6 +147,15 @@
   original MV2 extension on this Chrome version too; on Edge the MV2
   extension still works, which is why the report only appeared on the
   MV3 port).
+- **Reopen closed tab left pages blank until a manual refresh**
+  (Ctrl+Shift+T equivalent). Restored tabs showed the URL in the
+  address bar but a white page — both Chrome pages
+  (`chrome://history`) and regular websites. Chrome's
+  `sessions.restore()` from a service worker reopens the tab but
+  often does not paint the renderer; the browser's own Ctrl+Shift+T
+  uses a different path and paints correctly. After a successful
+  restore, every restored tab is reloaded once (except `about:blank`)
+  so the page actually appears. Back/forward history is kept.
 - **Pin/unpin (and mute) actions only worked on every other click** —
   the action read the tab state from the extension's internal tab cache,
   which is refreshed by an asynchronous window re-enumeration gated by a
