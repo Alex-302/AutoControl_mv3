@@ -1178,6 +1178,33 @@ setTimeout(() => {
     ok, 'freshToggle=' + ok);
 }
 
+// B54. Open URL (to the right) + Switch to right tab jumped ONE TAB TOO FAR
+// (2026-09-11). ROOT CAUSE: _Rf's 1500ms windows.getAll cache. loadUrls
+// tabs.create finishes and onCreated/_Zf writes _Yp, but _Gk / _cd[w].tabs
+// (the ordered lists rightTabWrap uses) are only rebuilt by _Fu. The next
+// action's _Rf saw a WARM cache and skipped the enum → _xy("next") of the
+// current tab was still the OLD right neighbor, sitting one slot past the
+// just-created tab. FIX: structural tab/window events set __acEnumDirty so
+// the next _Rf re-enums even inside the cache window. Wheel-spin
+// switchRight (no strip change) still hits the 1500ms cache.
+{
+  const b = fs.readFileSync(path.join(MV3, 'sw_core_bundle.js'), 'utf8');
+  const f37 = fs.readFileSync(path.join(MV3, 'file37.js'), 'utf8');
+  const f62 = fs.readFileSync(path.join(MV3, 'file62_mv3.js'), 'utf8');
+  const f34 = fs.readFileSync(path.join(MV3, 'file34_mv3.js'), 'utf8');
+  const dirtyOk = f37.includes('function __acInvalidateEnumCache') &&
+    f37.includes('__acEnumDirty') &&
+    f37.includes('if(__acEnumDirty||_now-__acLastEnum>__acEnumCacheMs)');
+  const listenersOk = (f62.match(/__acInvalidateEnumCache/g) || []).length >= 4 &&
+    f62.includes('onMoved') &&
+    (f34.match(/__acInvalidateEnumCache/g) || []).length >= 2;
+  const bundledOk = b.includes('function __acInvalidateEnumCache') &&
+    b.includes('if(__acEnumDirty||_now-__acLastEnum>__acEnumCacheMs)');
+  check('enum cache: dirty flag after tab create/remove so Open URL + switchRight sees the new tab (2026-09-11)',
+    dirtyOk && listenersOk && bundledOk,
+    'dirty=' + dirtyOk + ' listeners=' + listenersOk + ' bundled=' + bundledOk);
+}
+
 // B28. Logging switches in the UI (2026-08-08): MV2-like silent console was a
 // hardcoded flag; now it is three checkboxes in Options → Advanced Options
 // (advOpts): "Log service worker" (logSw), "Log page scripts" (logPage),

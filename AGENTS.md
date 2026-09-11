@@ -602,6 +602,18 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   toggle; LMB after RMB passes. ⚠ Bundle build list: file77.js MUST be
   AFTER file48.js (the sw.js comment list is authoritative now — the old
   comment missed file77 and a rebuild dropped it → the B-tests failed).
+- **Open URL + Switch to right tab skipped the new tab (FIXED 2026-09-11,
+  B54)** — "opens the URL to the right, then jumps one extra tab". ROOT
+  CAUSE: `_Rf`'s 1500ms `windows.getAll` cache. `loadUrls` `tabs.create`
+  completes and `_Zf` writes `_Yp`, but `_Gk` / `_cd[w].tabs` (the ordered
+  lists `rightTabWrap` → `_xy(pos:"next")` uses) are only rebuilt by `_Fu`.
+  The next action's `_Rf` saw a WARM cache and skipped the enum → "next"
+  of the current tab was still the OLD right neighbor. FIX: structural
+  tab/window events (`onCreated`/`onRemoved`/`onMoved`/`onAttached`,
+  window create/remove, plus `_6a`/`_3g` create callbacks) set
+  `__acEnumDirty` so the next `_Rf` re-enums even inside the cache window.
+  Wheel-spin switchRight (no strip change) still hits the 1500ms cache.
+  mh_test B54. Bundle rebuild required (file37 + file62_mv3 + file34_mv3).
 - **Hover regions broken in Chrome 148+** (ALL regions, verified 2026-08-30
   on Chrome 150: "Web page" and "Title area" included — the native a11y
   hit-test regression ignores `{type:14}` mouseOver preconds entirely;

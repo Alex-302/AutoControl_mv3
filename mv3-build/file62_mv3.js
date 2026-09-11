@@ -1,6 +1,6 @@
 'use strict';try{_Yk.browserAction&&_Yk.browserAction.onClicked.addListener(()=>{_ru("brwrAction","trigActId")(a=>{a&&_ek?_6y(a):_sh()})})}catch(e){}_Yk.windows.getLastFocused({populate:!0,windowTypes:_Ge},a=>{_4t=_ji(a,"id");_Np=_js(_ji(a,"tabs",0)||{})});_Yk.tabs.onCreated.addListener(_Zf);
-function _Zf(a){let b=a.id=_js(a);_ea.push(b);_Yp[b]=a;a.openerTabId&&(_He[b]=a.openerTabId,Object.keys(_He).length.in(50,75,100,150,200,300)&&_Fu(()=>{for(let c in _He)(_He[c]=_gg(_Yp[c],"openerTabId"))||delete _He[c];for(let c in _He)c in _Yp||delete _He[c]}));a.active||_0k(b,a.windowId);_Wo(_Ui,b)}
-{let a=_so(400,_5s);_Yk.tabs.onRemoved.addListener(b=>{b==_Np&&(_Np=null);_0k(b,0);_ea.remove(b);_Ft.remove(b);delete _da[b];delete _Hs[b];_dg.push({id:b,time:Date.now()/1E3});a();_Wo(_5k,b);_Fy&&(_m[b]=_zh(_Yp[b]),setTimeout(()=>{delete _m[b]},3E3))})}function _Cp(a,b,c){b=a.indexOf(b);~b&&(a[b]=c)}function _ew(a,b,c){b in a&&(a[c]=a[b],delete a[b])}let _se;
+function _Zf(a){try{__acInvalidateEnumCache()}catch(e){}let b=a.id=_js(a);_ea.push(b);_Yp[b]=a;a.openerTabId&&(_He[b]=a.openerTabId,Object.keys(_He).length.in(50,75,100,150,200,300)&&_Fu(()=>{for(let c in _He)(_He[c]=_gg(_Yp[c],"openerTabId"))||delete _He[c];for(let c in _He)c in _Yp||delete _He[c]}));a.active||_0k(b,a.windowId);_Wo(_Ui,b)}
+{let a=_so(400,_5s);_Yk.tabs.onRemoved.addListener(b=>{try{__acInvalidateEnumCache()}catch(e){}b==_Np&&(_Np=null);_0k(b,0);_ea.remove(b);_Ft.remove(b);delete _da[b];delete _Hs[b];_dg.push({id:b,time:Date.now()/1E3});a();_Wo(_5k,b);_Fy&&(_m[b]=_zh(_Yp[b]),setTimeout(()=>{delete _m[b]},3E3))})}function _Cp(a,b,c){b=a.indexOf(b);~b&&(a[b]=c)}function _ew(a,b,c){b in a&&(a[c]=a[b],delete a[b])}let _se;
 // Tab replacement
 _Yk.tabs.onReplaced.addListener((a,b)=>{_Lk(_Mu,[b,a]);_Np==b&&(_Np=a);_Cp(_ea,b,a);_Cp(_Ft,b,a);_ew(_Yp,b,a);_ew(_da,b,a);_ew(_Hs,b,a);_ew(_He,b,a);for(let [c,d]of _He)d==b&&(_He[c]=a);for(let [,c]of _Mo)_Cp(c,b,a);_se||(_se={});_se[b]=a});
 // Tab activation: track active tab per window
@@ -16,15 +16,16 @@ function _au(a,b){_kk&&(3E3>Math.abs(Date.now()-_kk)&&b.startsWith("https://www.
 (d=_ig(_zh(_Yp[c])),delete _7o[d],_Zs(d)(_ay));e==_Fd&&_rr&&_Lk(_Ww,{tabId:c});e==_Fd&&((new URL(_zh(_Yp[c]))).hostname.in(_mo,_9n)||"file:"==(new URL(_zh(_Yp[c]))).protocol&&_id)&&_Zr(c)})}
 function _Zr(a){try{_Yk.scripting.executeScript({target:{tabId:a},world:"ISOLATED",injectImmediately:true,func:b=>{try{let c=d=>{try{if(d&&chrome&&chrome.runtime&&chrome.runtime.sendMessage)chrome.runtime.sendMessage({[d.value]:decodeURI(d.closest("a").href)})}catch(e){/* stale/revoked context after an extension reload — the NEW injection handles the event */}};if(!window.__acBridge){window.__acBridge=1;addEventListener("webSettgs",d=>{try{c(d.target)}catch(e){}});console.log("[AC-BRIDGE] installed ver="+b+" url="+location.href)}let el=document.querySelector("ACtlExt");if(!el){el=document.createElement("ACtlExt");(document.head||document.documentElement).appendChild(el)}el.setAttribute("ver",b);try{c(document.querySelector("a [value=redirSttgs]"))}catch(e){}}catch(e){console.error("[AC-BRIDGE] error: "+(e&&e.message||e))}},args:["2025.4.22"]}).then(()=>{console.log("[AC-SITE] bridge injected into tab "+a)}).catch(e=>{console.error("[AC-SITE] bridge injection FAILED tab "+a+": "+(e&&e.message||e))})}catch(e){console.error("[AC-SITE] bridge injection THREW tab "+a+": "+(e&&e.message||e))}}
 // Tab attached to different window
-_Yk.tabs.onAttached.addListener((a,b)=>{_lf(_Yp,a).windowId=b.newWindowId});
+_Yk.tabs.onAttached.addListener((a,b)=>{try{__acInvalidateEnumCache()}catch(e){}_lf(_Yp,a).windowId=b.newWindowId});
+try{_Yk.tabs.onMoved&&_Yk.tabs.onMoved.addListener(()=>{try{__acInvalidateEnumCache()}catch(e){}})}catch(e){}
 
 // Window event handlers
 _Yk.windows.onFocusChanged.addListener(a=>{_na[a]||!_cd[a]&&!_Ld[a]||(_Ld[a]&&delete _Ld[a],_8u([a])())});
 _Yk.windows.onCreated.addListener(_yh);
-function _yh(a){a.cTime=Date.now();clearTimeout(_6i);_n.push(a.id);_cd[a.id]=a;a.state.in("normal","maximized")&&(a.prevState=a.state);_8u([a.id])();_Wo(_wf,a.id)}
+function _yh(a){try{__acInvalidateEnumCache()}catch(e){}a.cTime=Date.now();clearTimeout(_6i);_n.push(a.id);_cd[a.id]=a;a.state.in("normal","maximized")&&(a.prevState=a.state);_8u([a.id])();_Wo(_wf,a.id)}
 _Yk.windows.onRemoved.addListener(_q);
 function _fy(a){_n.remove(a);_hd.remove(a);_0o(a,null);delete _cd[a];a==_4t&&_Yk.windows.getLastFocused({windowTypes:_Ge},b=>_4t=_Aw()?null:b.id)}
-function _q(a){_fy(a);_Wo(_Ff,a)}
+function _q(a){try{__acInvalidateEnumCache()}catch(e){}_fy(a);_Wo(_Ff,a)}
 // Display change
 _Yk.system.display&&_Yk.system.display.onDisplayChanged.addListener(()=>{_Sf(()=>_iy())});
 // Update available + idle
