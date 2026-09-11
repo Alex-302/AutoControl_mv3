@@ -210,6 +210,12 @@
   // the just-opened context menu and activate a menu item — bad. Esc only.
   const RBTN_ESC_ENABLE = true;     // flip false to disable v7
   const RBTN_ESC_DELAY_MS = 20;   // delay after gesture fire (menu opens ~instantly; 20ms is safe)
+  // Extra wait after Esc before dispatching a gesture that Open-URLs chrome://.
+  // Esc must land on the OLD tab; if Open URL + Switch already focused
+  // history/bookmarks, Esc aborts that WebUI (Loading… then blank). Keyboard
+  // Open URL has no Esc, which is why Alt+X works. Only this trigger class is
+  // held — other gestures stay immediate.
+  const AC_GESTURE_CHROME_UI_HOLD_MS = 15;
   const GESTURE_WINDOW_MS = 2000;  // a 750 preceded by 760 within this window counts as a gesture
   let lastRaw760Time = 0;          // ts of the most recent type 760 (gesture stream)
   let escTimer = null;
@@ -224,6 +230,40 @@
     const ids = __acPendingChromeUiReloads;
     __acPendingChromeUiReloads = [];
     for (let i = 0; i < ids.length; i++) __acDoChromeUiReload(ids[i]);
+  }
+  /**
+   * True when this trigger's compiled actions Open URL a chrome:// or edge://
+   * page (history, bookmarks, extensions, …). Used to hold gesture dispatch
+   * until after RBTN-ESC so the synthetic Esc does not hit the new WebUI.
+   */
+  function __acTriggerOpensChromeUi(data) {
+    try {
+      if (typeof _ek !== "object" || !_ek || !data) return false;
+      const trigId = 16777215 & (data.id - handshakeSk);
+      const acts = _ek[trigId];
+      if (!acts) return false;
+      const isChromeUiUrl = (u) => {
+        if (!u || typeof u !== "string") return false;
+        const s = u.trim().toLowerCase();
+        if (s === "about:blank") return false;
+        if (s.indexOf("chrome://newtab") === 0) return false;
+        if (s.indexOf("chrome://new-tab-page") === 0) return false;
+        if (s.indexOf("edge://newtab") === 0) return false;
+        return s.indexOf("chrome://") === 0 || s.indexOf("edge://") === 0;
+      };
+      for (let i = 0; i < acts.length; i++) {
+        const seq = (acts[i] && acts[i].sequence) || [];
+        for (let j = 0; j < seq.length; j++) {
+          const a = seq[j];
+          if (!a || a.action !== "loadUrls") continue;
+          const u = a.params && a.params.url;
+          if (Array.isArray(u)) {
+            for (let k = 0; k < u.length; k++) if (isChromeUiUrl(u[k])) return true;
+          } else if (isChromeUiUrl(u)) return true;
+        }
+      }
+    } catch (e) {}
+    return false;
   }
 
   // ============ AC-CAPTURE heal (type 40 watchdog, 2026-08-09) ============
@@ -362,12 +402,13 @@
   // chrome.sessions.restore (separate PR — that wrap is restore-only).
   // Open URL (_Mh → _6a / _3g) uses _Yk.tabs.create === chrome.tabs.create
   // in the SW, so wrapping here covers gestures AND hotkeys. Gestures also
-  // fire a synthetic Esc 20ms later (RBTN-ESC) which can race onto the new
-  // WebUI. A fixed 150ms reload wait made the first stuck paint visible
-  // (flicker). Reload immediately when no Esc is pending (keyboard);
-  // if Esc is still queued, reload on the next tick after Esc fires
-  // (~0–20ms). https Open URL is left alone (would flash every site).
-  // Skip about:blank and the new-tab page. No bundle rebuild.
+  // fire a synthetic Esc 20ms later (RBTN-ESC). If that Esc lands on the
+  // new history/bookmarks tab it aborts WebUI paint (Loading… then blank);
+  // keyboard Open URL has no Esc (Alt+X works). Gesture 750s that Open URL
+  // chrome:// are held until after Esc (see onMsg) so reload here is the
+  // same immediate heal as the keyboard path. https Open URL is left alone
+  // (would flash every site). Skip about:blank and the new-tab page.
+  // No bundle rebuild.
   function __acNeedsChromeUiReload(url) {
     if (!url || typeof url !== "string") return false;
     const u = url.trim().toLowerCase();
@@ -2221,10 +2262,14 @@
       if (nativeMsgBuffer.length > MAX_BUFFER_SIZE) nativeMsgBuffer.shift();
     }
 
-    // SW-BRAIN: dispatch to the in-SW core handlers (z[750] execution etc.)
-    __acDispatch({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
-    // Also forward to extension pages for UI-only updates
-    broadcast({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
+    const __acForwardNative = () => {
+      __acDispatch({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
+      broadcast({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
+    };
+    const __acIsGesture750 = type === 750 && RBTN_ESC_ENABLE && data &&
+      (data.mouseGest || (Date.now() - lastRaw760Time) < GESTURE_WINDOW_MS);
+    // Hold chrome:// Open URL until Esc has been sent on the OLD tab.
+    const __acHoldChromeUi = __acIsGesture750 && __acTriggerOpensChromeUi(data);
 
     // Log type 750 (trigger event) prominently — page handles execution
     if (type === 750) {
@@ -2270,6 +2315,15 @@
           console.warn("[AC-MV3] RBTN-ESC failed:", e.message);
         }
       }
+    }
+
+    if (__acHoldChromeUi) {
+      // Esc at 20ms on the still-focused old tab; Open URL ~15ms later.
+      const hold = RBTN_ESC_DELAY_MS + AC_GESTURE_CHROME_UI_HOLD_MS;
+      console.warn("[AC-MV3] RBTN-ESC: holding chrome:// Open URL " + hold + "ms so Esc does not hit the new WebUI");
+      setTimeout(__acForwardNative, hold);
+    } else {
+      __acForwardNative();
     }
   }
 

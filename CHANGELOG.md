@@ -121,7 +121,10 @@
   `edge://` tab the extension now reloads it once (new-tab pages and
   ordinary https URLs are left alone). The reload waits only for a
   pending gesture Esc (~0–20 ms), not a long delay, so the first stuck
-  paint does not sit on screen. A refresh still works if needed.
+  paint does not sit on screen. Mouse gestures also send a synthetic Esc
+  to close the leftover context menu; that Esc is sent before the new
+  Chrome page is opened, so it does not abort the page. A refresh still
+  works if needed.
 - **Ctrl+Tab "Smart switching" no longer opened the tab list after a
   reload.** The imported action set ("Smart Ctrl+Tab switching" from the
   site) is built on menu-state conditions: the tab menu must be *closed*
