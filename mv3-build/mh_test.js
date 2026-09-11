@@ -2109,6 +2109,39 @@ vm.runInContext(`
     srcOk && rtOk, 'src=' + srcOk + ' rt=' + JSON.stringify(rt));
 }
 
+// B55. Open URL chrome://history / bookmarks stuck on Loading or blank (2026-09-11).
+// Same WebUI-from-SW paint class as sessions.restore, different API
+// (tabs.create / windows.create — do NOT fold into the restore wrap).
+// sw.js wraps both creates and reloads chrome:// / edge:// tabs once
+// (skip about:blank and the new-tab page; do NOT reload https).
+// Gesture 750s that Open URL chrome:// are held until after RBTN-ESC
+// (Esc on the new WebUI → Loading… then blank; Alt+X has no Esc).
+{
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const wrapOk = sw.includes('function __acWrapChromeUiCreate') &&
+    sw.includes('function __acNeedsChromeUiReload') &&
+    sw.includes('function __acReloadChromeUiTab') &&
+    sw.includes('__acPendingChromeUiReloads') &&
+    sw.includes('function __acFlushChromeUiReloads') &&
+    sw.includes('__acChromeUiReload') &&
+    /wrap\(chrome\.tabs,\s*"create"/.test(sw) &&
+    /wrap\(chrome\.windows,\s*"create"/.test(sw);
+  const holdOk = sw.includes('function __acTriggerOpensChromeUi') &&
+    sw.includes('__acHoldChromeUi') &&
+    sw.includes('AC_GESTURE_CHROME_UI_HOLD_MS') &&
+    sw.includes('holding chrome:// Open URL') &&
+    !sw.includes('AC_CHROME_UI_RELOAD_MS = 150');
+  const skipOk = sw.includes('about:blank') &&
+    sw.includes('chrome://newtab') &&
+    sw.includes('chrome://new-tab-page');
+  const chromeOnly = sw.includes('u.indexOf("chrome://") === 0') &&
+    sw.includes('u.indexOf("edge://") === 0');
+  const noHttpsReload = !/https Open URL is left alone/.test(sw) ? false : true;
+  check('sw.js: tabs.create wrap reloads chrome:// Open URL tabs (2026-09-11)',
+    wrapOk && holdOk && skipOk && chromeOnly && noHttpsReload,
+    'wrap=' + wrapOk + ' hold=' + holdOk + ' skip=' + skipOk + ' chromeOnly=' + chromeOnly + ' noHttps=' + noHttpsReload);
+}
+
 // ---------- A4b. file:// toggle-ON runtime branch (2026-08-10, FEATURES-MV3.md §7-8) ----------
 // The main ctx stub returns false (toggle OFF) — deterministic. This second
 // context simulates the "Allow access to file URLs" toggle ON: the prelude's

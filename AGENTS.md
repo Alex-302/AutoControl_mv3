@@ -200,7 +200,7 @@ This includes comments, log strings, and error messages in `sw.js`,
   `_Yh` vs `self._Yh`), XHR-shim headers smoke, `_Yh` callback-style smoke,
   and userAPI dispatch (must be exactly 1 answering listener). Output
   `[PASS]`/`[FAIL]`/`[GAP ]`/`[FIXED?]`; exit 1 on FAIL. Path-independent
-  (`__dirname`). Current: 92 pass / 0 gaps / 0 FAIL.
+  (`__dirname`). Current: 94 pass / 0 gaps / 0 FAIL.
 - **`Test/SCRIPTING-API-TEST.js`** — in-browser self-test of the whole ACtl
   API (23 tests), run via RUN SCRIPT on a normal page. 23/23 stable. Every
   failure prints an unmissable banner (`[AC-API-TEST: FAIL]`) + a final
@@ -696,6 +696,21 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
 
 ### Actions (misc)
 
+- **Open URL chrome:// stuck on Loading / blank (FIXED 2026-09-11, B55)** —
+  gesture left = Open URL `chrome://history` stuck on "正在加载…" then blank;
+  gesture right = bookmarks sometimes blank; F5 always heals. Alt+X / Alt+E
+  (keyboard) Open URL of the same chrome:// pages works. NOT the reopen-
+  closed-tab wrap (`sessions.restore` only). Gesture vs hotkey use the SAME
+  `_Mh` → `_6a`/`_3g` → `tabs.create` runner; gestures also fire RBTN-ESC
+  (type 300 Esc, 20ms) to close the stray context menu. If that Esc lands
+  on the new history/bookmarks tab the WebUI dies. Reloading right after
+  Esc was not enough (Esc still aborts the heal navigation). FIX: wrap
+  `chrome.tabs.create` + `chrome.windows.create` and reload chrome:// /
+  edge:// once (skip about:blank / new-tab; do NOT reload https). Gesture
+  750s whose compiled action is Open URL chrome:// are held ~35ms (Esc
+  first on the old tab, then Open URL — same path as Alt+X). Other
+  gestures are not delayed. mh_test B55. NO bundle rebuild. Independent
+  PR from `master` — do not fold into the restore wrap.
 - **Play audio (FIXED 2026-08-09)** — the original lazy-loads file53.js via
   a script tag (a NO-OP in the SW) → the action hung the chain AND the
   queue; file53 also needs AudioContext/speechSynthesis (no worker APIs).
