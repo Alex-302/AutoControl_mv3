@@ -339,6 +339,81 @@
     console.error("[AC-MV3] ✗ Core bundle load failed:", e.message);
   }
 
+  // AC-MV3 FIX (2026-09-11): Reopen closed tab/window (undoClose / sessions
+  // restore, Ctrl+Shift+T equivalent) left EVERY restored tab blank until a
+  // manual refresh — chrome://history (title "Chrome", empty WebUI) AND
+  // regular https pages (e.g. jisho.org: URL in the omnibox, white content).
+  // Chrome's sessions.restore() from a service worker reopens the tab URL
+  // but often does not paint the renderer; native Ctrl+Shift+T uses a
+  // different browser path and paints correctly. Workaround: after a
+  // successful restore, reload every restored tab once (skip about:blank).
+  // Back/forward history is kept; in-page form state on the restored
+  // document may be dropped — blank pages are worse. Wraps
+  // chrome.sessions.restore so ALL restore callers (_3j undoClose, file26
+  // closed-tab menu, sessRestore messages) get the same heal. sessions is
+  // an OPTIONAL permission — wrap now and again when granted.
+  function __acRestoredTabsNeedReload(tab) {
+    if (!tab || tab.id == null) return false;
+    const url = tab.pendingUrl || tab.url || "";
+    if (/^about:blank$/i.test(url)) return false;
+    return true;
+  }
+  function __acReloadRestoredTabs(session) {
+    if (!session) return session;
+    try {
+      const tabs = session.tab
+        ? [session.tab]
+        : (session.window && session.window.tabs) || [];
+      for (const tab of tabs) {
+        if (!__acRestoredTabsNeedReload(tab)) continue;
+        const id = tab.id;
+        setTimeout(() => {
+          try { chrome.tabs.reload(id, () => void chrome.runtime.lastError); }
+          catch (e) {}
+        }, 50);
+      }
+    } catch (e) {}
+    return session;
+  }
+  function __acWrapSessionsRestore() {
+    const api = chrome.sessions;
+    if (!api || typeof api.restore !== "function" || api.restore.__acWrapped) return;
+    const orig = api.restore.bind(api);
+    const wrapped = function(sessionId, callback) {
+      let id = sessionId, cb = callback;
+      if (typeof sessionId === "function") { cb = sessionId; id = undefined; }
+      if (id != null && typeof id !== "function") id = String(id);
+      const finish = (session) => {
+        __acReloadRestoredTabs(session);
+        if (typeof cb === "function") {
+          try { cb(session); } catch (e) {}
+        }
+        return session;
+      };
+      const run = (arg) => (arg === undefined ? orig(finish) : orig(arg, finish));
+      if (typeof cb === "function") return run(id);
+      try {
+        const p = id === undefined ? orig() : orig(id);
+        if (p && typeof p.then === "function") return p.then(finish);
+        return finish(p);
+      } catch (e) {
+        return run(id);
+      }
+    };
+    wrapped.__acWrapped = true;
+    api.restore = wrapped;
+  }
+  __acWrapSessionsRestore();
+  try {
+    if (chrome.permissions && chrome.permissions.onAdded) {
+      chrome.permissions.onAdded.addListener((p) => {
+        if (p && p.permissions && p.permissions.indexOf("sessions") >= 0) {
+          __acWrapSessionsRestore();
+        }
+      });
+    }
+  } catch (e) {}
+
   // AC-MV3 FIX (2026-08-02, round 10): ACtl.switchState crashes with
   // "_if.binSwtch is not iterable" when the user has no binary switches —
   // _if = customEntities (set by _6s) and binSwtch key is absent → for..of
@@ -3152,7 +3227,14 @@
 
       // Sessions
       case "sessGetRecent": chrome.sessions.getRecentlyClosed({ maxResults: msg.max || 25 }, r => sendRes(r)); return true;
-      case "sessRestore":   chrome.sessions.restore(msg.sessionId, () => sendRes({})); return true;
+      // AC-MV3 FIX (2026-09-11): return the restored Session (tab/window ids).
+      // The old sendRes({}) made undoClose callers throw on g.window.tabs
+      // when this path was used, and hid the objects the post-restore reload
+      // wrap needs. chrome.sessions.restore is wrapped above to reload
+      // every restored tab (skip about:blank).
+      case "sessRestore":
+        chrome.sessions.restore(msg.sessionId, session => sendRes(session || {}));
+        return true;
 
       // Scripting
       case "execScript":
