@@ -1,0 +1,144 @@
+// FUN_004303a0 @ 004303a0 size=870 callers=1
+
+void * __cdecl FUN_004303a0(void *param_1)
+
+{
+  undefined4 uVar1;
+  undefined8 uVar2;
+  undefined8 uVar3;
+  HWND pHVar4;
+  int iVar5;
+  UINT gaFlags;
+  char local_124 [16];
+  undefined1 local_114 [16];
+  undefined1 local_104 [16];
+  undefined1 local_f4 [16];
+  undefined1 local_e4 [16];
+  char local_d4 [8];
+  undefined8 local_cc;
+  undefined1 local_c4 [8];
+  undefined8 local_bc;
+  char local_b4 [8];
+  undefined8 local_ac;
+  undefined1 local_a4;
+  undefined8 local_9c;
+  char local_94 [8];
+  undefined8 local_8c;
+  undefined1 local_84;
+  undefined8 local_7c;
+  undefined **local_74;
+  void *local_70;
+  char local_6c [8];
+  undefined8 local_64;
+  undefined1 local_5c [12];
+  undefined ***local_50;
+  char local_4c [8];
+  undefined8 local_44;
+  char local_3c;
+  undefined8 local_34;
+  char local_2c [4];
+  undefined4 local_28;
+  char local_24 [8];
+  undefined8 local_1c;
+  void *local_10;
+  undefined1 *puStack_c;
+  uint local_8;
+  
+  puStack_c = &LAB_0047d6ae;
+  local_10 = ExceptionList;
+  local_8 = 0;
+  local_28 = 0;
+  local_4c[0] = '\0';
+  local_44 = 0;
+  ExceptionList = &local_10;
+  FUN_00451110(local_4c,(uint *)"focusWin");
+  gaFlags = 3;
+  pHVar4 = GetForegroundWindow();
+  pHVar4 = GetAncestor(pHVar4,gaFlags);
+  local_34 = 0;
+  local_24[0] = '\0';
+  local_1c = 0;
+  FUN_00450f50(local_24,(int)pHVar4);
+  local_3c = local_24[0];
+  local_24[0] = '\0';
+  uVar2 = local_1c;
+  local_1c = local_34;
+  local_34 = uVar2;
+  FUN_00434820(local_24);
+  local_8 = 1;
+  FUN_00434b50(local_124,local_4c,local_2c,'\x01','\x02');
+  local_8._0_1_ = 3;
+  _eh_vector_destructor_iterator_(local_4c,0x10,2,FUN_00434820);
+  local_94[0] = '\0';
+  local_8c = 0;
+  FUN_00451110(local_94,(uint *)"actWinMine");
+  uVar2 = local_1c;
+  local_1c = CONCAT71(local_1c._1_7_,DAT_004a26c5);
+  uVar3 = local_1c;
+  uVar1 = (undefined4)local_1c;
+  local_1c._4_4_ = SUB84(uVar2,4);
+  local_84 = 4;
+  local_7c = CONCAT44(local_1c._4_4_,uVar1);
+  local_8._0_1_ = 4;
+  local_1c = uVar3;
+  FUN_00434b50(local_114,local_94,(char *)&local_74,'\x01','\x02');
+  local_8._0_1_ = 6;
+  _eh_vector_destructor_iterator_(local_94,0x10,2,FUN_00434820);
+  local_b4[0] = '\0';
+  local_ac = 0;
+  FUN_00451110(local_b4,(uint *)"lastHook");
+  uVar2 = local_1c;
+  local_1c = CONCAT71(local_1c._1_7_,DAT_0049d9f4);
+  uVar3 = local_1c;
+  uVar1 = (undefined4)local_1c;
+  local_1c._4_4_ = SUB84(uVar2,4);
+  local_a4 = 4;
+  local_9c = CONCAT44(local_1c._4_4_,uVar1);
+  local_8._0_1_ = 7;
+  local_1c = uVar3;
+  FUN_00434b50(local_104,local_b4,local_94,'\x01','\x02');
+  local_8 = CONCAT31(local_8._1_3_,9);
+  _eh_vector_destructor_iterator_(local_b4,0x10,2,FUN_00434820);
+  local_d4[0] = '\0';
+  local_cc = 0;
+  FUN_00451110(local_d4,(uint *)"peers");
+  iVar5 = 0;
+  for (pHVar4 = FindWindowExA((HWND)0xfffffffd,(HWND)0x0,"ACNH_mainMsgWin",(LPCSTR)0x0);
+      pHVar4 != (HWND)0x0;
+      pHVar4 = FindWindowExA((HWND)0xfffffffd,pHVar4,"ACNH_mainMsgWin",(LPCSTR)0x0)) {
+    iVar5 = iVar5 + 1;
+  }
+  local_c4[0] = 0;
+  local_bc = 0;
+  FUN_00451040(local_c4,iVar5);
+  local_8._0_1_ = 10;
+  FUN_00434b50(local_f4,local_d4,local_b4,'\x01','\x02');
+  local_8._0_1_ = 0xc;
+  _eh_vector_destructor_iterator_(local_d4,0x10,2,FUN_00434820);
+  local_6c[0] = '\0';
+  local_64 = 0;
+  FUN_00451110(local_6c,(uint *)"appUserModelIDs");
+  local_8._0_1_ = 0xd;
+  FUN_004301c0(local_5c);
+  local_8._0_1_ = 0xe;
+  FUN_00434b50(local_e4,local_6c,local_4c,'\x01','\x02');
+  local_8 = CONCAT31(local_8._1_3_,0x10);
+  _eh_vector_destructor_iterator_(local_6c,0x10,2,FUN_00434820);
+  local_8 = 0x11;
+  FUN_00434b50(param_1,local_124,local_d4,'\x01','\x02');
+  local_28 = 1;
+  local_8 = local_8 & 0xffffff00;
+  _eh_vector_destructor_iterator_(local_124,0x10,5,FUN_00434820);
+  local_50 = &local_74;
+  local_74 = &PTR_LAB_0048ea98;
+  local_70 = param_1;
+  local_8 = 0x12;
+  FUN_0040f7a0(DAT_004a2458,(int *)local_50);
+  if (local_50 != (undefined ***)0x0) {
+    (*(code *)(*local_50)[4])(local_50 != &local_74);
+  }
+  ExceptionList = local_10;
+  return param_1;
+}
+
+

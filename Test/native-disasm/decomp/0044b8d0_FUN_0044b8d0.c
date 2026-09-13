@@ -1,0 +1,15 @@
+// FUN_0044b8d0 @ 0044b8d0 size=43 callers=2
+
+void __thiscall FUN_0044b8d0(void *this,char param_1)
+
+{
+  *(undefined ***)this = &PTR_FUN_0048f06c;
+  FUN_00434820((char *)((int)this + 8));
+  *(undefined ***)this = &PTR_FUN_0048ed18;
+  if (param_1 != '\0') {
+    FID_conflict__free(this);
+  }
+  return;
+}
+
+

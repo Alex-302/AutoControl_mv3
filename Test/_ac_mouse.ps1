@@ -1,10 +1,12 @@
 param(
-  [string]$Action = "rmb",   # rmb = right-button click | lmb = left click | move = move mouse to x,y
+  [string]$Action = "rmb",   # rmb = right-button click | lmb = left click | move = move mouse to x,y | wheel = scroll
   [int]$X = -1,              # move target x (absolute screen)
   [int]$Y = -1,              # move target y
   [int]$HoldMs = 120,        # down→up gap
   [int]$DragPx = 0,          # move the mouse this many px (to the right) BETWEEN down and up (gesture start)
   [int]$DragSteps = 1,       # how many steps the drag is split into (smooth hand-like movement)
+  [int]$Delta = 120,         # wheel delta: 120 = up, -120 = down
+  [int]$Ticks = 1,           # how many wheel notches
   [string]$TitleFilter = "sxs"  # pick the Chrome SxS window whose title CONTAINS this (excludes the settings/extension windows)
 )
 Add-Type -AssemblyName Microsoft.VisualBasic
@@ -22,6 +24,10 @@ public class ACMouse {
 }
 "@
 $proc = Get-Process chrome | Where-Object { $_.Path -like '*Chrome SxS*' -and $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -like "*$TitleFilter*" } | Sort-Object MainWindowTitle | Select-Object -Last 1
+if (-not $proc) {
+  # fallback: any SxS window with a title (the tab title changes constantly)
+  $proc = Get-Process chrome | Where-Object { $_.Path -like '*Chrome SxS*' -and $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -ne "" } | Sort-Object MainWindowTitle | Select-Object -Last 1
+}
 if (-not $proc) { Write-Output "NO SXS WINDOW (filter=$TitleFilter)"; exit 1 }
 # Foreground the SxS window (verify + retry): the ALT-hold unlocks the
 # Windows foreground lock (the caller is not the foreground owner).
@@ -51,7 +57,17 @@ $p = New-Object ACMouse+POINT
 [ACMouse]::GetCursorPos([ref]$p) | Out-Null
 Write-Output "cursor at $($p.X),$($p.Y) -> $Action"
 
-if ($Action -eq "rmb") {
+if ($Action -eq "wheel") {
+  # mouse_event's dwData is a DWORD: a negative delta (wheel down) must be
+  # sent in its two's-complement form ([uint32]-120 throws in PS 5.1).
+  $dw = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$Delta), 0)
+  for ($i = 0; $i -lt $Ticks; $i++) {
+    [ACMouse]::mouse_event(0x0800, 0, 0, $dw, [UIntPtr]::Zero)  # MOUSEEVENTF_WHEEL
+    Start-Sleep -Milliseconds 40
+  }
+  Write-Output "OK wheel delta=$Delta ticks=$Ticks"
+  exit 0
+} elseif ($Action -eq "rmb") {
   [ACMouse]::mouse_event(0x0008, 0, 0, 0, [UIntPtr]::Zero)  # RIGHTDOWN
   if ($DragPx -gt 0) {
     $p2 = New-Object ACMouse+POINT

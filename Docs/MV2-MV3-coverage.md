@@ -36,7 +36,7 @@ place) or broken identically in MV2 (Chrome platform changes).
 |---|---|---|
 | **Native integration** (connection, handshake, callbacks, keepalive) | ✅ ~100% | Same wire protocol as MV2; every message type handled |
 | **Native component lifecycle** (auto-update of the engine, auto-reconnect, cleanup of old session files, install/uninstall, Emergency Repair) | ✅ ~100% | Repair now restarts the extension (equivalent of the MV2 background-page reload) — no stuck states, no dangling hooks |
-| **Triggers** (hotkeys, mouse buttons, wheel, gestures, rocker, joystick, voice, bookmarks, browser events, omnibox, startup, timers, binary switches, menus, preconditions) | ✅ ~100% | Full set; trigger config compilation identical to MV2. **One exception:** hover regions "Browser tab", "close button", "speaker icon", "new tab button", "any menu item" are broken in Chrome 148+ — a native-side a11y regression that **also breaks MV2** (not a port loss; the UI marks these options as broken) |
+| **Triggers** (hotkeys, mouse buttons, wheel, gestures, rocker, joystick, voice, bookmarks, browser events, omnibox, startup, timers, binary switches, menus, preconditions) | ✅ ~100% | Full set; trigger config compilation identical to MV2. **One caveat:** hover regions ("Browser tab", "close button", "speaker icon", "new tab button", "any menu item", …) do NOT fire with the ORIGINAL engine on Chrome 148+ — a native-side a11y regression that **also breaks MV2** (not a port loss). The port fixes it with a patched engine plus an external zone classifier: all 12 regions verified — see `README.md` §4.4 and `Docs/TODO-mouseover-zones.md`. Install the patched engine or these options stay dead |
 | **Actions** (tabs, windows, bookmarks, menus, clipboard, system, SendInput, commands, scripts, screenshots, Save URL, Play audio) | ✅ ~100% | All categories. The two hardest ones were fixed: **Save URL** (Referer header now set via declarative network rules instead of the MV2 blocking webRequest) and **Play audio** (audio now plays in an offscreen document — the MV2 background page could play it directly) |
 | **Scripting engine + ACtl API** (33 methods) | ✅ ~100% | All methods work, including the complex ones: code in the page's main world with return values, subframes, ES modules, events |
 | **Settings UI** (trigger/action editors, script editor, import/export, sync, live config apply without restart) | ✅ ~100% | Script editor uses a local CodeMirror copy (offline-safe) |
@@ -59,12 +59,16 @@ place) or broken identically in MV2 (Chrome platform changes).
 
 ## Remaining open items (all low priority)
 
-1. **Hover regions** "Browser tab", "close button", "speaker icon", "new tab
-   button", "any menu item" in Chrome 148+ — a native-side a11y regression
-   that breaks MV2 identically (NOT a port loss; the UI marks the broken
-   options).
-2. **Not Web-Store ready** — unpacked-only dev build; GitHub publication is
+1. **Not Web-Store ready** — unpacked-only dev build; GitHub publication is
    a process TODO.
+2. **Hover regions need the patched engine** — they are FIXED (all 12
+   verified), but the fix is a byte patch of the engine plus a small external
+   helper, so a plain installation (which deploys the bundled UNPATCHED engine)
+   leaves them dead until `Test/deploy_patched_engine.ps1` is run
+   (`README.md` §4.4). Shipping the patched engine in the bundle is the
+   follow-up that would close this.
+3. **Multi-browser helper test** — the zone classifier has never been exercised
+   by two browsers at once (`Docs/TODO-mouseover-zones.md` §2c).
 
 ---
 

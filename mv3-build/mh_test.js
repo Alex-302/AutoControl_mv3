@@ -10,7 +10,6 @@
 const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
-
 const MV3 = __dirname; // mv3-build/
 // ACS settings snapshot lives in ../Test/ (renamed 2026-08-05)
 const ACS = path.join(__dirname, '..', 'Test', 'AutoControl-settings-test.acs');
@@ -427,16 +426,25 @@ setTimeout(() => {
   // MUST point at AutoControlZero.exe (proxy/launcher) - the full engine
   // AutoCtrl_2025.4.22.0.exe crashes with a C++ exception when launched
   // directly (Zero spawns it with arg "152" from %LocalAppData%). Both exes
-  // must be present in the install folder.
+  // must be present in the install folder. Repo layout (2026-09-12): the
+  // manifests stay at AutoControl_native\ root, the binaries live under
+  // original\ (pristine + Zero), patched\ (current build) and patches\
+  // (patch scripts: original -> current).
   try {
-    const manifestPath = path.join(__dirname, '..', 'AutoControl_native', 'AutoControl.manifest');
+    const native = path.join(__dirname, '..', 'AutoControl_native');
+    const manifestPath = path.join(native, 'AutoControl.manifest');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     check('zero-proxy host manifest', manifest.name === 'hrich.autocontrol' && manifest.path === 'AutoControlZero.exe',
       'path=' + manifest.path);
-    const zeroOk = fs.existsSync(path.join(__dirname, '..', 'AutoControl_native', 'AutoControlZero.exe'));
-    const fullOk = fs.existsSync(path.join(__dirname, '..', 'AutoControl_native', 'AutoCtrl_2025.4.22.0.exe'));
+    const zeroOk = fs.existsSync(path.join(native, 'original', 'AutoControlZero.exe'));
+    const fullOk = fs.existsSync(path.join(native, 'original', 'AutoCtrl_2025.4.22.0.exe'));
     check('zero-proxy: both exes present in install folder', zeroOk && fullOk,
       'Zero=' + zeroOk + ' full=' + fullOk);
+    // One pristine original + one current build + the patch that produces it.
+    const patchedOk = fs.existsSync(path.join(native, 'patched', 'AutoCtrl_2025.4.22.0.v19.exe'));
+    const patcherOk = fs.existsSync(path.join(native, 'patches', 'patch_zones_v19.js'));
+    check('native layout: original / patched / patches', patchedOk && patcherOk,
+      'patched=' + patchedOk + ' patcher=' + patcherOk);
   } catch(e) {
     check('zero-proxy host manifest', false, e.message);
   }
@@ -2129,6 +2137,341 @@ vm.runInContext(`
       'pass-through + real value -> file:// targetable (MV2 parity); got ' + res);
   } catch (e) {
     check('_As scheme gate: file:// NOT restricted with toggle ON (stub=true)', false, 'ctx2 load error: ' + e.message);
+  }
+}
+
+// ---------- B53. Mouse-over zone gate (2026-09-12) ----------
+// The zone selectivity lives in THREE files that are NOT in the bundle, so a
+// silent regression in any of them kills mouse-over triggers with no other
+// signal. Verified live behaviour this test pins down:
+//  (a) sw.js `__AC_ZONE_KNOWN` = exactly the 11 regions the helper can
+//      classify, and NO menu-item region (40-51) — the helper cannot see the
+//      native menu, so those triggers MUST fall through to the engine's own
+//      verdict (`if (!check.length) { doDispatch(); return; }`). Before that
+//      pass-through every menu-item trigger was silently skipped.
+//  (b) `__AC_ZONE_CACHE_MS` shares ONE helper answer per input burst — one
+//      physical wheel makes the engine emit a 750 per matching trigger and
+//      Chrome can scroll the tab strip in between (the burst used to see
+//      zone 15 then zone 12 → "wheel over the close button does nothing").
+//  (c) the decision is a SET INTERSECTION (the engine evaluated every region
+//      independently, so one point matches several zones: the omnibox is
+//      inside the toolbar band, the page inside the window).
+//  (d) the helper source keeps the rules that took the longest to find: the
+//      close/speaker halves of a tab button, the "+" under the tab list and
+//      the right-edge rule that makes the "New Chrome available" pill count
+//      as the browser-menu button (the kebab is not exposed in Chrome 150).
+//  (e) the engine patch builder exists and still contains the code-cave
+//      trampoline (regions < 60 always match; menu regions 60-71 keep the
+//      engine's native classification). Without it the engine DROPS the 750
+//      for regions it cannot classify and the gate never sees them.
+{
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const TESTDIR = path.join(__dirname, '..', 'Test');
+  const helper = fs.readFileSync(path.join(TESTDIR, 'ac_zone_helper.cs'), 'utf8');
+
+  const mKnown = sw.match(/const __AC_ZONE_KNOWN = \[([^\]]*)\]/);
+  const known = mKnown ? mKnown[1].split(',').map(s => parseInt(s.trim(), 10)) : [];
+  const knownOk = known.length === 11 && [1, 3, 4, 12, 15, 16, 17, 20, 21, 30, 33].every(z => known.indexOf(z) !== -1);
+  const noMenuRegions = known.every(z => z < 40);          // 40-51 = menu items
+  const passThroughOk = sw.includes('if (!check.length) { doDispatch(); return; }');
+  const intersectOk = /check\.some\(z => zs\.indexOf\(z\) !== -1\)|zs\.some\(z => check\.indexOf\(z\) !== -1\)/.test(sw);
+  const cacheMs = sw.match(/const __AC_ZONE_CACHE_MS = (\d+)/);
+  const cacheOk = !!cacheMs && parseInt(cacheMs[1], 10) > 0 && parseInt(cacheMs[1], 10) <= 500;
+
+  // helper rules (see Docs/TODO-mouseover-zones.md §2d/§2e)
+  const hPlus = helper.includes('PAGETABLIST');
+  const hRightEdge = /right edge within|right edge/.test(helper) && helper.includes('60');
+  const hDpi = helper.includes('SetProcessDPIAware');
+  // 2026-09-12 (later): the speaker icon is NOT hit-testable (AOP returns the
+  // PAGETAB), so the tab's CHILDREN are scanned for a button rect containing
+  // the cursor and the close button is identified as the RIGHTMOST sibling
+  // ("left/right half of the tab" used the tab's unreliable a11y rect and
+  // reported the speaker icon as the close button — user report). The title
+  // area (4) must cover the WHOLE top band (tab strip + toolbar), the
+  // browser-UI rules must be gated on "not inside a DOCUMENT" (a page can
+  // expose ARIA tablist/input/toolbar roles), zones are only reported for the
+  // helper's OWN browser window (the original engine never fired over other
+  // applications), and a background heartbeat keeps Chrome's a11y tree awake
+  // (it sleeps after ~30 s and then EVERY point reports zone 4).
+  const hTabButtons = helper.includes('TabButtonZone') && /hitLeft >= maxLeft/.test(helper);
+  const hTitleBand = /inToolbar \|\| stripNear \|\| isTabBtn/.test(helper);
+  const hPageSafe = /bool ui = !inPage/.test(helper);
+  const hOwnWindow = helper.includes('browserPid') && helper.includes('IsBrowserName');
+  const hHeartbeat = helper.includes('Heartbeat') && helper.includes('CacheStore');
+  const hSpeakerNoTab = /tbZone == 0 && \(roles\[0\] == 37/.test(helper);
+
+  const patchFile = path.join(__dirname, '..', 'AutoControl_native', 'patches', 'patch_zones_v19.js');
+  const patchExists = fs.existsSync(patchFile);
+  const patchSrc = patchExists ? fs.readFileSync(patchFile, 'utf8') : '';
+  // v19 (2026-09-12, deployed): the always-match cave of v18 also broke page
+  // scrolling (the mouseOver matcher's return value IS the input-consumption
+  // decision), so the engine now reads `table[region]` out of a page the zone
+  // helper writes: alive flag + 64 dwords. Regions >= 0x28 keep the engine's
+  // own logic (menu items 60-71). Layout pinned here because an off-by-one in
+  // the cave prefix is silent: the first build wrote the `ret` one byte early,
+  // which clobbered the table address (0xC3950010) and skipped the read —
+  // zones looked dead while everything else seemed fine.
+  const ORIG_OFF = /const ORIG_BLOCK = 0x1[cC];/.test(patchSrc);
+  const caveSig = /83 fa 28/i.test(patchSrc) && /0x4156f0/i.test(patchSrc) && /0x4156f5/i.test(patchSrc);
+  const helperTable = helper.includes('WriteZoneTable') && helper.includes('ORIG_BLOCK = 0x1C') &&
+    helper.includes('npre[21] = 0xC3') && helper.includes('npre[23] = 1') && helper.includes('npre[27] = 0xC3') &&
+    /CAVE_RVA = 0x7F7A3/.test(helper);
+  // The helper must ALWAYS allocate its own page and claim the cave: an older
+  // build reused whatever address it found in the cave and wrote its table
+  // into a page it did not own (the engine then read stale memory).
+  const helperClaims = helper.includes('VirtualAllocEx') && helper.includes('cave written');
+  // The SW keepalive that starts the helper at SW boot: without it the helper
+  // only ran after the first 750 — and since the engine drops the 750s it
+  // cannot classify, that first 750 never came (chicken-and-egg).
+  const keepaliveOk = /setInterval\(\(\) => \{[\s\S]{0,120}__acZoneAsk\(300\)/.test(sw);
+
+  const bad = [];
+  if (!knownOk) bad.push('known=' + JSON.stringify(known));
+  if (!noMenuRegions) bad.push('menu region in known set');
+  if (!passThroughOk) bad.push('no menu pass-through');
+  if (!intersectOk) bad.push('no set intersection');
+  if (!cacheOk) bad.push('cacheMs=' + (cacheMs && cacheMs[1]));
+  if (!hPlus) bad.push('helper: + rule');
+  if (!hRightEdge) bad.push('helper: right-edge (menu pill) rule');
+  if (!hDpi) bad.push('helper: DPI awareness');
+  if (!hTabButtons) bad.push('helper: tab-button (speaker/close) rule');
+  if (!hTitleBand) bad.push('helper: title-area band rule');
+  if (!hPageSafe) bad.push('helper: page-safety gate');
+  if (!hOwnWindow) bad.push('helper: own-browser gate');
+  if (!hHeartbeat) bad.push('helper: a11y heartbeat');
+  if (!hSpeakerNoTab) bad.push('helper: speaker excludes zone 12');
+  if (!ORIG_OFF) bad.push('v19: ORIG_BLOCK (must be 0x1C)');
+  if (!caveSig) bad.push('v19 patch builder (cave trampoline)');
+  if (!helperTable) bad.push('v19 helper table writer layout');
+  if (!helperClaims) bad.push('helper claims the cave page');
+  if (!keepaliveOk) bad.push('sw.js zone keepalive');
+  check('zone gate: 11 known regions (no menu), menu pass-through, set intersection, 120ms burst cache, helper rules (band/speaker/own-window/heartbeat/table cave), v19 patch + keepalive (2026-09-12)',
+    bad.length === 0, bad.length ? 'missing: ' + bad.join('; ') : 'all ok');
+
+  // B53b. The patch builder must actually RUN and be deterministic, and its
+  // `v16` flag must be parsed as a FLAG, not as an input path (regression
+  // 2026-09-13: `patch_zones_v19.js out.exe v16` was read as "input file v16"
+  // -> ENOENT). Two child runs: default (must equal the deployed build) and
+  // v16 (the legacy variant - must build, must differ).
+  try {
+    const os = require('os');
+    const { execFileSync } = require('child_process');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ac_patchcli_'));
+    const outA = path.join(tmp, 'a.exe');
+    const outB = path.join(tmp, 'b.exe');
+    execFileSync(process.execPath, [patchFile, outA], { stdio: 'pipe' });
+    execFileSync(process.execPath, [patchFile, outB, 'v16'], { stdio: 'pipe' });
+    const sha = (p) => require('crypto').createHash('sha256').update(fs.readFileSync(p)).digest('hex').toUpperCase();
+    const DEFAULT_SHA = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E';
+    const okDefault = sha(outA) === DEFAULT_SHA;
+    const okV16 = sha(outB) !== DEFAULT_SHA;          // legacy variant builds and differs
+    const okNoV16Arg = fs.readFileSync(patchFile, 'utf8').includes("ARGS.filter(a => a !== 'v16')");
+    fs.rmSync(tmp, { recursive: true, force: true });
+    check('patch builder CLI: default == deployed build, `v16` parsed as a flag (2026-09-13)',
+      okDefault && okV16 && okNoV16Arg,
+      'default=' + (okDefault ? 'OK' : 'MISMATCH') + ' v16=' + (okV16 ? 'differs' : 'same?!') +
+      ' flagParse=' + okNoV16Arg);
+  } catch(e) {
+    check('patch builder CLI: default == deployed build, `v16` parsed as a flag (2026-09-13)',
+      false, e.message.split('\n')[0]);
+  }
+
+  // B53c. The DOCS must match the BINARY. The injected code is described in
+  // prose (patches/README.md - instruction-by-instruction) and quoted verbatim
+  // (BUILD-NATIVE.md - compact hex); both are load-bearing for anyone
+  // re-deriving the patch, so a drift here is a real bug. Rebuild once and
+  // compare against the documented bytes.
+  try {
+    const os = require('os');
+    const { execFileSync } = require('child_process');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ac_patchdoc_'));
+    const out = path.join(tmp, 'p.exe');
+    execFileSync(process.execPath, [patchFile, out], { stdio: 'pipe' });
+    const b = fs.readFileSync(out);
+    const entryHex = b.slice(0x14AF0, 0x14AF0 + 5).toString('hex');          // e9aea00600
+    const caveHex = b.slice(0x7EBA3, 0x7EBA3 + 38).toString('hex');          // fallback variant
+    const bnd = fs.readFileSync(path.join(__dirname, '..', 'Docs', 'BUILD-NATIVE.md'), 'utf8');
+    const pdoc = fs.readFileSync(path.join(__dirname, '..', 'AutoControl_native', 'patches', 'README.md'), 'utf8');
+    fs.rmSync(tmp, { recursive: true, force: true });
+
+    const CAVE_HEX = '83fa287317b801000000c3909090909090909090909090909090909083ec205355e92c5ff9ff';
+    const caveOk = caveHex === CAVE_HEX;
+    // verbatim quotes in the build doc (compact hex form)
+    const quotesOk = bnd.includes(caveHex) && bnd.includes(entryHex);
+    // the annotated listing in patches/README.md (instruction + comment pairs)
+    const annotOk = /83 FA 28\s+cmp\s+edx, 28h/.test(pdoc) &&
+      /B8 01 00 00 00\s+mov\s+eax, 1/.test(pdoc) &&
+      /8B 04 95 <TABLE>\s+mov\s+eax, \[edx\*4 \+ TABLE\]/.test(pdoc) &&
+      /83 EC 20 53 55\s+ORIG/.test(pdoc);
+    const bad2 = [];
+    if (!caveOk) bad2.push('built cave != documented constant: ' + caveHex);
+    if (!quotesOk) bad2.push('BUILD-NATIVE.md does not quote the built bytes');
+    if (!annotOk) bad2.push('patches/README.md annotated listing incomplete');
+    check('patch docs == built bytes: entry+cave quoted verbatim + annotated listing (2026-09-13)',
+      bad2.length === 0, bad2.length ? bad2.join('; ') : 'entry=' + entryHex + ' cave ok');
+  } catch(e) {
+    check('patch docs == built bytes: entry+cave quoted verbatim + annotated listing (2026-09-13)',
+      false, e.message.split('\n')[0]);
+  }
+
+  // B53d. PROOF OF SAFETY: decode the injected bytes with an independent
+  // decoder (Test/patch_bytes_verify.js) and require it to confirm that
+  //   * the 5 entry bytes are a jmp to the cave,
+  //   * the file prefix is byte-identical to the documented fallback,
+  //   * the runtime prefix decodes to the documented instruction sequence,
+  //   * jae/je/the tail jmp land EXACTLY on their labels,
+  //   * no byte outside the 3 documented ranges differs from the original.
+  // Run against the repo copy of the current build (always present).
+  try {
+    const { execFileSync } = require('child_process');
+    const verify = path.join(__dirname, '..', 'Test', 'patch_bytes_verify.js');
+    const engine = path.join(__dirname, '..', 'AutoControl_native', 'patched', 'AutoCtrl_2025.4.22.0.v19.exe');
+    const res = execFileSync(process.execPath, [verify, engine], { stdio: 'pipe' }).toString();
+    const ok = res.includes('PROOF HOLDS') && !res.includes('PROOF FAILED');
+    check('patch bytes proof: decode == documented asm, exact branch targets, no other byte changed (2026-09-13)',
+      ok, ok ? 'proof holds' : res.split('\n').filter(l => l.startsWith('  *')).join(' | '));
+  } catch(e) {
+    const tail = (e.stdout ? e.stdout.toString() : '').split('\n').filter(l => l.startsWith('  *')).join(' | ');
+    check('patch bytes proof: decode == documented asm, exact branch targets, no other byte changed (2026-09-13)',
+      false, tail || e.message.split('\n')[0]);
+  }
+
+  // B53e. The proof must have TEETH. Mutate the bytes and require the verifier
+  // to reject every mutation - otherwise B53d could pass vacuously (which it
+  // did once: an argument-parsing bug made it check the DEPLOYED engine while
+  // the mutated file was passed in, and only this mutation test revealed it).
+  try {
+    const os = require('os');
+    const { execFileSync } = require('child_process');
+    const verify = path.join(__dirname, '..', 'Test', 'patch_bytes_verify.js');
+    const engine = path.join(__dirname, '..', 'AutoControl_native', 'patched', 'AutoCtrl_2025.4.22.0.v19.exe');
+    const base = fs.readFileSync(engine);
+    const cases = [
+      ['jae offset', 0x7EBA7, 0x18],        // branch target would land mid-instruction
+      ['fallback value', 0x7EBA9, 0x02],    // helper-absent path returns 2, not 1
+      ['outside the ranges', 0x1000, 0x77], // a byte that the docs do not allow
+      ['entry not a jump', 0x14AF0, 0x90],  // the trampoline is gone
+    ];
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ac_mut_'));
+    const bad = [];
+    for (const [name, off, val] of cases) {
+      const m = Buffer.from(base); m[off] = val;
+      const p = path.join(tmp, name.replace(/\W+/g, '_') + '.exe');
+      fs.writeFileSync(p, m);
+      let rejected = false;
+      try { execFileSync(process.execPath, [verify, p], { stdio: 'pipe' }); }
+      catch (e) { rejected = (e.stdout ? e.stdout.toString() : '').includes('PROOF FAILED'); }
+      if (!rejected) bad.push(name);
+    }
+    fs.rmSync(tmp, { recursive: true, force: true });
+    check('patch bytes proof has teeth: 4 mutated copies all rejected (2026-09-13)', bad.length === 0,
+      bad.length ? 'NOT detected: ' + bad.join(', ') : 'all 4 mutations rejected');
+  } catch(e) {
+    check('patch bytes proof has teeth: 4 mutated copies all rejected (2026-09-13)',
+      false, e.message.split('\n')[0]);
+  }
+
+  // B53f. The RUNTIME variant of the cave (the code that actually EXECUTES while
+  // the helper runs) is a SIMULATION inside the verifier: the helper writes
+  // those bytes from its own C# copy of the layout. A drift between the two
+  // would keep the proof green while the engine executes something else, so
+  // rebuild the helper's `npre[]` FROM ITS SOURCE and require byte equality
+  // with the verifier's runtimePrefix() (the bytes B53d/B53g reason about).
+  try {
+    const ver = require(path.join(TESTDIR, 'patch_bytes_verify.js'));
+    const hsrc = fs.readFileSync(path.join(TESTDIR, 'ac_zone_helper.cs'), 'utf8');
+    const fn = hsrc.slice(hsrc.indexOf('private static void WriteZoneTable'));
+    const mOrig = hsrc.match(/ORIG_BLOCK\s*=\s*(0x[0-9a-fA-F]+|\d+)/);
+    const ORIG = mOrig ? Number(mOrig[1]) : NaN;
+    // The helper names the VirtualAllocEx page base `tab` and puts the alive
+    // flag at +0 and the table at +16 (see runtimePrefix). Substitute the page
+    // BASE (RT_ALIVE), not RT_TABLE: otherwise the simulated bytes - and the hex
+    // printed in the PASS message - are shifted by 0x10 and no longer match what
+    // the engine executes or what `patches/ghidra-disasm.txt` shows (B53g).
+    const BASE = ver.RT_ALIVE;
+    const num = (expr) => {
+      const e = String(expr).replace(/\(byte\)/g, '').replace(/ORIG_BLOCK/g, String(ORIG))
+        .replace(/\btab\b/g, String(BASE)).trim();
+      if (!/^[0-9a-fx\s()+\-*/]+$/i.test(e)) return NaN;   // only the arithmetic forms the layout uses
+      try { return Number(eval(e)); } catch (err) { return NaN; }
+    };
+    const bad4 = [];
+    if (!Number.isInteger(ORIG) || ORIG !== 0x1C) bad4.push('helper ORIG_BLOCK = ' + mOrig + ' (expected 0x1C)');
+    const npre = Buffer.alloc(Number.isInteger(ORIG) ? ORIG : 0x1C);
+    let m;
+    const reSet = /npre\[(\d+)\]\s*=\s*([^;]+);/g;
+    while ((m = reSet.exec(fn))) {
+      const v = num(m[2]);
+      if (!Number.isInteger(v)) { bad4.push('cannot evaluate npre[' + m[1] + '] = ' + m[2]); continue; }
+      npre[Number(m[1])] = v & 0xFF;
+    }
+    // the two absolute addresses: the alive flag (page +0) and the table
+    // (page +0x10) - the same page VirtualAllocEx returns
+    const reCp = /GetBytes\(\(int\)(\([^)]*\)|\w+)\)\.CopyTo\(\s*npre\s*,\s*(\d+)\s*\)/g;
+    let cp = 0;
+    while ((m = reCp.exec(fn))) {
+      const v = num(m[1]);
+      if (!Number.isInteger(v)) { bad4.push('cannot evaluate the CopyTo source ' + m[1]); continue; }
+      npre.writeInt32LE(v, Number(m[2]));
+      cp++;
+    }
+    if (cp !== 2) bad4.push('expected 2 address writes into npre (alive + table), found ' + cp);
+    // the documented page layout: alive at +0, table at +16 (BUILD-NATIVE §B.5)
+    if (ver.RT_TABLE - ver.RT_ALIVE !== 16) {
+      bad4.push('RT_TABLE is not RT_ALIVE + 16 (0x' + ver.RT_ALIVE.toString(16) + ' / 0x' +
+        ver.RT_TABLE.toString(16) + ') - the documented page layout changed');
+    }
+    const sim = ver.runtimePrefix(ver.RT_ALIVE, ver.RT_TABLE);
+    if (!npre.equals(sim)) {
+      bad4.push('helper writer != verifier simulation: helper=' + npre.toString('hex') + ' verifier=' + sim.toString('hex'));
+    }
+    check('patch proof: the helper writer == the verifier simulation, byte for byte (2026-09-13)',
+      bad4.length === 0, bad4.length ? bad4.join('; ') : npre.toString('hex'));
+  } catch(e) {
+    check('patch proof: the helper writer == the verifier simulation, byte for byte (2026-09-13)',
+      false, e.message.split('\n')[0]);
+  }
+
+  // B53g. The Ghidra listing (`patches/ghidra-disasm.txt`) is the INDEPENDENT
+  // disassembler's evidence, but it is a FROZEN artifact - nothing regenerated
+  // or parsed it, so it could rot silently after a patch change (and the docs
+  // quote it: "both tools agree on all 34 instructions"). Parse its three
+  // listings and require their BYTES to be the bytes of the current build
+  // (entry + FILE cave) and of the verifier's runtime variant, plus the
+  // documented instruction count 1 + 25 + 8 = 34.
+  try {
+    const ver = require(path.join(TESTDIR, 'patch_bytes_verify.js'));
+    const gl = fs.readFileSync(path.join(__dirname, '..', 'AutoControl_native', 'patches', 'ghidra-disasm.txt'), 'utf8');
+    const secs = [];
+    let cur = null;
+    for (const line of gl.split(/\r?\n/)) {
+      const t = line.match(/^(PATCH .*?)\(VA 0x([0-9a-f]+), (\d+) bytes\)/i);
+      if (t) { cur = { title: t[1].trim(), va: parseInt(t[2], 16), len: parseInt(t[3], 10), hex: '', lines: 0 }; secs.push(cur); continue; }
+      if (!cur) continue;
+      const h = line.match(/^([0-9a-f]{8})\s+((?:[0-9a-f]{2} )+?)\s{2,}\S/i);
+      if (h) { cur.hex += h[2].replace(/\s+/g, ''); cur.lines++; }
+    }
+    const eSec = secs.find(s => /PATCH 1/.test(s.title));
+    const fSec = secs.find(s => /PATCH 2/.test(s.title) && /FILE/.test(s.title));
+    const rSec = secs.find(s => /PATCH 2/.test(s.title) && /RUNTIME/.test(s.title));
+    const eng = fs.readFileSync(path.join(__dirname, '..', 'AutoControl_native', 'patched', 'AutoCtrl_2025.4.22.0.v19.exe'));
+    const bad5 = [];
+    if (!eSec || !fSec || !rSec) bad5.push('listings not found - section titles changed?');
+    else {
+      const fEntry = eng.slice(0x14AF0, 0x14AF0 + 5).toString('hex');
+      const fCave = eng.slice(0x7EBA3, 0x7EBA3 + 38).toString('hex');
+      const sim = ver.runtimePrefix(ver.RT_ALIVE, ver.RT_TABLE).toString('hex');
+      if (eSec.hex !== fEntry) bad5.push('entry listing ' + eSec.hex + ' != the build (' + fEntry + ')');
+      if (fSec.hex !== fCave) bad5.push('FILE cave listing != the build (' + fSec.hex + ')');
+      if (rSec.hex !== sim) bad5.push('RUNTIME listing ' + rSec.hex + ' != runtimePrefix (' + sim + ')');
+      const n = eSec.lines + fSec.lines + rSec.lines;
+      if (n !== 34) bad5.push('the listing has ' + n + ' instructions, the docs claim 34');
+    }
+    check('patch proof: the Ghidra listing == the current build, byte for byte (2026-09-13)',
+      bad5.length === 0, bad5.length ? bad5.join('; ') : 'entry + FILE + RUNTIME match, 34 instructions');
+  } catch(e) {
+    check('patch proof: the Ghidra listing == the current build, byte for byte (2026-09-13)',
+      false, e.message.split('\n')[0]);
   }
 }
 

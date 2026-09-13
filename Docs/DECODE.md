@@ -120,6 +120,31 @@
 | `_iw` | Shell command | `_iw(cmd)(cb)` → type 260 (see NATIVE_PROTOCOL 260 async-ack note) |
 | `_3t` | Read+decrypt file | `.dat` → byte-shift decrypt (`_7g`, keys `[94,14,77,49,13]`) |
 | `_4u` | Chunked file write | type 250 chunks, result 0 = OK |
+| `_7g` | `.dat` codec | **FULLY REVERSED 2026-09-13** (see ".dat blobs" below) |
+| `_Zh` | Exec constants | `["cmd.exe", "/E:ON /S /", "chrome", "hrich.autocontrol"]` deobfuscated from a reversed string; `_Zh[0]`=exe, `_Zh[1]`=cmd switches, `_Zh[2]`=global chrome, `_Zh[3]`=host name |
+
+### `.dat` blobs — the engine/launcher payload codec (2026-09-13)
+
+The extension ships its two native payloads as **obfuscated blobs**, not as
+`.exe` files:
+
+| file | size | decodes to |
+|---|---|---|
+| `mv3-build/file76.dat` | 695296 | `AutoCtrl_2025.4.22.0.exe` — sha256 `8ae9a669…` == `AutoControl_native/original/` (the UNPATCHED engine) |
+| `mv3-build/file69.dat` | 332800 | `AutoControlZero.exe` — sha256 `994e14d2…`; the same binary doubles as the installer (`Native-Component.exe`, `/noConfirm`) |
+
+`_7g(a, binary=false)` (file13.js) is a **byte-wise reversible transform**:
+reverse the array and subtract a 5-byte key plus the destination index:
+
+- decode: `exe[i] = (dat[len-1-i] - KEY[i%5] - i) mod 256`, `KEY = [94,14,77,49,13]`
+- encode: `dat[len-1-i] = (exe[i] + KEY[i%5] + i) mod 256`
+
+**Verified bit-for-bit in both directions** (2026-09-13): decoding
+`file76.dat` yields sha256 `8ae9a669…` (= the pristine engine) and encoding
+that engine reproduces `file76.dat` byte-for-byte. Consequence: the bundled
+payload can be replaced by ANY build of the same size — e.g. the patched v19
+engine — and the extension's own `unpackBundledEngine()` (type 250 write)
+deploys it on a fresh install/repair with no manual copying.
 | `_Sp` | Import from file | `storage.local.clear()` + set — merges old `customEntities` missing from the file (round-17 fix: scripts survive import) |
 | `_qj` | Write settings file | `settings.dat` via type 250 |
 
@@ -414,6 +439,43 @@
 | 900/901 | `_Xk`/`_io` | → | (—) |
 | 910 | `_8d` | → | (—) |
 | 930–943 | — | → | (—) |
+
+## Mouse-over regions (zone ids) + MSAA signatures (2026-09-12)
+
+The `mouseOver` precond is `{type:14, value:<region>}`; the region ids are
+decoded from file10.js and listed in the settings UI (`_Ef` window, `_Si`
+page, `_Ce` title, `_9t` tab, `_Go` close, `_xw` new-tab, `_2` speaker,
+`_uu` toolbar, `_5e` omnibox, `_nj` menu button, `_Aa` bookmark, `_9r`/`_ju`/
+`_gk`/`_et`/`_Pg`/`_Nu`/`_yr`/`_Te`/`_Ju` menu items). The ENGINE's own
+classifier (`FUN_004156f0(point, zone, hwnd)`, decompiled) confirms the ids
+and the intended rules: `zone 3` = geometry (page rect), `zone 21` = hovered
+role `0x2a` (42 EDIT), `zone 12` = role `0x25` (37 PAGETAB), `zone 15` = role
+`0x2b` (43 PUSHBUTTON) whose parent is `0x25`, `zone 16` = `FUN_004154f0`,
+`zone 17` = the audio button, `zone 30` = a button hugging the window's right
+edge, `zone 33` = a button positioned inside the omnibox, `zones 4/10/20` =
+layout-band gates (`FUN_00414760(..., 4|10|20)`).
+
+Chrome 150 MSAA (Accessibility) roles observed live — the substrate the
+external zone helper classifies on:
+
+| role | meaning in Chrome 150 | example |
+|---|---|---|
+| 15 | DOCUMENT | the web page |
+| 16 | PANE | window frame, tab-strip children, wrappers |
+| 20 | GROUPING | the omnibox container (`cc=28`), "Infobar Container" |
+| 22 | TOOLBAR | the toolbar band (Back/Forward/Reload, omnibox, icons) |
+| 37 | PAGETAB | a browser tab |
+| 41 | CELL/text | the tab TITLE text (child of a tab) |
+| 42 | EDIT | the address field |
+| 43 | PUSHBUTTON | Close / Mute tab / New Tab / Back / Bookmark this tab / You |
+| 57 | BUTTONMENU | Tab search / Extensions / site-info lock / New Chrome pill |
+| 60 | PAGETABLIST | the tab strip container (the "+" is its child) |
+
+⚠ Chrome reports element rects in PHYSICAL pixels; `GetWindowRect` is
+DPI-virtualized for non-DPI-aware processes (150% display: real ~2094 px vs
+reported 1396) — call `SetProcessDPIAware()` in any classifier/scanner.
+The zone helper protocol (`com.autocontrol.zonehelper`) and the SW gate are
+in `Docs/TODO-mouseover-zones.md` §1/§2d.
 
 ## Key Files
 | File | Purpose |

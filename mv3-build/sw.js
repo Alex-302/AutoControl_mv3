@@ -1614,6 +1614,17 @@
     // CRITICAL: Record _Sk (daily offset) at handshake time — same value native uses.
     // Native encodes trigger IDs as triggerIndex + _Sk, so we must capture _Sk here.
     handshakeSk = Date.now() / 864E5 | 0;
+    // AC-MV3 FIX (2026-09-04): keep the BUNDLE's _Sk in sync with our
+    // handshakeSk. mv3_native_shim.js sets `_Sk = Date.now()/864E5|0` on
+    // EVERY nativeConfigReady (incl. force config refresh after a settings
+    // save) — after midnight that drifts from the handshake value the
+    // engine actually encodes with → z[750] decodes every 750 id off by one
+    // day → triggerId wrong → actions silently never execute while the SW
+    // gate logs "executing" (user 2026-09-04: all wheel actions died after
+    // editing an action). The shim's _Sk is a bundle global (accessible as a
+    // free variable here) — overwrite it with the authoritative handshakeSk
+    // (and again right before each 750 dispatch, see __acDispatchTrigger750).
+    try { _Sk = handshakeSk; } catch(e) {}
     console.log("[AC-MV3] _Sk (daily offset) captured at handshake:", handshakeSk);
 
     // AC-CAPTURE heal: a fresh engine (escalation reconnect) starts with
@@ -1839,7 +1850,7 @@
                   return;
                 }
                 console.error("[AC-MV3] Engine still missing after unpack — giving up. Check Task Manager for orphaned AutoCtrl_*.exe / AutoControlZero.exe processes (duplicates crash the fresh engine).");
-                console.error("[AC-MV3] Manual fallback: copy AutoControl_native\\AutoCtrl_2025.4.22.0.exe into %UserProfile%\\AppData\\Local\\AutoControl\\ and reload the extension (README S2.1).");
+                console.error("[AC-MV3] Manual fallback: copy AutoControl_native\\patched\\AutoCtrl_2025.4.22.0.v19.exe over %UserProfile%\\AppData\\Local\\AutoControl\\AutoCtrl_2025.4.22.0.exe and reload the extension (README S2.1).");
                 if (port) { try { port.disconnect(); } catch(e) {} port = null; }
                 connected = false;
               });
@@ -1958,13 +1969,14 @@
     // ("Reinstall native component" twice, second = Repair) deploys
     // AutoControlZero.exe + manifest + the HKCU NativeMessagingHosts registry
     // key (a plain folder copy alone does NOT register the host). The engine
-    // AutoCtrl_2025.4.22.0.exe is NOT deployed by the installer - copy it
-    // from AutoControl_native by hand, then reload the extension.
+    // AutoCtrl_2025.4.22.0.exe is NOT deployed by the installer - the extension
+    // unpacks the UNPATCHED distro engine from file76.dat, so copy the patched
+    // build (AutoControl_native\patched\) over it by hand, then reload.
     console.warn("[AC-MV3] Native connection failed (" + reason + "). " +
       "Install steps: in the extension choose 'Reinstall native component' twice " +
       "(second time 'Repair installation'), then copy AutoControl_native\\" +
-      "AutoCtrl_2025.4.22.0.exe into %UserProfile%\\AppData\\Local\\AutoControl\\ " +
-      "and reload the extension (see README.md S2).");
+      "patched\\AutoCtrl_2025.4.22.0.v19.exe over %UserProfile%\\AppData\\Local\\AutoControl\\" +
+      "AutoCtrl_2025.4.22.0.exe and reload the extension (see README.md S2 / S4.4).");
     scheduleRetry();
   }
 
@@ -2137,10 +2149,32 @@
       if (nativeMsgBuffer.length > MAX_BUFFER_SIZE) nativeMsgBuffer.shift();
     }
 
+    // AC-MV3 DIAG (2026-09-01): the patched engine (v3/v4) sends type 792
+    // with the MSAA ROLE of the object under the cursor ({type:792,
+    // content:<role>}) from FUN_0040b610. Expose it as window.__acZone for
+    // zone-testing without clicks (see Test/zone-tests/README.md §8). The
+    // native gates the 792 send on a toggle byte in its .acp section (VA
+    // 0x4b5000, default OFF; build with --diag-on) — the get_accName tree
+    // fix itself is NOT gated. A vanilla engine never sends 792.
+    if (type === 792) {
+      window.__acZone = data;
+      console.log(`[AC-MV3-SW] ← 792 zone role=${data}`);
+    }
+
     // SW-BRAIN: dispatch to the in-SW core handlers (z[750] execution etc.)
-    __acDispatch({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
-    // Also forward to extension pages for UI-only updates
-    broadcast({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
+    // ZONE GATE (2026-09-03): for 750 the dispatch may be deferred until the
+    // external zone helper confirms the cursor zone — the abandoned engine
+    // cannot classify zone 12 (tab strip) itself (hover cache never
+    // refreshes over the tabs; fresh MSAA from the LL-hook deadlocks — RE
+    // doc §12). See __acDispatchTrigger750 below.
+    if (type === 750) {
+      broadcast({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
+      __acDispatchTrigger750(data, _ts);
+    } else {
+      __acDispatch({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
+      // Also forward to extension pages for UI-only updates
+      broadcast({ type: "nativeMsg", nativeType: type, _live: true, data, _ts: Date.now() });
+    }
 
     // Log type 750 (trigger event) prominently — page handles execution
     if (type === 750) {
@@ -3518,6 +3552,180 @@
   });
 
   connect();
+
+  // ---- AC-MV3 ZONE GATE (2026-09-03, multi-zone 2026-09-12) ----
+  // The abandoned engine cannot classify zones on Chrome 148+: its hover
+  // cache never refreshes over the tabs AND a fresh MSAA call from the
+  // LL-hook context deadlocks (RE doc §12). Workaround: the external helper
+  // `ac_zone_helper` (native host, no hooks) answers "what zone is under the
+  // cursor?" from a normal process context. Triggers with mouseOver preconds
+  // are dispatched ONLY after the helper confirms the zone.
+  // The helper answers a SET of zones ({zones:[...]}) because several zones
+  // can match one point (the omnibox is inside the toolbar band, the page is
+  // inside the browser window) — the engine evaluated every trigger's region
+  // independently. The gate fires the trigger when the sets INTERSECT.
+  // Supported zones: 1 window, 3 page, 4 title area, 12 tab, 15 close,
+  // 16 new-tab "+", 17 speaker, 20 toolbar, 21 omnibox, 30 menu button,
+  // 33 bookmark. NOT implemented (no MSAA signature yet): the 40-51 menu
+  // items — see Docs/TODO-mouseover-zones.md.
+  const ZONE_HOST = 'com.autocontrol.zonehelper';
+  // Regions the helper can verify via MSAA. Menu-item regions (40-51) are
+  // deliberately absent: the native menu has no MSAA signature, the engine
+  // classifies those itself (engine zone ids 60-71 = UI 40-51 + 20).
+  const __AC_ZONE_KNOWN = [1, 3, 4, 12, 15, 16, 17, 20, 21, 30, 33];
+  // Zone answers are shared for this long (one input burst — see __acZoneAsk).
+  // Long enough to cover the engine's multi-trigger 750 burst, short enough
+  // that two deliberate wheel notches get fresh answers.
+  const __AC_ZONE_CACHE_MS = 120;
+  let __acZoneCacheZones = null;
+  let __acZoneCacheAt = 0;
+  let __acZoneCachePend = null;
+  let __acZoneMap = null;              // {trigId: [regions]} from trigActList
+  let __acZoneMapBuilt = false;
+  let __acZonePort = null;             // warm connectNative port
+  let __acZonePend = {};               // {seq: resolver}
+  let __acZoneSeq = 0;
+
+  function __acBuildZoneMap() {
+    __acZoneMapBuilt = true;
+    try {
+      chrome.storage.local.get('trigActList', r => {
+        const m = {};
+        for (const [id, t] of (r.trigActList || [])) {
+          const zones = [];
+          for (const tr of (t.triggers || [])) {
+            const mo = tr && tr.preconds && tr.preconds.mouseOver;
+            if (Array.isArray(mo)) for (const x of mo) {
+              if (x && x.region != null && !zones.includes(x.region)) zones.push(x.region);
+            }
+          }
+          if (zones.length) m[String(id)] = zones;
+        }
+        __acZoneMap = m;
+        console.warn('[AC-MV3-ZONE] zone map:', JSON.stringify(m));
+      });
+    } catch (e) {
+      console.warn('[AC-MV3-ZONE] map build failed:', e.message);
+    }
+  }
+  // Rebuild the zone map whenever the config changes (live, like the
+  // config chain) — a stale map made zone-gated triggers silently dead
+  // after the user edited a trigger (2026-09-03).
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.trigActList) {
+        __acZoneMapBuilt = false;
+        __acBuildZoneMap();
+      }
+    });
+  } catch (e) {} // listener registration only — safe to ignore
+
+  function __acZoneAsk(timeoutMs) {
+    // BURST CACHE (2026-09-12): one physical input event makes the engine emit
+    // a 750 for EVERY trigger that matches its key — those arrive within a few
+    // ms, and each one used to re-ask the helper. Between two of those queries
+    // the UI can CHANGE under the cursor (Chrome scrolls the tab strip on
+    // wheel, a tab opens, ...), so the burst saw DIFFERENT zones: the zone-15
+    // trigger's 750 arrived just after the strip scrolled and got zone 12 →
+    // skipped ("wheel over the tab's close button does nothing"). Share ONE
+    // answer per burst instead: a short TTL cache + a shared in-flight promise.
+    const now = Date.now();
+    if (__acZoneCacheZones && now - __acZoneCacheAt < __AC_ZONE_CACHE_MS) {
+      return Promise.resolve(__acZoneCacheZones);
+    }
+    if (__acZoneCachePend) return __acZoneCachePend;   // reuse the in-flight query
+    __acZoneCachePend = new Promise(res => {
+      const id = ++__acZoneSeq;
+      __acZonePend[id] = res;
+      const t = setTimeout(() => { delete __acZonePend[id]; res([-2]); }, timeoutMs || 250);
+      try {
+        if (!__acZonePort) {
+          __acZonePort = chrome.runtime.connectNative(ZONE_HOST);
+          __acZonePort.onMessage.addListener(m => {
+            if (m && m.__id != null && __acZonePend[m.__id]) {
+              const r = __acZonePend[m.__id];
+              delete __acZonePend[m.__id];
+              // AC-MV3 (2026-09-12): the helper answers the full matching SET
+              // ({zones:[...]}) plus the most specific zone ({zone:N}) for
+              // back-compat. Several zones can be true at the same point (the
+              // omnibox is inside the toolbar band, the page is inside the
+              // browser window) — the original engine evaluated each trigger's
+              // region independently, so the gate must INTERSECT sets.
+              r(Array.isArray(m.zones) && m.zones.length ? m.zones : [m.zone]);
+            }
+          });
+          __acZonePort.onDisconnect.addListener(() => {
+            __acZonePort = null;
+            const pend = __acZonePend;
+            __acZonePend = {};
+            for (const k in pend) pend[k]([-1]);
+          });
+        }
+        __acZonePort.postMessage({ __id: id });
+      } catch (e) {
+        clearTimeout(t);
+        delete __acZonePend[id];
+        res([-1]);
+      }
+    }).then(zs => {
+      if (Array.isArray(zs) && zs.length && zs[0] >= 0) {   // cache real answers only
+        __acZoneCacheZones = zs;
+        __acZoneCacheAt = Date.now();
+      }
+      __acZoneCachePend = null;
+      return zs;
+    });
+    return __acZoneCachePend;
+  }
+
+  function __acDispatchTrigger750(data, ts) {
+    // AC-MV3 FIX (2026-09-04): re-sync the bundle _Sk right before each
+    // dispatch — mv3_native_shim.js re-stamps _Sk on every nativeConfigReady
+    // (force config refresh) and can drift a day past the handshake value
+    // the engine encodes with; z[750] then decodes triggerId wrong and the
+    // action never runs even though this gate logs "executing". The engine's
+    // authoritative offset is handshakeSk (captured at handshake).
+    try { _Sk = handshakeSk; } catch(e) {}
+    const decoded = data && data.id ? (16777215 & (data.id - handshakeSk)) : '?';
+    const zid = String(decoded);
+    const zones = __acZoneMap && __acZoneMap[zid];
+    const doDispatch = () => __acDispatch({ type: "nativeMsg", nativeType: 750, _live: true, data, _ts: ts });
+    if (!zones) { doDispatch(); return; }          // not zone-gated → as before
+    // Only the regions the helper can actually verify are checked here. The
+    // AutoControl MENU-ITEM regions (UI 40-51 → engine 60-71) are classified
+    // by the ENGINE itself (it knows which menu item is hovered and of what
+    // kind) — the helper has no signature for the native menu, so a trigger
+    // whose regions are ALL menu-item regions must pass with the engine's
+    // verdict. Otherwise the gate would block every menu-item trigger
+    // ("wheel over a menu item" never fired — regression found 2026-09-12).
+    const check = zones.filter(z => __AC_ZONE_KNOWN.indexOf(z) !== -1);
+    if (!check.length) { doDispatch(); return; }   // engine-classified regions only
+    __acZoneAsk(250).then(zoneSet => {
+      // Helper answers an ARRAY of all zones under the cursor; the trigger
+      // fires when ANY of its verifiable regions is in that set.
+      const zs = Array.isArray(zoneSet) ? zoneSet : [zoneSet];
+      const hit = check.some(z => zs.indexOf(z) !== -1);
+      if (hit) {
+        console.warn(`[AC-MV3-ZONE] trig ${zid}: zones=[${zs.join(',')}] ∩ ${JSON.stringify(check)} → executing`);
+        doDispatch();
+      } else {
+        console.warn(`[AC-MV3-ZONE] trig ${zid}: zones=[${zs.join(',')}] ∉ ${JSON.stringify(check)} → skipped`);
+      }
+    });
+  }
+
+  __acBuildZoneMap();
+
+  // AC-MV3 ZONE KEEPALIVE (2026-09-12, v19 engine): the patched engine asks
+  // the zone helper for the regions under the cursor (a table the helper keeps
+  // in the engine's memory). Two things depend on the helper RUNNING:
+  //   1. a trigger can only fire when the table says "this region matches", so
+  //      without the helper nothing zone-gated ever fires (and the SW would
+  //      never ask for a zone — the helper is started lazily by a zone request);
+  //   2. the table must stay fresh while the cursor moves.
+  // A periodic request solves both: it starts the helper after an SW restart,
+  // keeps its background heartbeat alive and re-spawns it if it dies.
+  setInterval(() => { try { __acZoneAsk(300); } catch (e) {} }, 2500);
 
   // Self-waker: calling an extension API every 20s resets the SW idle timer
   // (Chrome 110+: "calling an extension API resets this timer"). Together with

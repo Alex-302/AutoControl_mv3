@@ -767,3 +767,100 @@ ALL triggers compiled as "menu 7 IS open" → openMenu (menu-closed trigger)
 never fired, Tab/Ctrl passed through to Chrome's own Ctrl+Tab. Fixed by
 restoring file67's `_Xt` semantics (flatten args one level, strict `===`)
 plus the unboxing. See AGENTS.md "Object.prototype .in" gotcha.
+
+## 21. Hover-region (mouseOver) classification — MSAA + Chrome 148+ tree (2026-08-31)
+
+**Precond wire format:** `{type:14, value:region}` (region constants:
+`_Ef=1` Browser window, `_Si=3` Web page, `_Ce=4` Title area, `_9t=5` Tab,
+…; see file10.js). The native evaluates it internally on the 750 path.
+
+**How the native classifies regions (Ghidra, 2026-08-31):**
+- `AccessibleObjectFromPoint` (OLEACC, wrapper FUN_0040b610) → walks the
+  MSAA tree by role (`get_accRole` via vtable+0x34; helpers FUN_0040ba70 /
+  FUN_0040bcc0) → maps role to a region id.
+- At browser-track start it sends the MSAA **honey pot**:
+  `SendMessageTimeoutA(WM_GETOBJECT=0x3d, wParam=0, lParam=1)` to the
+  per-tab legacy window `Chrome_RenderWidgetHostHWND` (FUN_0040daf0, once
+  per session from FUN_0040db30).
+- Browser brand detection (FUN_0040d060: msedge/brave/slimjet/Arc) swaps
+  global window-class string pointers
+  (`PTR_s_Chrome_RenderWidgetHostHWND_0049d9f0`,
+  `PTR_s_Chrome_WidgetWin__0049d9f8`); class checks in FUN_004096c0
+  (`Chrome_WidgetWin_` prefix, not `Chrome_WidgetWin_0`).
+- The hovered element is CACHED (FUN_00415240) — repeated queries at the
+  same position reuse it; live tests need ≥2s between cursor move and click.
+
+**Why Chrome 148+ breaks it (Chromium source):** the MSAA tree for a page
+is built only when a client queries the honey pot **AND** `accName`
+(anti-abuse, crbug 416429182; `AXPlatform::OnScreenReaderHoneyPotQueried`
++ `OnMinimalPropertiesUsed(true)`). The engine queries roles only → the
+tree stays OFF → oleacc serves a generic PANE at every point → the engine
+cannot classify → **fail-open (all regions match)**. On Edge the tree is
+built eagerly → MV2-on-Edge works. `--force-renderer-accessibility` turns
+the tree on (verified).
+
+**Verified live region map (Chrome 150 SxS, tree ON, 2s pauses):**
+
+| Region | Page click | Tab-strip click | Status |
+|---|---|---|---|
+| 1 Browser window | fires | fires | works |
+| 3 Web page | fires | blocked | **works correctly** |
+| 4 Title area | fires | fires | broken — behaves like region 1 (matches the page; issue-#1 complaint) |
+| 5 Tab | blocked | blocked | broken (fail-closed) |
+
+**Implemented native patch (v4, `Test/patch_accname.js`):** calls
+`get_accName` (helper FUN_0040bdf0) after `AccessibleObjectFromPoint` →
+the tree activates for the whole browser → regions 1/3 work on Chrome
+148+ (region 4 still needs a classifier patch or the extension-side
+cursor filter). Full report:
+`Docs/archive/NATIVE-REVERSING-2026-08-31.md`.
+
+**Type 792 (patched engine only, zone diagnostics):** the v3/v4 stub also
+reports the MSAA role under the cursor (`{type:792, content:<role>}`) so
+the zone can be probed WITHOUT clicks (the SW exposes it as
+`window.__acZone`). The send is GATED by a 1-byte toggle in the `.acp`
+section — VA `0x4b5000`, file offset `0xaac00` (printed on each patch
+build): `0` = silent (default), `1` = emit (`node Test/patch_accname.js
+--diag-on`). The `get_accName` call is NOT gated — the tree fix always
+runs. A vanilla (unpatched) engine never sends 792; the SW handler only
+logs.
+
+## 22. Zone helper host (`com.autocontrol.zonehelper`) — the extension's own helper (2026-09-12)
+
+A SECOND native host, owned by the extension (not by the AutoControl
+engine): `ac_zone_helper.exe` classifies the mouse-over region on request.
+It is needed because the engine's own classifier is dead on Chrome 148+
+(§21 + RE doc §12 — its hover cache never refreshes over the tab strip and
+a fresh MSAA query from its LL-hook context deadlocks).
+
+- Manifest: `AutoControl_native/com.autocontrol.zonehelper.json`
+  (`path` = `%LOCALAPPDATA%\AutoControl\ac_zone_helper.exe`,
+  `allowed_origins` pinned to the extension id), registered in
+  `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.autocontrol.zonehelper`.
+- Source/build: `Test/ac_zone_helper.cs` (C#, .NET Framework csc,
+  `/r:Accessibility.dll`); it calls `SetProcessDPIAware()` in `Main`
+  (element rects are physical pixels — see DeclareDpi in §21's scanners).
+- Transport: standard Chrome native messaging (4-byte LE length + UTF-8 JSON).
+
+Request/response:
+
+```
+→ {"__id": 7}
+← {"__id": 7, "zone": 12, "zones": [12, 1]}
+```
+
+`zones` = EVERY region matching the cursor (2026-09-12; several can match
+one point: the omnibox is inside the toolbar band, the page is inside the
+window — the engine evaluated each trigger region independently).
+`zone` = the most specific one (kept for older SW builds and logging).
+Sentinels: `-1` = cursor/AccessibleObjectFromPoint error, `-2` = SW-side
+timeout (the SW uses 250 ms).
+
+Supported regions and their MSAA signatures live in
+`Docs/TODO-mouseover-zones.md` §1/§2 (11 of 20; the 9 menu-item regions are
+still open). The SW gate (`sw.js __acDispatchTrigger750`) asks this host
+before executing any `mouseOver`-gated trigger and fires it when the
+trigger's regions intersect the returned set. Chrome spawns ONE helper
+process per `connectNative` port (per browser), so several browsers can run
+their own helper at the same time; Chrome kills the process when the port
+disconnects.
