@@ -26,7 +26,8 @@
 | `_Ot` | **Telemetry sender** | **HTTP POST to `https://www.autocontrol.app/appEvent` (NOT native)** — the single analytics endpoint (events: install/update/error/NH-error/userReload/diagnostics). MV3: gated by `__acTel` (from `advOpts.telemetry`, **off by default** — nothing is sent until the user enables it in Options → Advanced Options); the callback `c` is still invoked when disabled (some call sites wait for it). Logs `[AC-TEL] send|skipped event=<name>` (follows the AC_LOG_* gate). Payload built with `_yp` (FormData) → `_1p(_Zo+"appEvent","json","POST",...)`; fields include extName/extVer, instID `_7y`, timeOffset (`Date.now()-_Ct`), OS/browser, page URI, ctxData (natHostVer/scaleFctr), evtData, domain. |
 | `_yp` | FormData builder | `a => { let b = new FormData; for (let [c,d] of a) b.append(c,d); return b }` — used by `_Ot` |
 | `_mo` | (domain) | `"www.autocontrol.app"` (file10.js) — site-bridge gate host |
-| `_Zo` | (endpoint base) | `"https://" + _mo + "/"` — `_Zo + "appEvent"` = the telemetry URL; `_4a` help links (file78) |
+| `_Zo` | (endpoint base — DEAD domain) | `"https://" + _mo + "/"` — kept ONLY for the two endpoints that have no mirror page: telemetry `_Zo + "appEvent"` (default OFF) and the animated-demo base in `file36` (`_Zo` as the base URL for `/demos/<name>/` + `/file9.js`). **Do NOT point user-visible links here** — they go through `_Zl` (AGENTS rule 7). |
+| `_Zl` | (mirror base — the working site copy) | `` `https://${_9n}/AutoControl_mv3/https@${_mo}/` `` (file10.js, added 2026-09-13) = `https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/`. Every page carries `.htm`; `scrtDoc` is the DIRECTORY `_Zl+"scripting/"` and the sub-page call sites append `<name>.htm` themselves (`file28/file33/file65/file75` — `file75` builds the `ACtl.*` apiRef links). `_4a` is extended in `file78_mv3.js` AND `file78.js` (both loaded by `main.html` → the LATER one wins — keep the two in sync); its keys feed the tooltips in `file28/file33/file44/file65/file70/file75/file80` + `file30`. `chromium-bugs.htm` was restored into the mirror from the 2023-09-03 Wayback snapshot (raw `id_` download, archive toolbar stripped, internal links re-pointed); the ONLY remaining 404 is `files/Native-Component.exe` (never archived — the port installs the native component from its own bundle). |
 | `_9n` | (mirror host) | `"alex-302.github.io"` (file10.js) — GitHub Pages mirror of the site; accepted by the webSettgs gate since 2026-08-29 |
 | `_Zr(tabId)` | Site-bridge injection (file62_mv3) | On `tabs.onUpdated` "complete" (`_Fd`=6) for a tab whose hostname is `_mo`/`_9n`: `chrome.scripting.executeScript({target:{tabId}, world:"ISOLATED", injectImmediately:true, func, args:["2025.4.22"]})` — MV2 parity (tabs.executeScript = isolated world; the MAIN-world `__acInjectCode` has no `chrome.runtime`). ⚠ `ScriptInjection` has NO `runAt` (only tabs.executeScript/contentScripts.register do) — using it throws `Unexpected property: 'runAt'` SYNCHRONOUSLY (the .catch never fires); the equivalent is `injectImmediately:true` (Chrome 102+). Injects: `window._ACtlExt[ver]`, a `webSettgs` listener sending `{[btn.value]: decodeURI(closest("a").href)}` to the SW, and an immediate `redirSttgs` probe. ⚠ Hardened 2026-08-29: `(document.head||document.documentElement)` (head can be NULL at document_start) + try/catch (listener registers FIRST). sw.js `__acReinjectSiteBridge()` also calls `_Zr` for already-open site tabs at SW start (MV2's `_zg` re-injection; a tab opened before SW start otherwise never gets the bridge — onUpdated "complete" won't re-fire). ⚠ Hardened 2026-08-30: `c()` guards `chrome.runtime.sendMessage` + the `webSettgs` listener wraps the call in try/catch — after an extension reload the OLD injected listener (dead context) throws `Extension context invalidated` / `chrome.runtime undefined` on every Import/View click (noise; the NEW injection still handles the event). The stale listener can only be purged by reloading the site tab |
 | `_ja(url)` | Site-import (SW re-implementation 2026-08-29) | MV2: file78 `_ja` = fetch the `.acs` (`_1p`+`_mg`) → `_kp(b,"add",!0)` → `_uw` → `_lj` (UI: toasts, permission prompts). MV3: file78 is NOT bundled → `window._ja` undefined → file48 `m()` `imprtSttgs` died in the SW. sw.js re-implements `window._ja` with the UI-free pipeline: fetch → `JSON.parse` → `_Qj({}.add(_2d,data))` (`_2d` = default shape `{trigActList:[],customEntities:{},toolbarBtns:{},sections:[]}`) → `_9i(_2d,cb)` (load existing) → `_K(l,merged,true,true)` (dedupe/renumber) → `_4p(l,merged,false)` (merge-add) → `_bd(out)` (save) → `_ku()` (config rebuild → native type 60). No toast (page-side `_lj` not ported). ⚠ file48 `m()` routes `{imprtSttgs}` via `(window._ja||l)(url)` — the MV2 `l` (`_Es` debounce → `_0j()` → settings-page window via `_0s()`/`chrome.extension.getViews({tabId})[0]`) CANNOT work in the MV3 SW (getViews is empty) — direct `window._ja` call required |
@@ -120,6 +121,31 @@
 | `_iw` | Shell command | `_iw(cmd)(cb)` → type 260 (see NATIVE_PROTOCOL 260 async-ack note) |
 | `_3t` | Read+decrypt file | `.dat` → byte-shift decrypt (`_7g`, keys `[94,14,77,49,13]`) |
 | `_4u` | Chunked file write | type 250 chunks, result 0 = OK |
+| `_7g` | `.dat` codec | **FULLY REVERSED 2026-09-13** (see ".dat blobs" below) |
+| `_Zh` | Exec constants | `["cmd.exe", "/E:ON /S /", "chrome", "hrich.autocontrol"]` deobfuscated from a reversed string; `_Zh[0]`=exe, `_Zh[1]`=cmd switches, `_Zh[2]`=global chrome, `_Zh[3]`=host name |
+
+### `.dat` blobs — the engine/launcher payload codec (2026-09-13)
+
+The extension ships its two native payloads as **obfuscated blobs**, not as
+`.exe` files:
+
+| file | size | decodes to |
+|---|---|---|
+| `mv3-build/file76.dat` | 695296 | `AutoCtrl_2025.4.22.0.exe` — sha256 `8ae9a669…` == `AutoControl_native/original/` (the UNPATCHED engine) |
+| `mv3-build/file69.dat` | 332800 | `AutoControlZero.exe` — sha256 `994e14d2…`; the same binary doubles as the installer (`Native-Component.exe`, `/noConfirm`) |
+
+`_7g(a, binary=false)` (file13.js) is a **byte-wise reversible transform**:
+reverse the array and subtract a 5-byte key plus the destination index:
+
+- decode: `exe[i] = (dat[len-1-i] - KEY[i%5] - i) mod 256`, `KEY = [94,14,77,49,13]`
+- encode: `dat[len-1-i] = (exe[i] + KEY[i%5] + i) mod 256`
+
+**Verified bit-for-bit in both directions** (2026-09-13): decoding
+`file76.dat` yields sha256 `8ae9a669…` (= the pristine engine) and encoding
+that engine reproduces `file76.dat` byte-for-byte. Consequence: the bundled
+payload can be replaced by ANY build of the same size — e.g. the patched v19
+engine — and the extension's own `unpackBundledEngine()` (type 250 write)
+deploys it on a fresh install/repair with no manual copying.
 | `_Sp` | Import from file | `storage.local.clear()` + set — merges old `customEntities` missing from the file (round-17 fix: scripts survive import) |
 | `_qj` | Write settings file | `settings.dat` via type 250 |
 
@@ -414,6 +440,43 @@
 | 900/901 | `_Xk`/`_io` | → | (—) |
 | 910 | `_8d` | → | (—) |
 | 930–943 | — | → | (—) |
+
+## Mouse-over regions (zone ids) + MSAA signatures (2026-09-12)
+
+The `mouseOver` precond is `{type:14, value:<region>}`; the region ids are
+decoded from file10.js and listed in the settings UI (`_Ef` window, `_Si`
+page, `_Ce` title, `_9t` tab, `_Go` close, `_xw` new-tab, `_2` speaker,
+`_uu` toolbar, `_5e` omnibox, `_nj` menu button, `_Aa` bookmark, `_9r`/`_ju`/
+`_gk`/`_et`/`_Pg`/`_Nu`/`_yr`/`_Te`/`_Ju` menu items). The ENGINE's own
+classifier (`FUN_004156f0(point, zone, hwnd)`, decompiled) confirms the ids
+and the intended rules: `zone 3` = geometry (page rect), `zone 21` = hovered
+role `0x2a` (42 EDIT), `zone 12` = role `0x25` (37 PAGETAB), `zone 15` = role
+`0x2b` (43 PUSHBUTTON) whose parent is `0x25`, `zone 16` = `FUN_004154f0`,
+`zone 17` = the audio button, `zone 30` = a button hugging the window's right
+edge, `zone 33` = a button positioned inside the omnibox, `zones 4/10/20` =
+layout-band gates (`FUN_00414760(..., 4|10|20)`).
+
+Chrome 150 MSAA (Accessibility) roles observed live — the substrate the
+external zone helper classifies on:
+
+| role | meaning in Chrome 150 | example |
+|---|---|---|
+| 15 | DOCUMENT | the web page |
+| 16 | PANE | window frame, tab-strip children, wrappers |
+| 20 | GROUPING | the omnibox container (`cc=28`), "Infobar Container" |
+| 22 | TOOLBAR | the toolbar band (Back/Forward/Reload, omnibox, icons) |
+| 37 | PAGETAB | a browser tab |
+| 41 | CELL/text | the tab TITLE text (child of a tab) |
+| 42 | EDIT | the address field |
+| 43 | PUSHBUTTON | Close / Mute tab / New Tab / Back / Bookmark this tab / You |
+| 57 | BUTTONMENU | Tab search / Extensions / site-info lock / New Chrome pill |
+| 60 | PAGETABLIST | the tab strip container (the "+" is its child) |
+
+⚠ Chrome reports element rects in PHYSICAL pixels; `GetWindowRect` is
+DPI-virtualized for non-DPI-aware processes (150% display: real ~2094 px vs
+reported 1396) — call `SetProcessDPIAware()` in any classifier/scanner.
+The zone helper protocol (`com.autocontrol.zonehelper`) and the SW gate are
+in `Docs/TODO-mouseover-zones.md` §1/§2d.
 
 ## Key Files
 | File | Purpose |

@@ -8,7 +8,34 @@
 > - Feature/port status → `Docs/FEATURES-MV3.md` (§7 gaps, §8 impossible in MV3)
 > - Coverage overview (plain language) → `Docs/MV2-MV3-coverage.md`
 > - Protocol reference → `Docs/NATIVE_PROTOCOL.md`; symbol map → `Docs/DECODE.md`
+> - **Native build recipe (bit-for-bit) → `Docs/BUILD-NATIVE.md`**
 > - Historical docs (closed bug reports, session handoffs) → `Docs/archive/`
+
+## Scope rule — this repository is the ONLY working copy
+
+**All work happens on the files of THIS repository.** The authoritative
+source is this repo's `mv3-build/`; every edit, build, test and live check
+runs against these files.
+
+- **NEVER create, modify, copy or delete anything OUTSIDE this repository.**
+  That includes "the folder the browser really loads" when it happens to be a
+  different checkout: writing even one file there modifies somebody else's
+  working copy.
+- **Any copy/export outside the repository requires the user's explicit
+  confirmation — every single time.** State which file, from where, to where
+  and why, then wait for the answer. No exceptions for "just one file" or
+  "only to verify".
+- If a test browser serves the extension from a folder that is NOT this repo's
+  `mv3-build/`, do NOT sync it silently: report the fact and ask. The preferred
+  fix is to load the extension from this repo
+  (`chrome://extensions` → Load unpacked → `mv3-build/`).
+- Use **repo-relative paths** in commands, docs and notes (`mv3-build\sw.js`,
+  `Test\mh_test.js`, `AutoControl_native\patched\...`). Absolute paths are
+  machine-specific and must not appear in this file; for machine folders use
+  environment variables (`$env:LOCALAPPDATA\...`).
+- Read-only inspection of an outside folder (listing, hashes, `git status`,
+  `git log` of another checkout) is fine — it is the WRITE side that needs
+  permission.
 
 ## Language rule (code)
 
@@ -20,7 +47,10 @@ This includes comments, log strings, and error messages in `sw.js`,
 
 - **`ext-mv2/`** = the ORIGINAL MV2 extension (upstream baseline,
   `manifest_version: 2`, background page `file63.html`). **DO NOT EDIT** — it
-  is the reference for the port.
+  is the reference for the port. Contains the original Chrome Web Store
+  package `AutoControl-Keyboard-shortcuts-Mouse-gestures-Chrome.crx`
+  (v2025.4.22) and its extracted tree in `unpacked/` (incl. the Web Store
+  `_metadata/` signature files).
 - **Repo root** = `AGENTS.md`, `README.md`, `CHANGELOG.md` + the folders
   below; all other docs live in `Docs/`, test artifacts in `Test/`.
 - **`Docs/`** = `FEATURES-MV3.md` (status & open items §7),
@@ -28,13 +58,48 @@ This includes comments, log strings, and error messages in `sw.js`,
   `SCRIPTING-API-SUMMARY.md`, `SUMMARY-SCRIPTING-API.md`.
   **`Docs/archive/`** = historical docs:
   `✅ BUG-REPORT-runScript-duplicates.md` (closed 2026-08-05),
-  `HANDOFF-2026-08-06-unstaged.md`, `RIGHT-CLICK-ISSUE.md`.
-- **`Test/`** = `SCRIPTING-API-TEST.js` (in-browser API self-test) +
-  `AutoControl-settings-test.acs` (settings snapshot for mh_test).
-- **`AutoControl_native/`** = native host (manifest + decrypted exes).
+  `HANDOFF-2026-08-06-unstaged.md`, `RIGHT-CLICK-ISSUE.md`,
+  `NATIVE-REVERSING-2026-08-31.md` (hover-region/MSAA root cause, Ghidra
+  RE session — addresses, Chromium facts, live region map, patch plan).
+- **`Test/`** = the LIVE toolset: `mh_test.js` (**the SW harness — it lives
+  here, NOT in `mv3-build/`: that folder is the extension itself and must stay
+  clean**), `SCRIPTING-API-TEST.js` (in-browser API
+  self-test), `AutoControl-settings-test.acs` (settings snapshot for mh_test),
+  the zone tools (`ac_zone_helper.cs`, `zone_add_test.js`, `zone_probe.ps1`,
+  `zone_fg_wheel.ps1` — now with `-Alt`/`-AltVk` for modifier tests,
+  `zone_e2e_test.ps1`, `engine_zone_write.ps1`,
+  `deploy_patched_engine.ps1`, `build_native.ps1`),
+  the diagnostics added 2026-09-13 (`acs_audit.js` — hidden/invisible actions +
+  un-scoped wheel combos in an .acs; `engine_window_binding.ps1` — which browser
+  each running engine belongs to, by its internal window list;
+  `window_at_point.ps1` — what window/application is under a screen point;
+  `native_process_chain.ps1` — ancestor chains of the native processes, and why
+  the engine's own chain is useless for the binding question),
+  the SW-console readers (`ac_swlog_dump.js`, `ac_swlog_act.js`,
+  `ac_swlog_record.js`), `zone-tests/` (the zone regression suite + its
+  `README.md`) and `native-disasm/` (Ghidra decompiler export of the engine —
+  one `.c` per function, e.g. `004156f0_FUN_004156f0.c` = the patched region
+  matcher; see `Test/native-disasm/README.md`).
+  **`Test/archive/`** = HISTORICAL one-off scripts (obsolete patch iterations,
+  superseded log readers, dead probes) kept ONLY for chronology — index in
+  `Test/archive/README.md`. If a doc writes `Test/<name>.js` for a file listed
+  there, the file now lives in the archive; nothing there is part of the build,
+  the harness or the shipped extension.
+- **`AutoControl_native/`** = the native side (manifests + binaries), laid out
+  as `original/` (untouched upstream: engine + `AutoControlZero.exe`),
+  `patched/` (**the current build**: `AutoCtrl_2025.4.22.0.v19.exe`) and
+  `patches/` (the patch script that turns `original/` into `patched/`); the
+  host manifests stay at the root. **Structure doc:
+  `AutoControl_native/README.md`** (`patches/README.md` = exact commands).
+  The extension never reads this folder — it unpacks its own engine from
+  `file76.dat`, which is the UNPATCHED distro build.
 - **`mv3-build/`** = the MV3 port (SW-brain). **This is where ALL work
   happens.** Load this folder in Chrome as an unpacked extension. Contains its
   own copies of the core `file*.js`/`res/` — independent from `ext-mv2/`.
+  **The folder is the shipped artifact — keep it CLEAN (user rule
+  2026-09-13):** only files the extension actually loads belong here. Dev-only
+  material (test harnesses, probes, helpers) goes to `Test/`; the harness
+  `mh_test.js` was moved there for exactly that reason.
 - **`Toolbar-buttons/`** = auxiliary builds/assets (MV2/MV3 pairs: base,
   Duplicate, Mute, Pin, Unload).
 - NOTE: the old loose MV3 shims at the repo root were REMOVED (cleanup
@@ -43,12 +108,34 @@ This includes comments, log strings, and error messages in `sw.js`,
 ## Contribution rules (post-task)
 
 - You MUST verify your change with the harness:
-  `node mv3-build/mh_test.js` — expect `SUMMARY: N pass, 0 known gaps,
+  `node Test/mh_test.js` — expect `SUMMARY: N pass, 0 known gaps,
   0 FAIL` (exit 1 on FAIL). Filter: `2>&1 | Select-String -Pattern
   "PASS|FAIL|GAP|SUMMARY"`.
 - You MUST keep `mh_test.js` current — every new fix ships with a smoke test
   (`[PASS]`/`[FAIL]`/`[GAP ]`/`[FIXED?]`). When a `[GAP ]` stops reproducing,
   update `Docs/FEATURES-MV3.md` §7.
+- **After ANY edit to the native engine patch you MUST re-run the proof chain**
+  (the injected code is hand-written bytes — a wrong byte is silent until the
+  engine misbehaves):
+  1. `node Test/patch_bytes_verify.js` → must print `PROOF HOLDS` (exit 0) and
+     `40 bytes differ, all inside the documented ranges`. It checks the
+     **deployed** engine by default; pass a file to check a build
+     (`--orig <pristine.exe>` for another original, `--no-diff` only if you
+     deliberately accept `PROOF HOLDS (PARTIAL)`).
+  2. `powershell -File Test/build_native.ps1` → both hashes OK
+     (engine `1A10EDD1…`, helper `091627630D…`).
+  3. `node Test/mh_test.js` → B53b–B53g `[PASS]`: CLI + determinism,
+     docs == bytes, the decoder proof, its mutation (teeth) test, the helper
+     writer == the verifier's simulation, the Ghidra listing == the build.
+  4. `node Test/engine_abi_dump.js <build>` → must end with `ABI AUDIT: OK`
+     (exit 0): the cave page is mapped **and executable**, the matcher has
+     exactly ONE direct caller and no other reference to its address exists —
+     i.e. nothing can bypass the trampoline. (Also run against
+     `AutoControl_native/original/` when the ABI itself is in question.)
+  5. If the cave/entry BYTES changed: regenerate `ghidra-disasm.txt`
+     (`Test/DisasmPatch.java`) and update the byte tables in
+     `Docs/BUILD-NATIVE.md` §B.3/B.4 + `patches/README.md` in the SAME change —
+     B53c/B53g fail on a stale listing or doc, by design.
 - After editing ANY file from the bundle list (see Bundle build), you MUST
   rebuild `sw_core_bundle.js` and run the arrow sanity check.
 - After editing `Test/SCRIPTING-API-TEST.js` you MUST re-copy its content
@@ -72,9 +159,14 @@ This includes comments, log strings, and error messages in `sw.js`,
   ```powershell
   Start-Process "$env:LOCALAPPDATA\Google\Chrome SxS\Application\chrome.exe" `
     -ArgumentList '--remote-debugging-port=9223', `
-                 '--user-data-dir=C:\Users\alxbr\AppData\Local\Google\Chrome SxS\User Data CDP', `
+                 "--user-data-dir=`"$env:LOCALAPPDATA\Google\Chrome SxS\User Data CDP`"", `
                  '--lang=en-US'
   ```
+  (the backtick-escaped `` `" `` quotes around the path are REQUIRED:
+  `Start-Process -ArgumentList` does NOT quote its arguments and a path with
+  spaces gets split — see the gotchas below. When the user's own profile is
+  the target, pass the `User Data CDP` junction to it; ask the user which
+  profile carries the test extension.)
   - **port**: `9223` (CDP endpoint: `http://127.0.0.1:9223/json/version`).
   - **profile dir**: the junction `...\Chrome SxS\User Data CDP` → the REAL
     `...\Chrome SxS\User Data` (Chrome 136+ silently ignores
@@ -94,11 +186,15 @@ This includes comments, log strings, and error messages in `sw.js`,
   unless a NON-DEFAULT `--user-data-dir` is also passed — passing the default
   profile path counts as "not specified" (verified on Chrome 150). To debug
   the REAL profile: create a junction to it and pass the junction path:
-  `New-Item -ItemType Junction -Path "...\Chrome SxS\User Data CDP" -Target "...\Chrome SxS\User Data"`
+  `New-Item -ItemType Junction -Path "$env:LOCALAPPDATA\Google\Chrome SxS\User Data CDP" -Target "$env:LOCALAPPDATA\Google\Chrome SxS\User Data"`
   → launch `chrome.exe --remote-debugging-port=9223 "--user-data-dir=...\User Data CDP"`.
   The extension/toggles survive (same directory). Also: PS `Start-Process
   -ArgumentList` does NOT quote args — a path with spaces gets split into
-  URL args (launched a broken instance with the stable profile once).
+  URL args AND a truncated `--user-data-dir` (launched a broken instance with
+  the stable profile once; the same bug produced a phantom profile whose
+  extension was loaded from a different checkout — see the LOAD-PATH GOTCHA
+  below). Always verify the profile of a running instance:
+  `Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -notmatch '--type=' }`.
 - **SW internals are IIFE-local**: `port`/`connected`/`handshakeDone` in
   sw.js are NOT reachable from Runtime.evaluate (global scope); the bundle's
   `var`-declared globals (`_Yp` tab cache, `_if` customEntities store, `_ek`
@@ -145,7 +241,8 @@ This includes comments, log strings, and error messages in `sw.js`,
   `cdp_exts.js`/`cdp_msg_watch.js`/`cdp_native_probe.js`/
   `cdp_marker.js`/`cdp_keytest.js`/`cdp_restore_lk.js`/
   `cdp_rebuild_capture.js`/`cdp_fresh_trigger_test.js` (older one-offs —
-  superseded by the above, harmless to keep), `_ac_tabtap.ps1` (single Tab
+  superseded by the above; **moved to `Test/archive/sw-log/` 2026-09-12**),
+  `_ac_tabtap.ps1` (single Tab
   tap for menu-mark moves), `_ac_keypress.ps1` (older keypress injector).
   2026-08-30 issue-#1 additions: `cdp_rbtn_block_test.js` (compiles an RMB
   block:2 trigger in-memory, shows the strip effect on keys 2/1026),
@@ -156,7 +253,20 @@ This includes comments, log strings, and error messages in `sw.js`,
   button reached Chrome — 0 events = native swallowed it = no menu),
   `cdp_swlog_rmb.js` (captures SW console while injecting a click),
   `cdp_ctxmenu_watch.js` (event-listener watcher), `cdp_eval.js` (generic
-  SW eval helper), `cdp_import_live.js` (imports an .acs via the REAL
+  SW eval helper), `cdp_page_eval.js` (evaluate in a PAGE target — needed for
+  the settings/test pages, `scripting` cannot touch extension pages),
+  `ac_swlog_act.js` (run a PowerShell line and print ONLY the SW console
+  lines produced AFTER it — kills the backlog-replay noise; use it for every
+  "did trigger N fire?" question), `ac_keys.ps1` (`-Combo ctrl+m` / `esc` —
+  generic OS key injection; `_ac_keypress2.ps1` is Ctrl+Tab-only and takes
+  `-HoldMs`, NOT positional args), `zone_add_test.js` (`add <id> <region>
+  <eventId> [action]` / `remove <id>` — a temporary zone trigger in storage,
+  used to prove that the engine delivers a 750 for a given region),
+  `engine_zone_write.ps1` (`-Zones "12,4,1"` / `-Alive` / `-Fallback` /
+  `-Dump` / `-Diag` — write the v19 zone table into the RUNNING engine from
+  outside the helper; the helper overwrites it within ~1 s unless it is
+  stopped first),
+  `cdp_import_live.js` (imports an .acs via the REAL
   `window._ja` path), `cdp_ext_reload.js` (reloads the unpacked extension
   via chrome://extensions UI — pierces the shadow DOM; the card's reload
   button is matched by its "Reload" label — launch Chrome with `--lang=en-US`
@@ -167,6 +277,50 @@ This includes comments, log strings, and error messages in `sw.js`,
   `mouse_event` — rmb/lmb/move; foregrounds the SxS window with the
   ALT-hold unlock trick and VERIFIES the foreground), `_ac_fgcheck.ps1`
   (reports which window holds the foreground).
+  2026-08-31 engine-deploy addition: `deploy_patched_engine.ps1` (deploys
+  the CURRENT patched engine (`AutoControl_native\patched\`) into
+  %LOCALAPPDATA%\AutoControl — stops ONLY
+  Chrome SxS, kills ONLY orphan Zero/engine pairs whose parent is dead,
+  backs up to `.orig` once, copies, verifies SHA-256; unknown builds need
+  `-Force`; `-KeepChrome`/`-Source`; prints the relaunch + verify next steps).
+  2026-09-12 additions: `ac_swlog_dump.js` (`node Test/ac_swlog_dump.js 9223
+  "<regex>" [maxLines]` — READ-ONLY SW console dump, the preferred reader;
+  replaces the old `zone_swlog*.js` family now in the archive),
+  `zone_remove_test_triggers.js` (removes the temporary zone triggers —
+  ALWAYS use `zone_add_test.js`'s `remove` or this when you are done, and
+  keep every test trigger VISIBLE in the settings UI: a trigger whose
+  `sctnId` does not exist in `storage.local.sections` is invisible in the UI
+  yet still executed by the engine), and `Test/archive/` (historical one-off
+  scripts kept for chronology — index in `Test/archive/README.md`).
+  - **The injected code itself is documented** (so nobody has to re-derive it):
+    instruction-by-instruction listing + the ABI it relies on + verified caller
+    evidence → `AutoControl_native/patches/README.md` (section "Why this
+    injected code is legal"); the byte tables → `Docs/BUILD-NATIVE.md` §B.3/B.4;
+    the runtime writer → `Test/ac_zone_helper.cs` (`WriteZoneTable`).
+    **Proof that the assembly matches the bytes**: `node
+    Test/patch_bytes_verify.js [engine.exe]` (independent decoder + exact
+    branch-target assertions + "no byte outside the 3 documented ranges
+    changed"; checks the DEPLOYED file by default — pass a build, or
+    `--orig <pristine.exe>` for another original; a MISSING original is an
+    error now, `--no-diff` opts into `PROOF HOLDS (PARTIAL)`, and the default
+    original is hash-checked) and Ghidra's own disassembly in
+    `AutoControl_native/patches/ghidra-disasm.txt` (`Test/DisasmPatch.java`,
+    headless: `analyzeHeadless <proj> <name> -import <patched.exe> -noanalysis
+    -postScript DisasmPatch.java -deleteProject`) — both agree on all 34
+    instructions. mh_test B53d runs the proof, B53e proves it has teeth
+    (4 mutated copies must all be rejected), **B53f** rebuilds the helper's
+    `npre[]` writer from `Test/ac_zone_helper.cs` and requires byte equality
+    with the verifier's simulated runtime variant, **B53g** parses the Ghidra
+    listing and requires it to equal the current build (a stale listing or
+    helper drift fails the suite).
+    Key ABI facts (verifiable in `Test/native-disasm/`): `FUN_004156f0` is
+    `uint __fastcall (POINT*, uint region, HWND)` → **EDX = the region**; the
+    trampoline sits on the function's first byte, BEFORE the prologue
+    (`sub esp,20h; push ebx; push ebp`), so the incoming registers are intact;
+    the result is EAX and the ONLY caller (`decomp/00415b40_FUN_00415b40.c:41`)
+    does `uVar5 = FUN_004156f0(...); return uVar5;` — **match == consume**
+    (`functions.csv`: `004156f0;FUN_004156f0;1034;1`). Documents and bytes are
+    kept in sync by mh_test B53c.
 - **⚠ NEVER `delete window._Lk`** — the shim's `_Lk` lives inside its IIFE
   and `window._Lk` is the ONLY global reference; deleting it breaks
   `closeMenu`/`moveSelectMark` (free-variable `_Lk` → ReferenceError → the
@@ -190,17 +344,24 @@ This includes comments, log strings, and error messages in `sw.js`,
 
 ## Test harnesses (used repeatedly — keep them working)
 
-- **`mv3-build/mh_test.js`** — Node `vm` harness loading `sw_core_bundle.js`
-  with stubbed `chrome`/DOM globals. Validates: bundle loads, `_Yk===chrome`,
+- **`Test/mh_test.js`** — Node `vm` harness loading `sw_core_bundle.js`
+  from `../mv3-build/` (the extension folder is addressed as `MV3` — the
+  harness lives in `Test/` so the build folder stays clean; `__dirname` is
+  `Test/`, never the extension) with stubbed `chrome`/DOM globals. Validates:
+  bundle loads, `_Yk===chrome`,
   z-handler completeness (15 base types), prelude browserAction→action alias
   and onClicked listener count, `_As` scheme gate (file://), `_9w` inert
   loading (playAudio routed to the offscreen doc), webRequest absence (saveUrl
   via declarativeNetRequest), icon/menu machinery, `_mh` user-config
   compilation (wheel/gesture entries), global visibility (free-variable
   `_Yh` vs `self._Yh`), XHR-shim headers smoke, `_Yh` callback-style smoke,
-  and userAPI dispatch (must be exactly 1 answering listener). Output
+  and userAPI dispatch (must be exactly 1 answering listener), the mouse-over
+  zone gate (11 known regions / menu pass-through / 120 ms burst cache /
+  helper rules / the v19 patch builder + the table layout in the helper —
+  B53), the removed donation/rating UI (file2.js / main.html / CSS — B54).
+  Output
   `[PASS]`/`[FAIL]`/`[GAP ]`/`[FIXED?]`; exit 1 on FAIL. Path-independent
-  (`__dirname`). Current: 92 pass / 0 gaps / 0 FAIL.
+  (`__dirname`). Current: 102 pass / 0 gaps / 0 FAIL.
 - **`Test/SCRIPTING-API-TEST.js`** — in-browser self-test of the whole ACtl
   API (23 tests), run via RUN SCRIPT on a normal page. 23/23 stable. Every
   failure prints an unmissable banner (`[AC-API-TEST: FAIL]`) + a final
@@ -548,6 +709,19 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   (~100-200ms apart); they may be duplicates or INDEPENDENT actions. The
   companion is dropped ONLY when the action signature matches (300ms window,
   different id).
+- **Modifier chips: the generic "Alt"/"Ctrl"/"Shift" (vk 18/17/16) work
+  too — do NOT trust the earlier "they never match" claim** (that came from
+  SYNTHETIC input, see the injected-input caveat below). The engine holds BOTH
+  the concrete code the LL hook delivers (left Alt = 164 / VK_LMENU, right = 165;
+  left Ctrl = 162, right = 163) and the logical key state, and how a compiled
+  condition is evaluated depends on the entry's method flag — `FUN_00413170`
+  either reads the hook's key map (`key & 0x3ff`) or calls
+  `GetKeyState(nVirtKey) & 1`, where `VK_MENU` (18) is set by any Alt.
+  VERIFIED LIVE 2026-09-13 (user's own hand): a config carrying `keyEvt:18`
+  fired on a physical Alt+wheel (`TRIG trigger=5/6`), and `keyEvt:17` on Ctrl
+  is used by the MRU triggers. The earlier "18 never fires" result was measured
+  with `keybd_event`/`mouse_event`, which the engine does not treat like real
+  input. Bundle's name table: `[[18,"Alt"],[164,"Left Alt"],[165,"Right Alt"]]`.
 - **Action-queue watchdog** — hook the bundle's `__acLog` DIRECTLY
   (`t === 'OK'` is the exact completion marker; `__acLog` is a top-level
   function declaration → classic-script global, reassignment from sw.js is
@@ -581,13 +755,24 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   gesture preset via the REAL `_mh` and asserts user block:up preserved /
   gesture block softened — needs the `.in` re-patch first, the vm bundle
   is sloppy like the SW).
-  ⚠ The mouseOver (hover-region) preconds do NOT gate triggers on Chrome
-  150 AT ALL (verified live 2026-08-30: region 3 "Web page" and region 4
-  "Title area" both fire everywhere — native a11y hit-test regression, ALL
-  regions, not just the top-row ones; same native in MV2 — the user's
-  Edge/MV2 test works because Edge's a11y differs). No extension-side
-  workaround exists (no cursor-position API). Do NOT promise hover
-  conditions as working on Chrome 148+.
+  ⚠ The mouseOver (hover-region) preconds: root cause found 2026-08-31 (RE
+  session — Ghidra + Chromium sources, full report in
+  `Docs/archive/NATIVE-REVERSING-2026-08-31.md`). The engine classifies
+  regions via MSAA `AccessibleObjectFromPoint` (OLEACC). Chrome 148+ builds
+  the MSAA tree only when a client queries the honey pot (WM_GETOBJECT
+  lParam=1 — the engine DOES this, FUN_0040daf0) AND queries **accName**
+  (anti-abuse, crbug 416429182; the engine only queries roles → tree stays
+  OFF → oleacc serves a generic PANE → the engine fail-opens every region).
+  Live map (Chrome 150 SxS, tree ON): region 1 Browser window ✓, **region 3
+  Web page ✓ (works!)**, region 4 Title area ✗ (engine maps it to the whole
+  window — matches the page too; the issue-#1 complaint), region 5 Tab ✗
+  (fail-closed). `--force-renderer-accessibility` turns the tree on
+  (verified). Planned native patch: call `get_accName` (helper FUN_0040bdf0
+  exists) after AccessibleObjectFromPoint → tree on for the whole browser.
+  Do NOT promise region 4/5 as working on Chrome 148+; region 3 is fine
+  when the tree is on. ⚠ The engine CACHES the hovered element/region —
+  live tests need ≥2s between `SetCursorPos` and the click, or results
+  flake.
 - **Toggle actions (pin/mute) missed clicks (FIXED 2026-08-30, B52)** —
   "right-btn => pin tab toggles only every 2-5 clicks". ROOT CAUSE: `_9f`
   (file8, pinTabs) read `_Yp[c].pinned` — the SW tab cache, refreshed ONLY
@@ -602,15 +787,290 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   toggle; LMB after RMB passes. ⚠ Bundle build list: file77.js MUST be
   AFTER file48.js (the sw.js comment list is authoritative now — the old
   comment missed file77 and a rebuild dropped it → the B-tests failed).
-- **Hover regions broken in Chrome 148+** (ALL regions, verified 2026-08-30
-  on Chrome 150: "Web page" and "Title area" included — the native a11y
-  hit-test regression ignores `{type:14}` mouseOver preconds entirely;
-  affects MV2 AND MV3, NOT a port loss, NO extension-side fix exists — no
-  cursor-position API). Previously only the top-row regions ("Browser tab",
-  "close button", "speaker icon", "new tab", "menu item") were known
-  broken; testing shows the gate never fires regardless of region. Do NOT
-  use hover conditions in test triggers on Chrome 148+; the UI still offers
-  them (they worked pre-148).
+- **Hover regions on Chrome 148+ — root cause found (2026-08-31)** — see
+  the RE report `Docs/archive/NATIVE-REVERSING-2026-08-31.md`: MSAA tree
+  activation requires honey pot + accName (the engine sends honey pot only);
+  live map: region 1 ✓, region 3 ✓ (with the tree on), region 4 ✗ (engine
+  maps it to the whole window), region 5 ✗ (fail-closed). Not a port loss
+  (same native for MV2; Edge works because it builds the tree eagerly).
+  `--force-renderer-accessibility` enables the tree (verified); the native
+  patch (accName after AccessibleObjectFromPoint) is implemented (v2-v4,
+  `Test/patch_accname.js`; v4 hashes in `Test/zone-tests/README.md` §1).
+  ⚠ **The accName patch is NOT part of the deployed engine** (2026-09-12):
+  `AutoControl_native\patches\patch_zones_v19.js` builds from
+  `AutoControl_native\original\AutoCtrl_2025.4.22.0.exe`
+  and applies ONLY its own cave + entry jmp (plus the two v16 NOPs when built
+  with the `v16` argument), so the running engine (hash `1A10EDD1…`) contains
+  no accName stub — verified by byte comparison with the pristine at
+  `FUN_0040bdf0`. It does not matter for zones: **the HELPER queries
+  `get_accName` itself** (`Test/ac_zone_helper.cs`, `acc.get_accName(0)` before
+  the real `AccessibleObjectFromPoint`), which switches Chrome's a11y tree ON
+  for the whole browser — that is also why the engine's OWN classification
+  (regions ≥ 21, menu items 40-51) works in the live tests. Consequence: the
+  type-792 zone-role diagnostics (gated by the toggle byte VA 0x4b5000,
+  `--diag-on`) are UNAVAILABLE on the current build — they need the
+  `patch_accname.js` build. Do NOT use region 4/5 in test triggers on
+  Chrome 148+; region 3 is usable when the tree is on.
+
+- **Zone 12 (tab strip) — WORKING SOLUTION (2026-09-03)**: external zone
+  helper + SW gate. The abandoned engine cannot classify zone 12 (hover
+  cache never refreshes over tabs; fresh MSAA from the LL-hook deadlocks —
+  RE doc §12), so the SELECTIVITY moved to the extension: the tiny native
+  host `com.autocontrol.zonehelper` (source `Test/ac_zone_helper.cs`,
+  built with .NET Framework csc, installed in `%LOCALAPPDATA%\AutoControl\`,
+  manifest + HKCU `Software\Google\Chrome\NativeMessagingHosts\`) answers
+  `{__id}` → `{__id, zone, zones:[...]}` — the answer is the full matching
+  SET (2026-09-12); the SCALAR `zone` stays for older SW builds/logging.
+  Supported zones: **1** window (always in the set), **3** page (role 15),
+  **4** title area (frame PANE outside the toolbar/strip; the strip area
+  outside tabs also counts — modern Chrome has no separate title bar),
+  **12** tab (role 37 at d0/d1, or the strip gap role 60 at d0/d1),
+  **15** close (43 under a PAGETAB, right half of the tab), **17** speaker
+  (43 under a PAGETAB, left half), **16** new-tab "+" (43 whose parent is
+  the PAGETABLIST 60), **20** toolbar (role 22 in the ancestry), **21**
+  omnibox (role 42 at d0/d1, or the lock button 57 under the GROUPING 20),
+  **30** browser menu (any toolbar button whose right edge is within 60 px
+  of the window's right edge — the kebab is NOT exposed as an element in
+  Chrome 150 AND the "New Chrome available" update pill occupies its slot,
+  so the pill counts as the menu button: user request 2026-09-12), **33**
+  bookmark star (43 inside the GROUPING 20 which sits in the toolbar).
+  NOT implemented in the helper: menu items 40-51 — those are passed
+  through to the engine (see the gate note below).
+  ⚠ **ENGINE v19 `AutoControl_native/patches/patch_zones_v19.js` (2026-09-12,
+  DEPLOYED — replaces
+  v18, do not deploy v16/v18 any more).** v18's "always match" broke page
+  scrolling (see the wheel bullet below), so the DECISION moved out of the
+  engine: the zone helper writes a TABLE into the engine's memory and the
+  patched matcher reads it:
+  `cmp edx,28h; jae ORIG; cmp byte [alive],0; je notalive;
+   mov eax,[edx*4+table]; ret; notalive: mov eax,1; ret; ORIG: <orig 5 bytes>;
+   jmp 0x4156F5` — table at `+0x10` of one `VirtualAllocEx` page, `alive` at
+  `+0x00` (`Test/ac_zone_helper.cs` `WriteZoneTable`). Regions ≥ 0x28 keep
+  the engine's own logic (menu regions). The build itself ships the
+  "always match" prefix (variant A) so an engine started without the helper
+  behaves like v18; the helper rewrites bytes `0x00..0x1B` within ~1 s of the
+  first classification. Deployed engine hash `1A10EDD1…`, helper `091627630D…`
+  (deterministic build; the previous non-reproducible legacy build is kept as
+  `ac_zone_helper.exe.bak-493A7276` in the data dir).
+  (rebuild: `powershell -File Test/build_native.ps1 -UpdatePatched`, deploy with
+  `Test/deploy_patched_engine.ps1` — both default to
+  `AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe`).
+  ✅ **VERIFIED LIVE 2026-09-12 (real OS input via the native hooks):** wheel
+  over the page scrolls (`scrollY` 800 → 1100 → 2100) with **0** false 750s
+  and the zone-12 trigger ENABLED; wheel over the tab strip fires it
+  (`[AC-MV3-ZONE] trig 44: zones=[12,4,1] ∩ [12] → executing` → `pinTabs`);
+  the helper reports page `[3,1]`, tab `[12,4,1]`, omnibox `[21,20,4,1]`.
+  ⚠ ~~Regions ≥ 21 do NOT reach the patched matcher~~ — **CORRECTED
+  2026-09-12 (user-verified, all 12 areas PASSED)**: **omnibox (21), bookmark
+  (33), browser-menu button (30) and menu items (40) all work.** The earlier
+  negative result was measured while the engine's MOUSE hook was dead (a
+  `taskkill /F` on the engine can kill the mouse hook while the keyboard
+  keeps working — then NO mouse trigger fires anywhere and a broken engine
+  looks exactly like "this zone is not detected"). Always re-run a known-good
+  control (wheel over the tab strip → trigger 44) before judging a zone.
+  Live proof for the high regions: `trig 1: zones=[21,20,4,1] ∩ [21] →
+  executing` (omnibox), `… [33,20,4,1] ∩ [33] …` (bookmark star),
+  `… [30,20,4,1] ∩ [30] …` (menu button) and for menu items
+  `TRIGGER type 750 → TRIG trigger=1` while ONLY the open menu matched
+  (negative controls over the page / tab strip / beside the menu were silent).
+  Menu items ride the engine's own classification (`jae ORIG`); the helper has
+  no rule for them — **and it works**.
+  ⚠ **Helper/SW keepalive is REQUIRED**: the helper only ran when the SW
+  asked it, and the SW only asked on a 750 — which the engine drops when the
+  zone is unknown. `sw.js` now pings it every 2.5 s from SW start
+  (`setInterval(() => __acZoneAsk(300), 2500)`).
+  ⚠ Several browsers share ONE engine file — if another browser runs the
+  extension its engine LOCKS the file: kill the engines and copy in the same
+  loop (the deploy script stops only Chrome SxS by design).
+  ⚠ **SEVERAL BROWSERS RUNNING = SEVERAL ENGINES — the helper MUST bind to
+  ITS OWN (FIXED 2026-09-13, helper `091627630D…`).** Every browser spawns its
+  own `AutoControlZero`→engine pair and each engine keeps its OWN zone table.
+  The helper used to take `FindEnginePids()[0]` ("the first engine"), so with
+  two browsers open BOTH helpers wrote into the SAME engine while the other one
+  kept the FILE fallback (`mov eax,1` = "every region matches") → its mouse-over
+  conditions were satisfied EVERYWHERE: "wheel over the page switches tabs"
+  (user report 2026-09-13) and "Alt+wheel needs a zone condition to work".
+  The fix: the helper identifies its engine by the window list EVERY engine
+  keeps for its own browser (image base `+0xA2514`, `std::vector<HWND>` — the
+  region matcher's only caller walks exactly that list), and a provably FOREIGN
+  engine is never written (the helper logs `waiting: none of the N engines
+  belongs to browser <pid>` and retries on the next 2.5 s ping). Do NOT
+  "simplify" this back to `pids[0]`. ⚠ The process chain cannot tell the
+  engines apart — Zero is a launcher: it hands its pipes to the engine and
+  EXITS, so the engine's parent is always dead for every browser.
+  ⚠ Same fix, second half: `browserPid` (the "own window" gate) is now found
+  by walking UP the ancestor chain — the helper's direct parent is `cmd.exe`
+  (browser → cmd → helper), so before 2026-09-13 `browserPid` was 0 and the
+  gate was silently INERT (zones were reported over ANY window, VS Code
+  included).
+  ⚠ A browser RESTART makes the extension import `settings.dat` into storage
+  (MV2 startup behaviour) — live test triggers are replaced by the file's
+  content.
+  ⚠ **SW GATE RULES (sw.js `__acDispatchTrigger750`, 2026-09-12):**
+  (a) only regions the helper can verify are checked (`__AC_ZONE_KNOWN`);
+  a trigger whose regions are ALL menu-item regions passes with the ENGINE's
+  verdict — before this fix every menu-item trigger was silently skipped by
+  the gate; (b) **burst cache** `__AC_ZONE_CACHE_MS = 120`: one physical event
+  makes the engine emit a 750 per matching trigger and each used to re-ask the
+  helper — the UI can change in between (Chrome scrolls the tab strip on
+  wheel!) so the burst saw different zones (zone 15 → 12 → skipped, "wheel
+  over the close button does nothing"). One helper answer is now shared per
+  burst.
+  (c) **an action whose combos DIFFER must not be judged by its siblings'
+  zones** (2026-09-13): the native's 750 names the ACTION, not the combo that
+  matched (`Docs/NATIVE_PROTOCOL.md` §5), so regions collected from ALL combos
+  used to gate every 750 of that action — "Left Alt + Vert. Wheel" next to
+  "Vert. Wheel over Browser tab" fired ONLY over that zone (and adding "mouse
+  over Browser window" "fixed" it, because zone 1 is in almost every helper
+  answer). Now a combo WITHOUT a mouse-over condition marks the whole action
+  `__acZoneFree` → dispatch without asking the helper; the engine still applies
+  the region decision for the zone-scoped combos (v19 reads the same helper
+  table). `disabled` groups are skipped while building the map (they are not
+  compiled into type 60 either). Harness: B55/B55b.
+  ✅ **MENU ITEMS (region 40 = "Any menu item") — VERIFIED WORKING (2026-09-12,
+  user-tested).** The precond compiles to `{type:14,"value":40}`; v19 routes
+  `edx >= 0x28` to the engine's own code (`jae ORIG`), so menu items are NOT
+  classified by the helper — and the engine gets them right (it tracks the
+  native menu state itself). User result: the action fired while scrolling
+  over the OPEN MENU only; with the menu closed it stayed silent over the
+  page, the tab strip and beside the menu. The old "v18 always-match →
+  menu triggers fire anywhere" warning below applied to v18 and is obsolete.
+  ⚠ History (do not re-introduce): with v18 (`cmp edx,3Ch; jb alwaysMatch`)
+  a menu-item precond matched EVERYWHERE, so such a trigger could fire over
+  the page while the SW gate passed it through unverified.
+  ⚠ **PLAIN-WHEEL + mouseOver BLOCKED PAGE SCROLLING (v18 regression —
+  FIXED by v19, 2026-09-12):** `FUN_004156f0` has ONE call site (`0x415bdc`)
+  and its result is the input-matching decision → **the mouseOver precond
+  drives CONSUMPTION**. v18 matched every region < 60 → a wheel trigger with
+  any mouseOver condition ate the wheel EVERYWHERE (the user's `wheelDn/w2/
+  blk1` triggers → "I cannot scroll pages"). v19 answers from the helper's
+  table, so the wheel passes through over the page and is consumed only over
+  the real zone. Test recipe (uses REAL OS input):
+  `node Test/ac_swlog_act.js 9223 "powershell -NoProfile -File Test/zone_fg_wheel.ps1 -Hwnd <hwnd> -Point 1000,800 -Notches 3"`
+  → must print `--- new lines (0) ---` for the page and
+  `[AC-ACT] … TRIG trigger=44` for the tab strip (`-Point 600,90`).
+  ⚠ **Test pitfalls that cost hours:** (1) the wheel goes to the ACTIVE tab —
+  check `chrome.tabs.query({active:true})` before measuring `window.scrollY`
+  (a Ctrl+Tab test silently switched tabs and every "scroll test" measured a
+  different page); (2) an OPEN AutoControl menu (`Ctrl+M`, a Ctrl+Tab hold)
+  keeps eating input — close it with `Test/ac_keys.ps1 -Combo esc`;
+  (3) `%TEMP%\ac_tail.js` is broken, use `Test/zone_swtail.js`;
+  (4) `Runtime.consoleAPICalled` REPLAYS the backlog on attach —
+  `Test/ac_swlog_act.js` marks the buffer end and prints only fresh lines.
+  ⚠ **HELPER: the a11y tree SLEEPS** (~30 s without a client) and then EVERY
+  point classifies as an unnamed PANE → zone 4. The helper now runs a
+  **background heartbeat** (classification every 120 ms while the cursor
+  moves, else every 1.2 s) + a 400 ms request cache — do not remove it.
+  ⚠ **HELPER: speaker icon is NOT hit-testable** — AOP over it returns the
+  PAGETAB, and the tab's own a11y rect is unreliable (tab reported `97px` wide
+  while its close button sits 320 px to the right). Rules now: scan the tab's
+  CHILDREN for a `role 43` rect containing the cursor; the close button is the
+  RIGHTMOST sibling → 15, the other → 17 (a non-audible tab's mute button has
+  a `0x0` rect → never hit). Points that hit a tab button do NOT get zone 12.
+  ⚠ **HELPER: title area (4) = the whole top band** (caption + tabs + omnibox
+  + toolbar, down to the page) — `inToolbar || stripNear || isTabBtn`; the
+  page (`DOCUMENT` in the chain) is excluded, and a page's ARIA roles
+  (tablist 60, input 42, toolbar 22) must NOT be read as browser chrome
+  (`bool ui = !inPage` gate).
+  ⚠ **HELPER: zones only for its OWN browser** — the hovered window's root
+  process must equal the helper's parent process (when it is a browser),
+  otherwise `{"zone":0,"zones":[]}` → all zone-gated triggers skip. Prevents
+  false zone 1/4 over other apps (VS Code is a `Chrome_WidgetWin_1` window
+  with NO a11y tree = a generic PANE = would classify as zone 4).
+  ⚠ **TESTING: synthesized wheel goes to the FOCUSED window** (`mouse_event`
+  ≠ the window under the cursor) → foreground the browser first
+  (`Test/zone_fg_wheel.ps1`). `_ac_mouse.ps1 -Action wheel` needed
+  `[BitConverter]::ToUInt32` for a negative delta (`[uint32]-120` throws).
+  ⚠ **MSAA element rects are PHYSICAL pixels; `GetWindowRect` in a
+  DPI-unaware process is DPI-VIRTUALIZED** (150% display: the real window
+  is ~2094 px wide, `GetWindowRect` reports 1396 — the tab strip looked
+  like it ended at x=1388 with no "+"/toolbar buttons). Scanners must call
+  `SetProcessDPIAware()` FIRST (the helper does it in `Main`; the zone-30
+  position rule depends on it).
+  ⚠ **LOAD-PATH GOTCHA (2026-09-12, cost 30 min; rule tightened
+  2026-09-13):** a debug browser window can serve the extension from ANOTHER
+  checkout (an older branch kept outside this repo) while `Secure Preferences`
+  claims this repo's `mv3-build\`. **Never "fix" that by copying files
+  outside the repo** — see the Scope rule: any copy out of this repository
+  needs the user's explicit confirmation. Report what the window serves and
+  ask; the preferred fix is to load the extension from this repo
+  (`chrome://extensions` → Load unpacked → `mv3-build\`). Identify the folder a
+  window really serves EMPIRICALLY — put a uniquely named marker file there and
+  fetch it from the SW (the loaded folder returns its content, every other path
+  answers `Failed to fetch`):
+  `node Test/cdp_eval.js 9223 "fetch(chrome.runtime.getURL('ac_marker.txt'),{cache:'no-store'}).then(r=>r.text())" --await`
+  (the same trick identifies WHICH code a window runs: fetch `sw.js` and
+  compare `len` — JS chars, not bytes — with the file size).
+  `sw.js` `__acDispatchTrigger750` builds the zone map from
+  trigActList at start and dispatches a mouseOver-gated trigger only when
+  the trigger's regions INTERSECT the helper's set
+  (`zones.some(z => zs.indexOf(z) !== -1)` — the engine evaluated every
+  region independently, so several zones match one point: the omnibox is
+  inside the toolbar band, the page is inside the window). The engine itself
+  is v19 (zone-table driven — see the v19 bullet above). Verified live
+  2026-09-12: `zones=[12,1] ∩ [12] →
+  executing` over a tab (real OS wheel through the native hook) and
+  `zones=[3,1] ∉ [12] → skipped` over the page; per-point helper answers
+  for every zone in TODO §2d. Smoke: `node Test/zone_helper_smoke.js`;
+  live probe (moves the cursor): `Test/zone_probe.ps1`; end-to-end:
+  `Test/zone_e2e_test.ps1`. RE doc §13.
+  ⚠ The helper needs re-registration after a reinstall (registry key) and
+  its exe must be rebuilt from `Test/ac_zone_helper.cs` if moved.
+  ⚠ The zone MAP in sw.js is rebuilt live on `storage.onChanged`
+  (2026-09-03) — a stale map made zone-gated triggers silently dead after
+  config edits; the map is also rebuilt at SW start.
+  ⚠ Since 2026-09-13 that map also records `__acZoneFree` (an action with a
+  combo WITHOUT mouse-over) and an inconsistent/stale lookup no longer gates
+  such an action — the real gate rule is the (c) bullet above.
+  ⚠ **NEVER give a CDP-created test trigger a `sctnId` that the settings do
+  not have** (2026-09-12, cost a long "phantom action" hunt). The settings UI
+  renders actions per SECTION tab; a trigger whose `sctnId` is missing from
+  `storage.local.sections` is NOT displayed (undelatable from the UI) while
+  the engine keeps executing it — the user saw "some action I do not have"
+  switching tabs on every wheel over the menu button while his settings
+  showed nothing. **USER RULE: every test trigger must be VISIBLE in the
+  settings UI** — create them WITHOUT a section (the user's own triggers have
+  `sctnId: undefined` and stay visible). `Test/zone_add_test.js` verifies the
+  section and drops it when it does not exist (prints `visible=true/false`).
+  ⚠ **`_Sk` drift FIXED 2026-09-04 (sw.js)**: `mv3_native_shim.js` re-stamps
+  `_Sk = Date.now()/864E5|0` on EVERY `nativeConfigReady` (incl. force
+  refresh after a settings save) → after midnight it drifts a day from the
+  engine's `handshakeSk` → `z[750]` decodes every 750 off-by-one → actions
+  silently never execute while the gate logs "executing" (symptom: all
+  wheel actions die after editing an action). sw.js now re-syncs
+  `_Sk = handshakeSk` at handshake AND right before every 750 dispatch in
+  `__acDispatchTrigger750` — the shim re-stamp is healed on the next 750.
+  Verified 2026-09-05 (5h live: 35 executing / 0 skipped across 2 config
+  rebuilds). TODO §2b closed.
+- **Zone 12 (tab strip) deep-dive (2026-09-01/02) — engine v16 was the
+  state then; the deployed engine is now v19 (see the zone bullet above,
+  ~line 640)** — see RE doc §10
+  for the full chain, all patch attempts (v5b..v16) and the proof:
+  (a) zone 12's `FUN_00414760(...,10)` gate returns 0 over the tab strip;
+  (b) Chrome 150 reports the tab role as 41 (not the 37 the engine wants);
+  (c) **the engine's hover cache NEVER refreshes over the tab strip** (it
+  tracks the page HWND only — a 792 probe in FUN_0040b610 got NOTHING over
+  tabs even with mouse movement) → "tab = page". The classifier chain IS
+  patchable (v16 fires 750 everywhere) but zone-12 SELECTIVITY is not
+  achievable via MSAA roles; a geometric classifier (GetWindowRect top
+  band) was designed (v12-v14) but never conclusively tested with a
+  working config. **FINAL (2026-09-03, RE doc §12)**: a FRESH
+  AccessibleObjectFromPoint from the engine's LL-hook context DEADLOCKS
+  (Chrome does not answer WM_GETOBJECT during input processing — v17g:
+  engine alive on other threads, hook thread hangs forever, no 750/792) —
+  role-based selectivity inside the engine is IMPOSSIBLE. The
+  external-process classifier (`Test/zone_proto.ps1`: role 37 TABITEM in
+  the ancestry uniquely identifies the tab strip) is the proven route
+  for a future own engine. ⚠ Config gotcha: after a Chrome restart WITHOUT an open
+  settings page, type 60 never reaches the engine → "nothing works
+  anywhere". Force it: `node Test/cdp_eval.js 9223 "(()=>{_Gf({},()=>{window.__cfgDone=1})})()"`
+  and verify `type 60 (config)` in the boot log. Patch scripts:
+  `Test/archive/zone-re/patch_zone12_v5b.js`…`patch_zone12_v16.js` (each
+  deterministic from the .bak;
+  **build-bug warning: section math must use `last.rs` NOT `last.rsize`** —
+  v7/v8diag shipped an empty .acp and identical hashes). User's future
+  direction: a prototype native engine of our own that interacts with
+  Chrome window elements directly.
 
 ### UI / settings
 
@@ -652,6 +1112,19 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   after 8s, if `<html>` still lacks `visible`, force
   `addClass("visible") + display:block` (idempotent).
 - **Mojibake in UI** — see Encoding rules (`<meta charset="utf-8">`).
+- **Donation / rating UI REMOVED (2026-09-13, user request)** — the upstream
+  project is abandoned, so the port does not solicit money or Web Store
+  reviews. Deleted: the "Support the project" tab-bar button (`<contribBtn>`,
+  built by file2.js `n()` — it also ran the 60 s bounce animation
+  `q()`/`setInterval(q,6E4)`), the panel it opened (`<template id=contribPanel>`
+  — PayPal / buymeacoffee) and the Help tab's rating box (`${#rateUs}` include
+  + `<template id=rateUs>`), plus their now-dead CSS (file46.css
+  `contribBtn*`, `@keyframes contribBounce`, `[contribPanel] *`, `donateBtns`,
+  `[paypal]*`, `[coffee]*`, the four `rateUs*` rules; file40.css the
+  `contribBtn` entry of the help-panel font group). ⚠ `ext-mv2/` still carries
+  all of it — do NOT re-copy these blocks on a future merge. mh_test **B54**
+  pins the removal (and guards helpPanel/installPane against an over-eager
+  deletion).
 - **Toasts vs badge** — `_Cr` is the icon BADGE (works in the SW). The
   file71.html floating popups WORK from the SW since 2026-08-12 (FEATURES-MV3.md
   §7-15): the shim overwrites `window._Fo` (file70's MV2 version used
@@ -990,6 +1463,41 @@ otherwise the next session starts from zero. Concretely:
    drop → Zero exit on EOF → fresh Zero spawns a fresh engine)" is now
    NATIVE_PROTOCOL §18, and `_co`/`_ze`/`_nk`/`_Cr`/`_j`/`_nt`/`_2u` +
    55/451 are in DECODE.md.
+7. **Links to the dead AutoControl site — always use the mirror.**
+   `autocontrol.app` is dead: never reintroduce its URLs (`www.autocontrol.app/…`,
+   the Web Store listing, `files/Native-Component.exe`) in docs, README or code.
+   The working copy is the GitHub Pages mirror
+   <https://alex-302.github.io/AutoControl_mv3/> — the original paths plus
+   `.htm` (`…/https@www.autocontrol.app/faq.htm`); the exact page mapping is in
+   README §1.1. The ONLY intentional exceptions are the struck-through original
+   website URL in `README.md` §1 (the "it's dead" notice) and the
+   `web.archive.org` snapshot of the Web Store listing (the dead store URL
+   itself is intentionally gone from the README).
+   ⚠ The UI's own help links point at the mirror since 2026-09-13: `_Zl`
+   (mirror base, `file10.js`) + the `_4a` URL map — `file78_mv3.js` AND
+   `file78.js` extend the map (both are loaded by `main.html`, the LATER one
+   wins — keep them in sync), and the tooltip texts in
+   `file28/file33/file65/file75/file80` reference `_4a.*` keys. Every mapped
+   page carries `.htm` and `scrtDoc` is the mirror's `scripting/` DIRECTORY
+   (sub-page call sites append `<name>.htm`). `_Zo` (the dead base) survives for
+   exactly two non-doc endpoints — telemetry `appEvent` and the animated-demo
+   base in `file36`; never point new user-visible links at it. Two mapped pages
+   needed restoring: `chromium-bugs` was downloaded from the Wayback snapshot
+   (2023-09-03, raw `id_` URL — no archive toolbar) and lives in the mirror as
+   `chromium-bugs.htm` with its 5 images; `files/Native-Component.exe` has NO
+   snapshot anywhere and stays dead (the port installs the native component
+   from its own `file69.dat`). Inventory: `/memories/session/autocontrol-mv3.md`.
+   ⚠ **Demo entries are LINKS now (2026-09-13)** — the Help → *Show demos*
+   panel (`main.html` template `demoPanel`) lists three links to mirror guides
+   instead of playing `file9.js` animations: those need the dead site's
+   screenshots (`/demos/<name>/imgN.png`), which were NEVER archived (a CDX
+   prefix query on `/demos/` returns exactly 2 files). Do not re-wire them to
+   the player (`_Be`/`_Rj`/`_Yt`). The animated illustrations on the mirror
+   pages themselves (`hvrdElem*Anim.htm`, iframed by
+   `determining-hovered-element.htm`) still work — they are SVG, not
+   screenshots. Untouched on purpose (user decision): the switches tooltip demo
+   (`file65.js`, `initDemo=setSwtchs`) and the Settings-File-Editor welcome demo
+   (`file65.js`, `<demoPH demoName=SFEimport>`) — both equally broken.
 
 ## Where to look for docs
 
@@ -1004,6 +1512,7 @@ otherwise the next session starts from zero. Concretely:
 - `scripting.executeScript` (no matchAboutBlank):
   <https://developer.chrome.com/docs/extensions/reference/api/scripting>
 - This repo's own docs: `README.md` (install guide — user-facing),
+  `Docs/BUILD-NATIVE.md` (rebuild the helper / patch the engine bit-for-bit),
   `Docs/NATIVE_PROTOCOL.md`, `Docs/DECODE.md`, `Docs/archive/RIGHT-CLICK-ISSUE.md`,
   `Docs/FEATURES-MV3.md`, `CHANGELOG.md`.
 

@@ -1,0 +1,149 @@
+	<!doctype html>
+	<html>
+	<head>
+	<title>Issues in Chromium-based browsers - AutoControl</title>
+	
+		
+		
+	<link rel="shortcut icon" href="favicon.ico">
+
+	<link rel=stylesheet href="styles.css">
+	<link rel=stylesheet href="demo.css">
+			<link rel=stylesheet href="../https@fonts.googleapis.com/css@family=Montserrat_3A300i,400,500_7COpen+Sans_3A300,400,500,600_7CRoboto_3A300,300i,400,500_7CSource+Sans+0483CA0006">
+	
+	<script src="basics.js" defer></script>
+
+	</head>
+	<body>
+	
+	<header class="">
+		<logo class=notranslate><a href="default.htm"><c>A</c>uto<c>C</c>ontrol</a></logo>
+		<motto>Control your browser your way</motto>
+		
+		<btns>
+			<a forum href="https://groups.google.com/g/autocontrol_app"><img src="img/forum4.png">Forum</a>
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+			<a install href="https://chrome.google.com/webstore/detail/autocontrol/lkaihdpfpifdlgoapbfocpmekbokmcfd">Install now from the<b>Chrome Web Store</b></a>
+		</btns>
+		
+		<hr>
+	</header>
+	<logoShw></logoShw>
+	
+	<content><centerCol><style>
+headLn {display: block; margin: 50px 0 25px -20px; padding: 8px 0px 10px 20px; color: hsla(200,100%,20%,1); border: 1px outset hsla(216, 100%, 97%, 0.56);
+		box-shadow: 1px 0.9px 2.732px 0px hsla(210,100%,70%,0.17); border-radius: 0 50px 50px 4px; background: linear-gradient(white 50%,hsla(210,26%,96%,1) 100%);}
+[bug] {font-size: 127%; font-weight: 400}
+[rep] {font-size: 85%; text-decoration-skip-ink: none;}
+[code] {background: #EFEFEF; padding: 0 7px; border-radius: 10px; font-family: consolas, monospace; font-size: 99%;}
+[sep] {font-family: cursive; padding: 0 6px;}
+
+</style>
+
+<tile id="chromium-bugs.htm" highline="">
+
+	<h3>Issues in Chromium-based browsers</h3>
+	<img src="img/startNatCompMsg.png" align=right width=42% style="margin-left: 25px">
+	<hr b=2>
+	At present time, Google Chrome and all Chromium-based browsers contain a number of bugs that, when manifested, result in
+	a complete inability of the browser to start the <a href="native-component.htm">Native Component</a>.
+	
+	<hr b=5>
+	If you are stuck at the "Starting Native Component" message box, you may be affected by one of these bugs. See below for how to solve each one.
+	<hr b clr>
+	
+	<headLn><c bug>Issue #335558</c> &nbsp; <a rep href="https://bugs.chromium.org/p/chromium/issues/detail?id=335558">bug report</a></headLn>
+
+	The browser will fail to start the Native Component if the installation path contains an ampersand character (&)
+	or an at sign (@) plus spaces.
+	<hr b=3>
+	The install path looks like this: <br>
+	<c code>C:\Users\<c style=color:red>&lt;username&gt;</c>\AppData\Local\AutoControl\</c>
+	<hr b=3>
+	Make sure that: <br>
+	&nbsp; <b>»</b> &nbsp;There are no ampersands in it<br>
+	&nbsp; <b>»</b> &nbsp;If there's an @ sign, there must be no spaces (i.e. an @ sign without spaces is fine)
+	<hr b=5>
+	For example, the following path will trigger this bug: <hr b>
+	<c code>C:\Users\john smith@example.com\AppData\Local\AutoControl\</c> <hr b=3>
+	The only way to solve this issue is by changing your user name.
+
+
+	<hr b=3>
+	<headLn><c bug>Issue #387233</c> &nbsp; <a rep href="https://bugs.chromium.org/p/chromium/issues/detail?id=387233">bug report</a></headLn>
+	
+	The browser will fail to start the Native Component if the <a code href="https://en.wikipedia.org/wiki/COMSPEC">ComSpec</a> environment variable
+	is not set or has been changed from its default value of <c code>%SystemRoot%\system32\cmd.exe</c>,
+	where <c code>%SystemRoot%</c> is usually <c code>C:\Windows</c>.
+	<hr b=3>
+	In order to fix this, go to <c code style="font-family: inherit">Control Panel <b sep>></b> User Accounts and Family Safety <b sep>></b> User Accounts <b sep>></b> Change my environment variables</c>
+	<hr b>
+	<img src="img/envVars.png" center width=333>
+	<hr b=3>
+	Make sure the <c code>ComSpec</c> variable exists and is set to its <u>default value</u> either as a User variable or a System variable (or both). User variables override system variables.
+	<hr b>
+	Then, you must log out of your account and log in again for the change to take effect. Reboot is not needed.
+
+
+	<hr b=3>
+	<headLn><c bug>Issue #387228</c> &nbsp; <a rep href="https://bugs.chromium.org/p/chromium/issues/detail?id=387228">bug report</a></headLn>
+	
+	The browser will fail to start the Native Component if <a code href="https://en.wikipedia.org/wiki/Cmd.exe">cmd.exe</a> is configured to run always as Administrator from non-admin accounts.
+	<hr b=2>
+	To check if this is your case, open a command prompt by pressing <b>Win+R</b> and then type <c code>cmd</c> in the dialog box that shows up and press Enter. <br>
+	If you are asked for the Administrator password before the command window appears, then you are affected by this bug.
+	<hr b=2>
+	To fix the problem, <a href="https://support.microsoft.com/en-us/help/4027573/windows-10-open-registry-editor" rel=nofollow>open the Windows Registry</a>
+	and browse to the following key:
+	<hr b=2>
+	<c code style="font-size: 85%">HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers</c> <br>
+	<!--c code style="font-size: 72%">HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers</c-->
+	<hr b=4>
+	On the right pane, look for an entry like this: <hr b=2>
+	<img src="img/cmdAsAdmin.png" center>
+	<hr b=5>
+	Change the value <c code>RunAsAdmin</c> to <c code>RunAsInvoker</c>. If the entry is missing or the key path doesn't exist at all,
+	then you must create it (instructions <a href="https://www.thewindowsclub.com/create-a-registry-key-in-windows" rel=nofollow>here</a>
+	or <a href="https://www.minitool.com/news/create-change-delete-registry-key.html" rel=nofollow>here</a>). <br>
+	This fix will only affect the user account from which you are making the change.
+
+	<hr b=4>
+	<headLn><c bug>Unreported issue</c></headLn>
+	The browser will fail to start the Native Component if the command prompt's script processing has been disabled.
+	<hr b=2>
+	To check if this is your case, open a command prompt by pressing <b>Win+R</b> and then type <c code>cmd</c> in the dialog box that shows up and press Enter. <br>
+	If the command window shows a message similar to this: <hr b=2>
+	<img src="img/cmdDisabled.png" center width=550> <hr b=2>
+	then you are affected by this bug.
+	<hr b=2>
+	To fix the problem, <a href="https://support.microsoft.com/en-us/help/4027573/windows-10-open-registry-editor" rel=nofollow>open the Windows Registry</a>
+	and browse to the following key:
+	<hr b=2>
+	<c code style="font-size: 95%">HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Windows\System</c> <br>
+	<hr b=3>
+	On the right pane, look for the <c code>DisableCMD</c> entry: <hr b=2>
+	<img src="img/disableCMD.png" center>
+	<hr b=5>
+	Change its value to <c code>0</c> or <c code>2</c> (any of the two is fine).
+	If the entry is missing or the key path doesn't exist at all,
+	then you must create it (instructions <a href="https://www.thewindowsclub.com/create-a-registry-key-in-windows" rel=nofollow>here</a>
+	or <a href="https://www.minitool.com/news/create-change-delete-registry-key.html" rel=nofollow>here</a>). <br>
+	This fix will only affect the user account from which you are making the change.
+	
+	<hr b=6>
+</tile>
+
+</centerCol></content>	
+	<footer>
+		<cont>
+			<a href="https://groups.google.com/g/autocontrol_app">Forum</a> |
+			<a href="faq.htm">Frequent Questions</a> |
+			<a href="update-history.htm">What's New</a> |
+			<a href="donations.htm">Support the Project</a> |
+			<a href="privacy-policy.htm">Privacy Policy</a> |
+			<a onmouseover="this.href=atob([...'wBXYuw2byRnbvN2b0VXYAR3YhRnbvNmOvRHbpFWb'].reverse().join(''))">Contact Us</a>
+		</cont>
+	</footer>
+
+	</body>
+	</html>

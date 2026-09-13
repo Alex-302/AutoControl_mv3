@@ -22,6 +22,112 @@
 - Offscreen document hosts the background-script sandbox, so background
   scripts run even with the settings page closed; the same document provides
   audio playback.
+- Zone gate for mouse-over triggers (2026-09-03, extended 2026-09-12): the
+  bundled engine cannot classify the hovered region on Chrome 148+ (its hover
+  cache never refreshes over the tabs and MSAA queries from its input hook
+  deadlock). A tiny external helper (`ac_zone_helper`, a second native host,
+  no hooks) classifies the zone under the cursor from a normal process
+  context; the service worker asks it before executing any mouse-over-gated
+  trigger and skips the action when the real zone does not match the
+  trigger's regions. Wheel-over-tab-strip actions (e.g. reload the hovered
+  tab) now work without modifier keys while the page keeps its normal wheel
+  scrolling.
+  **2026-09-12 — all non-menu regions are now classified:** Browser window,
+  Web page, Title area, Browser tab, Tab's close button, Tab's speaker icon,
+  New tab button, Toolbar, Omnibox, Bookmark button and the Browser menu
+  button (position-based). The helper answers the whole SET of regions under
+  the cursor (hovering the address bar matches both "Omnibox" and "Toolbar" —
+  the engine evaluated every region independently), and the service worker
+  fires a trigger when the sets intersect. This closes the earlier "New tab
+  button does not work" report — the helper simply had no rule for it.
+  - **Tab's close button / New tab button / Browser menu button verified
+    working (2026-09-12).** The blocker was the ENGINE, not the helper: the
+    bundled engine still dropped the 750 for those regions (its own
+    classification fails over the tab strip), so the gate never saw the
+    trigger. The engine patch (v18) now accepts **every region below 60**
+    (all UI regions) while the AutoControl menu regions keep the engine's own
+    classification — the selectivity moved entirely into the service worker.
+    The "New Chrome available" update pill counts as the Browser menu button
+    (it occupies the kebab's slot in Chrome 150).
+  - **Title area now means the whole top band** (user report 2026-09-12): the
+    caption, the tabs, the omnibox and the toolbar — everything above the page,
+    exactly as the original UI illustrates it. Hovering a tab now matches
+    "Browser tab" AND "Title area"; the page never matches it.
+  - **Tab's speaker icon fixed** (user report 2026-09-12): Chrome does not
+    expose the icon to the accessibility hit test and the tab's own reported
+    rectangle is unreliable, so the old "left/right half of the tab" rule sent
+    the speaker icon to the CLOSE zone. The helper now scans the tab's
+    accessibility children (the mute button's rectangle contains the cursor)
+    and identifies the close button as the rightmost one.
+  - Zones are reported only for the browser that hosts the helper and only
+    while its accessibility tree is awake (a background heartbeat keeps it
+    awake; the tree sleeps after ~30 s of inactivity and everything then looked
+    like the title area).
+  - All 750s of ONE input burst now share a single helper answer (120 ms
+    cache): Chrome can scroll the tab strip between them, and the burst used
+    to see different regions for one physical wheel.
+  - ⚠ Testing note: restarting the browser makes the extension import
+    `settings.dat` into storage (original behaviour), replacing live test
+    triggers with the file's content.
+  - **Engine v19 — the zone decision moved into a zone TABLE (2026-09-12,
+    supersedes v18).** The v18 approach (accept every UI region in the engine,
+    filter in the service worker) turned out to also break input consumption:
+    the engine decides "consume the wheel or pass it through" with the SAME
+    check that v18 forced to true, so pages stopped scrolling whenever a
+    wheel trigger carried a mouse-over condition. The helper now writes a
+    small table into the engine's memory (one flag + 64 slots, one slot per
+    region) and the engine matches a region only when the helper says the
+    cursor is really over it — so the wheel scrolls the page as before and is
+    consumed only over the zone the trigger asks for. Verified with real
+    system input: page wheel scrolls (scrollY 800 → 1100 → 2100) with the
+    zone-12 trigger enabled and zero false trigger events; wheel over the tab
+    strip still fires it (pin/reload the hovered tab). If the helper is not
+    running, the engine falls back to the v18 behaviour, so zones never
+    regress into "nothing works". Menu-item regions keep the engine's own
+    classification.
+  - **All 12 "mouse over" areas verified in a live browser (2026-09-12,
+    user-tested).** Each area of the action editor was selected in a real
+    action and exercised with a physical wheel: Browser window · Web page ·
+    Title area · Browser tab · Tab's close button · Tab's speaker icon ·
+    New tab button · Toolbar · Omnibox · Bookmark button · Browser menu
+    button · Any menu item. Over the wrong area nothing happens (the wheel
+    keeps scrolling the page), over the right one the action runs — including
+    the address bar and the menu, which earlier test runs had wrongly
+    reported as unsupported (those runs were made while the native's mouse
+    hook was down after a forced engine restart; the conclusion was wrong and
+    has been corrected in the docs).
+  - **Zone helper no longer loses its table address** (2026-09-12): the first
+    table-writing build wrote the return instruction one byte too early, which
+    corrupted the table address inside the engine and made the engine skip the
+    lookup — zones looked dead while everything else worked. The helper now
+    also always allocates its own memory page instead of trusting the address
+    left over from a previous run.
+  - **The helper is started by the service worker** (2026-09-12): it used to
+    start only in response to a trigger, but the engine drops triggers for
+    regions it cannot classify — a chicken-and-egg circle that made zones look
+    dead after a fresh start. The worker now pings it every 2.5 s.
+  - **Both native parts can now be rebuilt bit-for-bit** (2026-09-12). The
+    patched engine is reproduced from the pristine original by a documented
+    byte patch (exactly 40 bytes: a jump at the classifier entry plus a code
+    cave in the `.text` tail padding) and the zone helper is rebuilt from its
+    C# source with a deterministic compiler — the build script verifies the
+    SHA-256 of both outputs, so "is this the binary we ship?" is one hash
+    comparison. The engine builder also refuses to run unless its input file
+    is byte-identical to the pristine original. Full recipe:
+    `Docs/BUILD-NATIVE.md`; one-command check:
+    `powershell -File Test/build_native.ps1`.
+  - **The deployed zone helper is now the reproducible build** (2026-09-12):
+    the repackaged helper binary produced by the deterministic compiler was
+    installed (the previous one was rebuilt by an older compiler that embeds
+    random identifiers, so it could not be reproduced from the source); the
+    old file is kept next to it as `ac_zone_helper.exe.bak-493A7276`. The
+    running helper was verified again in the browser afterwards (tab, address
+    bar and page all classify as before).
+  Helper source: `Test/ac_zone_helper.cs` (build recipe in
+  `Docs/BUILD-NATIVE.md` §A); engine patch builder: `AutoControl_native/patches/patch_zones_v19.js` (supersedes
+  `patch_zones_v18.js`); registration and the
+  gate internals are in `Docs/archive/NATIVE-REVERSING-2026-08-31.md` §13 and
+  `Docs/TODO-mouseover-zones.md` §2g.
 
 #### Native component
 
@@ -45,6 +151,27 @@
   input hooks (conflict with another program), the user gets a notification
   with buttons ("Don't show again" / "Keep showing") instead of silence;
   engine crash counters and the install-age gate are preserved.
+- Hover-region (mouse over …) conditions on Chrome 148+ — MSAA tree
+  activation (Chrome requires honey-pot + accName, crbug 416429182) was
+  investigated and implemented as an engine patch (v2–v4, `Test/patch_accname.js`,
+  which also added the optional type-792 no-click zone probe; see
+  `Docs/archive/NATIVE-REVERSING-2026-08-31.md` §9). **CORRECTION
+  (2026-09-13):** that patch is NOT part of the shipped fix — the deployed
+  engine is the v19 zone-table build, and the accessibility tree is kept awake
+  by the ZONE HELPER, which queries `get_accName` itself on every
+  classification. The 792 diagnostics therefore require a separate
+  `patch_accname.js` build.
+- Hover-region diagnostics on Chrome 150 (2026-09-01/02): the tab-strip
+  region (12) cannot be made selective on this Chrome — the engine never
+  sees a tab element (its hover cache tracks the page window only), so the
+  tab strip classifies as the page. Root cause and every patch attempt are
+  recorded in `Docs/archive/NATIVE-REVERSING-2026-08-31.md` §10. The
+  classifier is proven patchable (a test build fired wheel actions over the
+  whole window), but zone-12 selectivity needs a geometric classifier or a
+  new engine; both are future work. Operational note: after a Chrome
+  restart the config (native message 60) is only sent when a settings page
+  is opened — without it, no triggers fire anywhere; force it via the CDP
+  eval documented in AGENTS.md.
 
 #### Scripting engine (Run Script / ACtl)
 
@@ -111,6 +238,35 @@
 
 #### Triggers & actions
 
+- **An action with several combinations was gated by the wrong region**
+  ("Alt + wheel does nothing unless I add a mouse-over condition",
+  2026-09-13). The native reports *which action* fired, not which of its
+  combinations matched, so when one combination carried a "mouse over …"
+  condition that region was applied to **all** combinations of the action:
+  "Left Alt + Vert. Wheel" refused to fire except over the sibling
+  combination's region — and adding a wide condition ("mouse over Browser
+  window") appeared to fix it, because that region matches almost everywhere
+  over the browser. A combination *without* a mouse-over condition now exempts
+  the whole action from the region check (the engine still applies the region
+  decision for the combinations that carry one). Disabled action groups no
+  longer influence the check either — they are not even sent to the engine.
+- **With two browsers running, "mouse over" conditions were treated as
+  "always satisfied" in one of them** ("wheel over the page switches tabs",
+  with no such action configured, 2026-09-13). Every browser gets its own copy
+  of the native engine, and every engine keeps its own region table — but the
+  zone helper always talked to the *first* engine it found, so one browser's
+  engine never received a table and fell back to the built-in "every region
+  matches" behaviour. The helper now locates the engine that belongs to *its*
+  browser (by the window list every engine keeps for its own browser) and never
+  writes into another browser's engine. The own-window check was fixed in the
+  same change — it had been inactive because the helper's parent process is a
+  launcher (`cmd.exe`) rather than the browser itself.
+- **"Left Alt" is not the only workable Alt chip** (checked 2026-09-13 while
+  investigating the wheel report, then corrected): the generic "Alt" (and
+  "Ctrl"/"Shift") chips fire on a physical key exactly like the "Left …" /
+  "Right …" chips do, so an existing shortcut does not need to be re-created.
+  (An earlier note in this batch claimed the opposite — it had been derived
+  from *synthetic* key input, which behaves differently from a real keyboard.)
 - **Ctrl+Tab "Smart switching" no longer opened the tab list after a
   reload.** The imported action set ("Smart Ctrl+Tab switching" from the
   site) is built on menu-state conditions: the tab menu must be *closed*
@@ -141,12 +297,13 @@
   gesture-state condition), and user override entries are left intact.
   Verified with a real right-click: the menu stays closed, the trigger
   still fires, the left button works normally afterwards, and nothing
-  fires spontaneously. Note: hover ("mouse over …") conditions on
-  triggers are broken on Chrome 148+ at the native level (the native
-  ignores them entirely — an a11y hit-test regression that affects the
-  original MV2 extension on this Chrome version too; on Edge the MV2
-  extension still works, which is why the report only appeared on the
-  MV3 port).
+  fires spontaneously. Note: at that time hover ("mouse over …") conditions
+  on triggers did not fire on Chrome 148+ at the native level (an a11y
+  hit-test regression that affects the original MV2 extension on this Chrome
+  version too; on Edge the MV2 extension still works, which is why the report
+  only appeared on the MV3 port). SOLVED later the same day by the patched
+  engine + the zone helper — see the "Zone gate for mouse-over triggers"
+  entry above and `Docs/TODO-mouseover-zones.md`.
 - **Pin/unpin (and mute) actions only worked on every other click** —
   the action read the tab state from the extension's internal tab cache,
   which is refreshed by an asynchronous window re-enumeration gated by a
@@ -162,6 +319,17 @@
   instantly on the next editor action. (The initial one-minute threshold
   proved too aggressive — a pause of over a minute in the gesture tester
   released the recording session; the threshold is five minutes.)
+- **Mouse-wheel actions (and any native trigger) could silently stop
+  working after editing another action in the settings** — the trigger
+  ids the native sends were decoded with a stale daily offset. The
+  service worker re-stamped the offset on every config refresh (including
+  the one that follows any settings save), so after midnight it drifted a
+  day from the value the native actually encodes with — every incoming
+  trigger decoded to a wrong id and the action never ran (while the logs
+  claimed it was executing). The worker now re-syncs the offset at the
+  handshake and right before every trigger dispatch, so a config edit can
+  no longer desynchronize it. Verified over 5 hours of live use, including
+  repeatedly toggling actions on and off.
 
 #### Settings File Editor
 
@@ -303,6 +471,83 @@
 
 ### Changed
 
+#### Repository layout (native side)
+
+- `AutoControl_native/` is now split by *role* instead of being one flat pile of
+  exes — `original/` (untouched upstream binaries: the engine and the
+  `AutoControlZero.exe` launcher), `patched/` (the current build you install:
+  `AutoCtrl_2025.4.22.0.v19.exe`) and `patches/` (the script that turns the
+  original into the current build). The host manifests and the zone helper stay
+  at the folder root. New `AutoControl_native/README.md` explains which file is
+  which; `patches/README.md` documents the one-command rebuild.
+- The patch script now reads the original **from the repository**
+  (`AutoControl_native/original/`) instead of the deployed backup in
+  `%LOCALAPPDATA%`, so a clean checkout can rebuild the current engine; the
+  deployed backup is still accepted as a fallback. `Test/build_native.ps1`
+  verifies the same bit-for-bit hashes and can refresh `patched/`
+  (`-UpdatePatched`). Its optional legacy flag (`v16`) is now parsed as a flag
+  in any position instead of being mistaken for an input path.
+- Removed three superseded engine builds from the repository
+  (`…exe.patched-v3`, `…patched-v4`, `…patched-v4-diag` — the experiment-3/4
+  line, replaced by the v19 zone-table build; ~2 MB of dead binaries). The
+  deploy helper no longer takes `-Diag`/`-NoDiag`: it defaults to `patched/`
+  and refuses unknown binaries unless `-Force` is passed.
+- The Ghidra decompiler export of the engine (`Test/native-disasm/`, ~1 940
+  files) is documented instead of being an undocumented dump — see its new
+  `README.md` (which function answers which question, how to regenerate it).
+- The engine patch ships with a **proof of safety** that its injected bytes
+  mean exactly what the documentation says: `Test/patch_bytes_verify.js` decodes
+  them with an independent decoder, checks every branch target and verifies that
+  no byte outside the three documented ranges differs from the original; a
+  Ghidra disassembly of the same bytes is stored next to the patch
+  (`AutoControl_native/patches/ghidra-disasm.txt`) and the two agree on all 34
+  instructions. The test suite runs the proof and also mutates the binary to
+  make sure the proof actually rejects bad bytes.
+  - **The proof is now complete and cannot degrade silently (2026-09-13):**
+    a missing pristine original is an error instead of a silently skipped
+    half-proof, the default original is hash-checked, and `--no-diff` has to be
+    passed explicitly (the result is then reported as `PROOF HOLDS (PARTIAL)`,
+    never as a full proof). The helper code that rewrites the cave at runtime is
+    no longer only *simulated* by the verifier: the suite rebuilds it from the
+    helper's own source and compares it byte for byte, and it parses the stored
+    Ghidra listing and compares it with the current build — a stale listing or
+    helper drift fails the suite.
+  - The ABI the trampoline relies on (which register carries the region, that
+    the caller cleans the pushed argument, that the matcher's answer is returned
+    unchanged, that no indirect reference to the matcher exists anywhere in the
+    binary) is documented instruction by instruction, not only via the
+    decompiler. The ABI audit is now a **check** rather than a printout: it
+    exits non-zero unless the code cave lands in real data inside a mapped,
+    executable page and the matcher provably has a single direct caller — the
+    two assumptions the patch would silently depend on otherwise.
+
+#### Repository layout (extension & tooling)
+
+- **The regression harness moved out of the extension folder** (2026-09-13):
+  `mv3-build/mh_test.js` → `Test/mh_test.js`. `mv3-build/` is the shipped
+  artifact (it is loaded as the unpacked extension and packaged as-is), so it
+  must contain nothing but the files the extension actually loads — development
+  tooling lives in `Test/`. The harness itself is unchanged: it still loads
+  `sw_core_bundle.js` from `mv3-build/`, and its checks are the same 102 ones
+  (including the new B54 for the removed donation/rating UI). Run it with
+  `node Test/mh_test.js`.
+
+#### Settings UI
+
+- The five hover-region options no longer carry the `⚠ (broken in Chrome 148+)`
+  suffix (`mv3-build/file68.js`): with the patched engine plus the zone helper
+  all 12 regions work, so the mark was stale (it was added when the engine could
+  not classify the browser chrome at all). A plain installation — the bundled
+  UNPATCHED engine — still needs `Test/deploy_patched_engine.ps1`; that is
+  documented in `README.md` §4.4 instead of a suffix in the UI. Reload the
+  settings page (or the extension) to pick the change up.
+- **The donation and rating prompts are removed.** The settings tab bar no longer
+  shows the "Support the project" button (it opened a PayPal / Buy Me a Coffee
+  panel) and the **Help** tab no longer shows the "Did you like AutoControl?"
+  box with its Web Store rating link. The upstream project is abandoned.
+
+#### Native component
+
 - **Telemetry is off by default** — the original always sent anonymous usage
   data; nothing is sent until the user enables the new checkbox in Advanced
   Options.
@@ -321,11 +566,53 @@
   the worker; the floating popup windows are filled by injecting content
   into the popup page (service-worker-safe equivalent of the original).
 
+#### Project site & documentation
+
+- The manifest's `homepage_url` now points to the **site mirror**
+  (<https://alex-302.github.io/AutoControl_mv3/>) — the original
+  `autocontrol.app` domain is dead.
+- `README.md` gains §1.1, the **original Chrome Web Store description** of the
+  abandoned extension, kept for reference: every link in it points to the
+  mirror, and the one claim that no longer matches the port ("no code
+  injection") was reworded to how the MV3 build actually works.
+- The README headline is now the extension's **original store name**
+  (`AutoControl: Keyboard shortcuts, Mouse gestures`), with the
+  port/installation framing kept as a subtitle line below it.
+- The dead **Chrome Web Store link** in the README is replaced by the archived
+  snapshot of the listing, labelled "(archived)" — no dead store URL is kept.
+- **The settings help links now work again**: every documentation link in the
+  extension's tooltips/help (FAQ, triggers, actions, MRU tabs, scripting API,
+  hover-sensitive shortcuts, …) pointed at the dead `autocontrol.app` and led
+  nowhere; they now open the corresponding page of the site mirror. Two links
+  have no mirror copy and stay dead by design: the "Chromium bugs" page and the
+  installer download (`Native-Component.exe` — the port installs the native
+  component from its own bundle instead).
+- The "Chromium bugs" help page, missing from the site copy, was **restored into
+  the mirror** from a 2023 Wayback Machine snapshot (the archive toolbar is not
+  part of the restored page).
+- On the mirror's home page the **"Release RAM without closing tabs"** article
+  is listed again — upstream had the entry commented out (and pointed at an
+  extension-less absolute path); it now uses the same relative `…​.htm` form as
+  its neighbours.
+- The **Help tab** now also lists *Release RAM without closing tabs* among its
+  articles (the same page the *Unload tabs* action's help bubble links to).
+- **The in-settings demo player became a list of links.** The step-by-step
+  animations (Help → *Show demos*, and the *See a quick demo* tip in the Actions
+  pane) loaded their screenshots from the now-dead project site, and those
+  screenshots were never archived — the player could only spin on a missing
+  image. The three entries now open the matching pages of the site mirror
+  (triggers, hover-sensitive shortcuts, determining the hovered element).
+
 ### Known limitations
 
-- Hover regions "Browser tab", "Tab's close button", "Tab's speaker icon",
-  "New tab button" and "Any menu item" are broken in Chrome 148+ — a
-  native-side regression that affects MV2 identically; the UI marks them.
+- Hover regions need the **patched engine + the zone helper** (see the
+  "Zone gate" entry above). With the bundle's own engine (no patch) the chrome
+  regions — "Browser tab", "Tab's close button", "Tab's speaker icon",
+  "New tab button", "Toolbar", "Omnibox", "Bookmark button", "Browser menu
+  button", "Any menu item" — do not fire at all; that is an engine-side
+  regression on Chrome 148+ (identical in MV2), not a port loss. The port's
+  fix is a byte patch of the engine plus a small external classifier, so it
+  must be installed on top of the normal native installation.
 - "Run code in page" nested inside a subframe function executes in the top
   frame (rare compound scenario).
 - Scripts cannot run on protected pages (platform restriction, same in MV2);

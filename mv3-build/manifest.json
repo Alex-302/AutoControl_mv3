@@ -5,7 +5,7 @@
   "manifest_version": 3,
   "description": "Customize keyboard shortcuts and hotkeys, Mouse gestures, Wheel gestures, Rocker gestures, Bookmark shortcuts, Joystick actions.",
   "minimum_chrome_version": "140",
-  "homepage_url": "https://www.autocontrol.app",
+  "homepage_url": "https://alex-302.github.io/AutoControl_mv3/",
   "options_ui": {
     "page": "main.html",
     "open_in_tab": true
