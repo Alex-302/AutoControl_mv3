@@ -238,6 +238,35 @@
 
 #### Triggers & actions
 
+- **An action with several combinations was gated by the wrong region**
+  ("Alt + wheel does nothing unless I add a mouse-over condition",
+  2026-09-13). The native reports *which action* fired, not which of its
+  combinations matched, so when one combination carried a "mouse over …"
+  condition that region was applied to **all** combinations of the action:
+  "Left Alt + Vert. Wheel" refused to fire except over the sibling
+  combination's region — and adding a wide condition ("mouse over Browser
+  window") appeared to fix it, because that region matches almost everywhere
+  over the browser. A combination *without* a mouse-over condition now exempts
+  the whole action from the region check (the engine still applies the region
+  decision for the combinations that carry one). Disabled action groups no
+  longer influence the check either — they are not even sent to the engine.
+- **With two browsers running, "mouse over" conditions were treated as
+  "always satisfied" in one of them** ("wheel over the page switches tabs",
+  with no such action configured, 2026-09-13). Every browser gets its own copy
+  of the native engine, and every engine keeps its own region table — but the
+  zone helper always talked to the *first* engine it found, so one browser's
+  engine never received a table and fell back to the built-in "every region
+  matches" behaviour. The helper now locates the engine that belongs to *its*
+  browser (by the window list every engine keeps for its own browser) and never
+  writes into another browser's engine. The own-window check was fixed in the
+  same change — it had been inactive because the helper's parent process is a
+  launcher (`cmd.exe`) rather than the browser itself.
+- **"Left Alt" is not the only workable Alt chip** (checked 2026-09-13 while
+  investigating the wheel report, then corrected): the generic "Alt" (and
+  "Ctrl"/"Shift") chips fire on a physical key exactly like the "Left …" /
+  "Right …" chips do, so an existing shortcut does not need to be re-created.
+  (An earlier note in this batch claimed the opposite — it had been derived
+  from *synthetic* key input, which behaves differently from a real keyboard.)
 - **Ctrl+Tab "Smart switching" no longer opened the tab list after a
   reload.** The imported action set ("Smart Ctrl+Tab switching" from the
   site) is built on menu-state conditions: the tab menu must be *closed*

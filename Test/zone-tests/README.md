@@ -30,6 +30,16 @@ zone.
      v18 behaviour (helper-down) while you run it. For zone work use the v19
      build above.
    - original pristine: `AutoControl_native/original/` = `8ae9a669…`.
+1b. **Helper build**: deployed since 2026-09-13 is `091627630D…` (17408 bytes,
+    deterministic Roslyn build). Two things about it matter for testing:
+    * with **several browsers** running there are several engines, and the
+      helper writes only into the engine that tracks **its own** browser's
+      windows (do NOT expect `pids[0]`); if it cannot tell, it logs
+      `waiting: none of the N engines belongs to browser <pid>` and writes
+      nothing — check `%TEMP%\ac_zone_helper.log` before blaming a zone.
+    * the engine **ignores injected input** (`LLMHF_INJECTED`) for its hover
+      cache, so a synthesized wheel may be judged against the previous hover
+      position. Prefer the physical mouse + `node Test/ac_swlog_act.js`.
 2. **Chrome SxS with CDP** (the only supported test browser):
    ```powershell
    Start-Process "$env:LOCALAPPDATA\Google\Chrome SxS\Application\chrome.exe" `

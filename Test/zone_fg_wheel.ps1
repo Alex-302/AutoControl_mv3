@@ -5,13 +5,23 @@
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File Test\zone_fg_wheel.ps1 -Hwnd 773928210 -Point "1200,700" -Notches 3
-#   (find the HWND with Test\zone_wininfo.ps1)
+#   powershell -ExecutionPolicy Bypass -File Test\zone_fg_wheel.ps1 -Hwnd 773928210 -Point "1200,700" -Notches 3 -Alt
+#   (find the HWND with Test\zone_window_binding.ps1 / Test\window_at_point.ps1)
+#
+# -Alt holds LEFT ALT around the wheel notches (vk 0x12 by default; -AltVk 164
+# injects the concrete VK_LMENU). ⚠ The ENGINE IGNORES INJECTED INPUT for its
+# hover cache (`LLMHF_INJECTED`): a synthetic wheel right after SetCursorPos may
+# be judged against the PREVIOUS hover position, so for zone conclusions use the
+# physical mouse (+ `node Test/ac_swlog_act.js`). -Alt is still useful for
+# testing modifier conditions and for reproducing a user report in bulk.
 param(
   [int]$Hwnd = 0,
   [string]$Point = "1200,700",
   [int]$Notches = 3,
   [int]$Delta = -120,
-  [int]$SettleMs = 800
+  [int]$SettleMs = 800,
+  [switch]$Alt,
+  [int]$AltVk = 0x12
 )
 Add-Type @"
 using System;
@@ -58,8 +68,17 @@ Start-Sleep -Milliseconds $SettleMs
 Write-Output "moved to $($xy[0]),$($xy[1])"
 
 $dw = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int]$Delta), 0)
+if ($Alt) {
+  [ZFW]::keybd_event([byte]$AltVk, 0, 0, [UIntPtr]::Zero)   # ALT down
+  Start-Sleep -Milliseconds 250
+  Write-Output "Alt held (vk=$AltVk)"
+}
 for ($i = 0; $i -lt $Notches; $i++) {
   [ZFW]::mouse_event(0x0800, 0, 0, $dw, [UIntPtr]::Zero)   # MOUSEEVENTF_WHEEL
   Start-Sleep -Milliseconds 140
+}
+if ($Alt) {
+  [ZFW]::keybd_event([byte]$AltVk, 0, 2, [UIntPtr]::Zero)   # ALT up
+  Write-Output "Alt released (vk=$AltVk)"
 }
 Write-Output "wheel delta=$Delta ticks=$Notches done"

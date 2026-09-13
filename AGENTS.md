@@ -66,8 +66,15 @@ This includes comments, log strings, and error messages in `sw.js`,
   clean**), `SCRIPTING-API-TEST.js` (in-browser API
   self-test), `AutoControl-settings-test.acs` (settings snapshot for mh_test),
   the zone tools (`ac_zone_helper.cs`, `zone_add_test.js`, `zone_probe.ps1`,
-  `zone_fg_wheel.ps1`, `zone_e2e_test.ps1`, `engine_zone_write.ps1`,
+  `zone_fg_wheel.ps1` — now with `-Alt`/`-AltVk` for modifier tests,
+  `zone_e2e_test.ps1`, `engine_zone_write.ps1`,
   `deploy_patched_engine.ps1`, `build_native.ps1`),
+  the diagnostics added 2026-09-13 (`acs_audit.js` — hidden/invisible actions +
+  un-scoped wheel combos in an .acs; `engine_window_binding.ps1` — which browser
+  each running engine belongs to, by its internal window list;
+  `window_at_point.ps1` — what window/application is under a screen point;
+  `native_process_chain.ps1` — ancestor chains of the native processes, and why
+  the engine's own chain is useless for the binding question),
   the SW-console readers (`ac_swlog_dump.js`, `ac_swlog_act.js`,
   `ac_swlog_record.js`), `zone-tests/` (the zone regression suite + its
   `README.md`) and `native-disasm/` (Ghidra decompiler export of the engine —
@@ -116,7 +123,7 @@ This includes comments, log strings, and error messages in `sw.js`,
      (`--orig <pristine.exe>` for another original, `--no-diff` only if you
      deliberately accept `PROOF HOLDS (PARTIAL)`).
   2. `powershell -File Test/build_native.ps1` → both hashes OK
-     (engine `1A10EDD1…`, helper `6988B49B…`).
+     (engine `1A10EDD1…`, helper `091627630D…`).
   3. `node Test/mh_test.js` → B53b–B53g `[PASS]`: CLI + determinism,
      docs == bytes, the decoder proof, its mutation (teeth) test, the helper
      writer == the verifier's simulation, the Ghidra listing == the build.
@@ -702,6 +709,19 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   (~100-200ms apart); they may be duplicates or INDEPENDENT actions. The
   companion is dropped ONLY when the action signature matches (300ms window,
   different id).
+- **Modifier chips: the generic "Alt"/"Ctrl"/"Shift" (vk 18/17/16) work
+  too — do NOT trust the earlier "they never match" claim** (that came from
+  SYNTHETIC input, see the injected-input caveat below). The engine holds BOTH
+  the concrete code the LL hook delivers (left Alt = 164 / VK_LMENU, right = 165;
+  left Ctrl = 162, right = 163) and the logical key state, and how a compiled
+  condition is evaluated depends on the entry's method flag — `FUN_00413170`
+  either reads the hook's key map (`key & 0x3ff`) or calls
+  `GetKeyState(nVirtKey) & 1`, where `VK_MENU` (18) is set by any Alt.
+  VERIFIED LIVE 2026-09-13 (user's own hand): a config carrying `keyEvt:18`
+  fired on a physical Alt+wheel (`TRIG trigger=5/6`), and `keyEvt:17` on Ctrl
+  is used by the MRU triggers. The earlier "18 never fires" result was measured
+  with `keybd_event`/`mouse_event`, which the engine does not treat like real
+  input. Bundle's name table: `[[18,"Alt"],[164,"Left Alt"],[165,"Right Alt"]]`.
 - **Action-queue watchdog** — hook the bundle's `__acLog` DIRECTLY
   (`t === 'OK'` is the exact completion marker; `__acLog` is a top-level
   function declaration → classic-script global, reassignment from sw.js is
@@ -829,7 +849,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   the engine's own logic (menu regions). The build itself ships the
   "always match" prefix (variant A) so an engine started without the helper
   behaves like v18; the helper rewrites bytes `0x00..0x1B` within ~1 s of the
-  first classification. Deployed engine hash `1A10EDD1…`, helper `6988B49B…`
+  first classification. Deployed engine hash `1A10EDD1…`, helper `091627630D…`
   (deterministic build; the previous non-reproducible legacy build is kept as
   `ac_zone_helper.exe.bak-493A7276` in the data dir).
   (rebuild: `powershell -File Test/build_native.ps1 -UpdatePatched`, deploy with
@@ -862,6 +882,27 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   ⚠ Several browsers share ONE engine file — if another browser runs the
   extension its engine LOCKS the file: kill the engines and copy in the same
   loop (the deploy script stops only Chrome SxS by design).
+  ⚠ **SEVERAL BROWSERS RUNNING = SEVERAL ENGINES — the helper MUST bind to
+  ITS OWN (FIXED 2026-09-13, helper `091627630D…`).** Every browser spawns its
+  own `AutoControlZero`→engine pair and each engine keeps its OWN zone table.
+  The helper used to take `FindEnginePids()[0]` ("the first engine"), so with
+  two browsers open BOTH helpers wrote into the SAME engine while the other one
+  kept the FILE fallback (`mov eax,1` = "every region matches") → its mouse-over
+  conditions were satisfied EVERYWHERE: "wheel over the page switches tabs"
+  (user report 2026-09-13) and "Alt+wheel needs a zone condition to work".
+  The fix: the helper identifies its engine by the window list EVERY engine
+  keeps for its own browser (image base `+0xA2514`, `std::vector<HWND>` — the
+  region matcher's only caller walks exactly that list), and a provably FOREIGN
+  engine is never written (the helper logs `waiting: none of the N engines
+  belongs to browser <pid>` and retries on the next 2.5 s ping). Do NOT
+  "simplify" this back to `pids[0]`. ⚠ The process chain cannot tell the
+  engines apart — Zero is a launcher: it hands its pipes to the engine and
+  EXITS, so the engine's parent is always dead for every browser.
+  ⚠ Same fix, second half: `browserPid` (the "own window" gate) is now found
+  by walking UP the ancestor chain — the helper's direct parent is `cmd.exe`
+  (browser → cmd → helper), so before 2026-09-13 `browserPid` was 0 and the
+  gate was silently INERT (zones were reported over ANY window, VS Code
+  included).
   ⚠ A browser RESTART makes the extension import `settings.dat` into storage
   (MV2 startup behaviour) — live test triggers are replaced by the file's
   content.
@@ -875,6 +916,17 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   wheel!) so the burst saw different zones (zone 15 → 12 → skipped, "wheel
   over the close button does nothing"). One helper answer is now shared per
   burst.
+  (c) **an action whose combos DIFFER must not be judged by its siblings'
+  zones** (2026-09-13): the native's 750 names the ACTION, not the combo that
+  matched (`Docs/NATIVE_PROTOCOL.md` §5), so regions collected from ALL combos
+  used to gate every 750 of that action — "Left Alt + Vert. Wheel" next to
+  "Vert. Wheel over Browser tab" fired ONLY over that zone (and adding "mouse
+  over Browser window" "fixed" it, because zone 1 is in almost every helper
+  answer). Now a combo WITHOUT a mouse-over condition marks the whole action
+  `__acZoneFree` → dispatch without asking the helper; the engine still applies
+  the region decision for the zone-scoped combos (v19 reads the same helper
+  table). `disabled` groups are skipped while building the map (they are not
+  compiled into type 60 either). Harness: B55/B55b.
   ✅ **MENU ITEMS (region 40 = "Any menu item") — VERIFIED WORKING (2026-09-12,
   user-tested).** The precond compiles to `{type:14,"value":40}`; v19 routes
   `edx >= 0x28` to the engine's own code (`jae ORIG`), so menu items are NOT
@@ -967,6 +1019,9 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   ⚠ The zone MAP in sw.js is rebuilt live on `storage.onChanged`
   (2026-09-03) — a stale map made zone-gated triggers silently dead after
   config edits; the map is also rebuilt at SW start.
+  ⚠ Since 2026-09-13 that map also records `__acZoneFree` (an action with a
+  combo WITHOUT mouse-over) and an inconsistent/stale lookup no longer gates
+  such an action — the real gate rule is the (c) bullet above.
   ⚠ **NEVER give a CDP-created test trigger a `sctnId` that the settings do
   not have** (2026-09-12, cost a long "phantom action" hunt). The settings UI
   renders actions per SECTION tab; a trigger whose `sctnId` is missing from

@@ -395,11 +395,56 @@ public static class ZoneHelper {
   // overwrites its prefix with the table version (absolute addresses computed
   // from the live module base, so Windows ASLR is handled).
   private const long CAVE_RVA = 0x7F7A3;   // zero padding in .text (v19 cave)
+  // std::vector<HWND> of the windows the engine tracks = the windows of ITS
+  // OWN browser (VA 0x004a2514..0x004a2518; the region matcher's only caller
+  // walks exactly this list - see Test/native-disasm/decomp/00415b40_FUN_00415b40.c).
+  private const long WINS_RVA = 0xA2514;   // 0x004a2514 - image base 0x400000
   private const int ORIG_BLOCK = 0x1C;     // offset of the untouched original bytes
   private const int TABLE_SLOTS = 64;      // regions 0..63 (>= 40 = menu, engine's own)
   private static uint engPid = 0;
   private static long engTable = 0;
   private static long engCave = 0;
+
+  // Which engine belongs to MY browser? 2026-09-13, user report "wheel over the
+  // page switches tabs": with SEVERAL browsers running there are SEVERAL engines
+  // and the old rule `pids[0]` made EVERY helper write into the same one - the
+  // other browser's engine kept the file fallback ("always match"), so its
+  // mouseOver conditions matched EVERYWHERE. The process tree cannot tell them
+  // apart (AutoControlZero is a launcher: it hands the pipes to the engine and
+  // exits, so the engine's parent is always dead), but the engine itself knows:
+  // it tracks the windows of its own browser. Bind by that list.
+  // Returns true only when a window of MY browser is in the engine's list;
+  // `known` = false means "could not tell" (empty list, fresh engine, or no
+  // browser ancestor at all - e.g. the standalone probes).
+  private static bool EngineIsMine(uint pid, out bool known) {
+    known = false;
+    if (browserPid == 0) return false;
+    IntPtr h = OpenProcess(0x410 /* QUERY_INFORMATION | VM_READ */, false, pid);
+    if (h == IntPtr.Zero) return false;
+    try {
+      long baseAddr = ModuleBaseOf(pid);
+      if (baseAddr == 0) return false;
+      byte[] hdr = new byte[8];
+      IntPtr got;
+      if (!ReadProcessMemory(h, (IntPtr)(baseAddr + WINS_RVA), hdr, (IntPtr)8, out got)) return false;
+      long p0 = BitConverter.ToUInt32(hdr, 0), p1 = BitConverter.ToUInt32(hdr, 4);
+      if (p1 <= p0) return false;                      // empty -> unknown
+      int n = (int)((p1 - p0) / 4);
+      if (n <= 0 || n > 512) return false;
+      byte[] arr = new byte[n * 4];
+      if (!ReadProcessMemory(h, (IntPtr)p0, arr, (IntPtr)(n * 4), out got)) return false;
+      known = true;
+      for (int i = 0; i < n; i++) {
+        uint hw = BitConverter.ToUInt32(arr, i * 4);
+        if (hw == 0) continue;
+        uint wp;
+        GetWindowThreadProcessId((IntPtr)hw, out wp);
+        if (wp == browserPid) return true;
+      }
+      return false;
+    } catch { return false; }
+    finally { CloseHandle(h); }
+  }
 
   private static int[] FindEnginePids() {
     IntPtr snap = CreateToolhelp32Snapshot(0x00000002 /* SNAPPROCESS */, 0);
@@ -459,10 +504,38 @@ public static class ZoneHelper {
    try {
     int[] pids = FindEnginePids();
     if (pids.Length == 0) { Log("no engine process"); engPid = 0; engTable = 0; engCave = 0; return; }
-    uint pid = (uint)pids[0];
+    // Pick MY engine (2026-09-13). Rule order:
+    //  1. an engine already bound to me stays bound (only MY engine can pass
+    //     the window test, so the binding is trustworthy - but re-check it when
+    //     its window list is readable);
+    //  2. otherwise take the engine that tracks MY browser's windows;
+    //  3. a single engine is unambiguous even while its list is still empty;
+    //  4. never write into an engine that provably belongs to another browser -
+    //     wait for the next request instead (the SW pings every 2.5 s).
+    uint pid = 0;
+    if (engPid != 0 && engCave != 0) {
+      for (int i = 0; i < pids.Length; i++) {
+        if ((uint)pids[i] != engPid) continue;
+        bool known;
+        if (EngineIsMine(engPid, out known) || !known) pid = engPid;
+        else Log("DROP binding to pid " + engPid + ": its windows belong to a different browser");
+      }
+    }
+    if (pid == 0) {
+      for (int i = 0; i < pids.Length; i++) {
+        bool known;
+        if (EngineIsMine((uint)pids[i], out known)) { pid = (uint)pids[i]; break; }
+      }
+    }
+    if (pid == 0 && pids.Length == 1) pid = (uint)pids[0];
+    if (pid == 0) {
+      Log("waiting: none of the " + pids.Length + " engines belongs to browser " + browserPid +
+          " (or the list is not ready yet) - not writing a foreign engine");
+      return;
+    }
     // (re)initialise when the engine restarted
     if (pid != engPid || engCave == 0) {
-      Log("init for pid " + pid + " (engines: " + pids.Length + ")");
+      Log("init for pid " + pid + " of my browser " + browserPid + " (engines: " + pids.Length + ")");
       engPid = pid; engTable = 0; engCave = 0;
       IntPtr h0 = OpenProcess(0x438 /* QUERY|VM_OP|VM_READ|VM_WRITE */, false, pid);
       if (h0 == IntPtr.Zero) { Log("OpenProcess failed: " + Marshal.GetLastWin32Error()); return; }
@@ -596,14 +669,23 @@ public static class ZoneHelper {
     // The zone-30 position rule compares both - make the process aware so
     // every coordinate is physical (found 2026-09-12).
     try { SetProcessDPIAware(); } catch { }
-    // The browser that spawned us (native hosts are children of the browser
-    // process) - used to ignore windows of other applications. Applied only
-    // when the parent really is a browser: the standalone smoke test and the
-    // zone probes spawn this exe from node.
+    // The browser that spawned us. The native-host chain is
+    //     browser -> cmd.exe -> this exe
+    // (Chrome's launcher inserts the cmd), so walk UP until a browser-named
+    // process appears - the direct parent is cmd.exe, which is why this used to
+    // end up as 0 and the own-window gate was silently inert (found 2026-09-13
+    // while fixing the multi-browser engine binding). Applied only when such an
+    // ancestor exists: the standalone smoke test and the zone probes spawn this
+    // exe from node/powershell and must keep the gate off.
     try {
-      string pname;
-      uint ppid = FindParent((uint)System.Diagnostics.Process.GetCurrentProcess().Id, out pname);
-      browserPid = IsBrowserName(pname) ? ppid : 0;
+      uint cur = (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
+      for (int lvl = 0; lvl < 8; lvl++) {
+        string pname;
+        uint ppid = FindParent(cur, out pname);
+        if (ppid == 0 || string.IsNullOrEmpty(pname)) break;
+        if (IsBrowserName(pname)) { browserPid = ppid; break; }
+        cur = ppid;
+      }
     } catch { browserPid = 0; }
     // Background heartbeat: keeps Chrome's a11y tree awake + warms the cache.
     try {

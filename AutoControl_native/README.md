@@ -23,7 +23,7 @@ AutoControl_native/
 │                                          (name "hrich.autocontrol", path "AutoControlZero.exe")
 ├── com.autocontrol.zonehelper.json    <- native-host manifest of the ZONE HELPER
 ├── ac_zone_helper.exe                 <- OUR OWN binary: zone classifier (no hooks)
-│                                          current build: 6988B49B…, built from
+│                                          current build: 091627630D…, built from
 │                                          Test/ac_zone_helper.cs
 ├── original/                          <- untouched upstream files (never edited)
 │   ├── AutoCtrl_2025.4.22.0.exe       <- the PRISTINE engine      8AE9A669… (695 296 b)
@@ -79,7 +79,7 @@ Full byte-level explanation (addresses, the code cave, the runtime table):
 | `original/AutoCtrl_2025.4.22.0.exe` | 695 296 | `8AE9A669086BEA5C` | upstream (v2025.4.22) |
 | `original/AutoControlZero.exe` | 332 800 | `994E14D2BB306607` | upstream |
 | `patched/AutoCtrl_2025.4.22.0.v19.exe` | 695 296 | `1A10EDD191B80A80` | `patches/patch_zones_v19.js` |
-| `ac_zone_helper.exe` | 16 384 | `6988B49BCBEC162C` | `Test/build_native.ps1` (Roslyn, deterministic) |
+| `ac_zone_helper.exe` | 17 408 | `091627630DA4DFD9` | `Test/build_native.ps1` (Roslyn, deterministic) |
 
 > The engine the *extension* unpacks on a fresh install is a different file
 > (`mv3-build/file76.dat`, the distro build) — it has **no** zone fix, so a fresh

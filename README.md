@@ -147,7 +147,7 @@ AutoControl-Keyboard-shortcuts-Mouse-gestures-Chrome/
 │   ├── README.md           #   ← structure explained (original / patched / patches)
 │   ├── AutoControl.manifest                  # engine host manifest (path = Zero)
 │   ├── com.autocontrol.zonehelper.json       # zone-helper host manifest
-│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, 6988B49B…)
+│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, 091627630D…)
 │   ├── original/           #   untouched upstream files — NEVER edited
 │   │   ├── AutoControlZero.exe        # proxy/launcher (= installer)  994E14D2…
 │   │   └── AutoCtrl_2025.4.22.0.exe   # engine (global hooks)         8AE9A669…
@@ -495,7 +495,7 @@ stops working.
 ```
 powershell -ExecutionPolicy Bypass -File Test/build_native.ps1
 # === 1/2  ENGINE (original + byte patch)  ... 695296 bytes  1A10EDD1...  OK
-# === 2/2  HELPER (our C# source)         ...  16384 bytes  6988B49B...  OK
+# === 2/2  HELPER (our C# source)         ...  17408 bytes  091627630D...  OK
 # (add -UpdatePatched to also refresh AutoControl_native/patched/ with the build)
 ```
 

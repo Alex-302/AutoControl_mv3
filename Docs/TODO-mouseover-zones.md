@@ -287,7 +287,7 @@ settled rebuild (correct in logs).
 
 ---
 
-## 2c. ⬜ STILL OPEN — multi-browser support: TEST the zone helper in several browsers (2026-09-04)
+## 2c. ✅ RESOLVED (2026-09-13) — multi-browser support: the helper binds to ITS OWN browser's engine
 
 **User request:** verify the helper works with MULTIPLE browsers that have the
 extension installed (e.g. stable Chrome + Chrome SxS/Canary + Edge running at
@@ -326,13 +326,31 @@ the same time).
 6. Check each browser's SW console for its own `[AC-MV3-ZONE]` lines and
    `zone map:` — both must be healthy and independent.
 
-**Result:** ⬜ **STILL OPEN — not run.** This is the only remaining
-architecture-level test: it needs a second browser (stable Chrome / Edge) with
-its own registry key and the extension loaded from the SAME folder (the
-unpacked ID derives from the path). The expected outcome — each browser
-classifies independently, and a point over ANOTHER browser's window answers
-`{"zone":0,"zones":[]}` (the helper only reports zones for the browser that
-spawned it, §2f(f)) — is unverified.
+**Result:** ✅ **RESOLVED 2026-09-13** — the two-browser run happened for real
+(stable Chrome + Chrome SxS, extension loaded from the same `mv3-build\` in
+both, helper registered). Findings:
+
+1. **Each browser spawns its OWN engine** (`AutoControlZero` → engine per
+   browser) and each engine keeps its **own** zone table — confirmed by
+   dumping both engine processes (`Test/engine_zone_write.ps1 -Dump
+   -EnginePid <pid>`).
+2. **Both helpers used to write into the SAME engine** (`FindEnginePids()[0]`),
+   so the other browser's engine kept the FILE fallback (`mov eax,1` = "every
+   region matches") → its mouse-over conditions were satisfied EVERYWHERE:
+   "wheel over the page switches tabs" with no such action configured (user
+   report 2026-09-13) and "Alt+wheel only works after adding a mouse-over
+   condition". The helper now binds to the engine that tracks **its** browser's
+   windows (image base `+0xA2514`, `std::vector<HWND>`), never writes a foreign
+   engine, and logs `waiting: none of the N engines belongs to browser <pid>`
+   while it has no match. Verified: with the cursor over browser A's page, A's
+   engine table gets `[3,1]` and **B's engine is left untouched**.
+3. The own-window gate (§2f(f)) had been INERT: the helper's direct parent is
+   `cmd.exe` (chain `browser → cmd → helper`), so `browserPid` stayed 0. It now
+   walks UP the ancestor chain and really ignores foreign windows — verified by
+   pointing the cursor at VS Code (`zones=[]`, no zone actions there).
+4. Step 5 of the original plan behaves as "expected": the helper answers about
+   the SYSTEM cursor but only for its OWN browser, so with the cursor over A's
+   window B's helper reports `zones=[]` for B (not "A's zones").
 
 **The old open questions for zones 1/4/15/17/20/30/33 are ANSWERED
 (2026-09-12)** — the rules are in §1, the live signatures (and the DPI
@@ -785,6 +803,16 @@ physically over it.
 - a `mouse over` precond = the zone under test,
 - action = `Reload tabs` on currentTab (visible result).
 
+⚠ **Use PHYSICAL input for the hover + wheel.** A synthesized wheel
+(`mouse_event`, `SendInput`, another process) moves the cursor but does NOT
+refresh the engine's hover cache — injected input is flagged
+(`LLMHF_INJECTED`) and the engine ignores it. A wheel injected right after
+`SetCursorPos` is therefore judged against the PREVIOUS hover position: my
+synthetic hits "worked" only when the cache already happened to be right
+(they silently produced no 750 at all in most runs, 2026-09-13). The
+signed-off method is the user's own hand on the mouse, one step at a time,
+with the agent reading the SW log after each step.
+
 **Procedure for each zone Z:**
 1. Hover the target element (e.g. the `+` button for zone 16).
 2. Scroll the wheel 2-3 notches.
@@ -832,7 +860,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | File | Role | state (2026-09-13) |
 |---|---|---|
 | `Test/ac_zone_helper.cs` | helper source (`Classify()`, `WriteZoneTable`) | ✅ 11 zones + DPI + `zones[]` + pill→30 rule + a11y heartbeat + own-browser gate |
-| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `6988B49B…` (deterministic Roslyn build) |
+| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `091627630D…` (deterministic Roslyn build, 2026-09-13) |
 | `%LOCALAPPDATA%\AutoControl\ac_zone_helper.exe` | **the deployed binary Chrome runs** | ✅ same hash (Chrome picks it up without an extension reload) |
 | `AutoControl_native/patches/patch_zones_v19.js` | engine patch builder (zone table) | ✅ **CURRENT** — see `patches/README.md` |
 | `AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe` | repo copy of the built engine | ✅ `1A10EDD1…` |

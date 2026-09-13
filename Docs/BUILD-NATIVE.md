@@ -5,7 +5,7 @@ components** of this port from their inputs:
 
 | Component | Input | Output (deployed) |
 |---|---|---|
-| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **16384**, sha256 `6988B49BCBEC162CE03EFDC94F789F17AFC28C98EC890E7B26FCF0E464F262E6` (deterministic build) |
+| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **17408**, sha256 `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2` (deterministic build, 2026-09-13) |
 | **Patched engine** (`AutoCtrl_2025.4.22.0.v19.exe`) | `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` (untouched upstream) | size **695296**, sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
 
 Everything below was verified on 2026-09-12 by rebuilding and comparing hashes
@@ -61,7 +61,7 @@ dotnet $csc /nologo /optimize+ /deterministic+ /nostdlib+ `
   /r:"$fw\mscorlib.dll" /r:"$fw\System.dll" /r:"$fw\Accessibility.dll" `
   /out:"$out" Test\ac_zone_helper.cs
 
-Get-FileHash $out -Algorithm SHA256      # must print 6988B49B... (see the table above)
+Get-FileHash $out -Algorithm SHA256      # must print 091627630D... (see the table above)
 ```
 
 Notes:
@@ -92,6 +92,12 @@ from the source. It is functionally equivalent to the deterministic build
 **Status 2026-09-12:** the deployed helper IS the deterministic §A.2 build
 (`6988B49B…`); the legacy one was renamed to
 `ac_zone_helper.exe.bak-493A7276` in `%LOCALAPPDATA%\AutoControl\`.
+
+**Status 2026-09-13:** rebuilt as `091627630D…` (17408 bytes) with the
+multi-browser engine binding of §A.6 — `pids[0]` was replaced by
+"the engine that tracks MY browser's windows", so with two browsers running
+the two helpers no longer write into the same engine. The `6988B49B…` build
+was the previous deterministic one (same recipe, no binding fix).
 
 ### A.4 Verify the build before installing
 
@@ -152,6 +158,9 @@ checks:
 | `inToolbar \|\| stripNear \|\| isTabBtn` | "Title area" = the whole top band |
 | `bool ui = !inPage` | a page's ARIA roles (tablist/input/toolbar) must not be read as browser chrome |
 | `browserPid` / `IsBrowserName` | zones are reported only for the browser that spawned the helper (VS Code is a `Chrome_WidgetWin_1` window with no a11y tree) |
+| `browserPid` is found by walking UP the ancestor chain, not from the direct parent | Chrome's launcher chain is `browser → cmd.exe → helper`: taking the direct parent made `browserPid` 0 and disabled the own-window gate **silently** (2026-09-13) |
+| `EngineIsMine()` + `WINS_RVA = 0xA2514` | with SEVERAL browsers there are several engines, each with its own zone table: the helper must write into the engine that tracks **its** browser's windows (the image's `std::vector<HWND>`), never into `pids[0]` (2026-09-13 — the "wheel over the page switches tabs" phantom) |
+| never write a provably foreign engine | `waiting: none of the N engines belongs to browser <pid>` in the log means "retry on the next ping" — writing into the other browser's engine is what caused the phantom |
 | `Heartbeat` + `CacheStore` | Chrome's a11y tree sleeps after ~30 s; the heartbeat + 400 ms cache keep it awake and the answers stable |
 | `SetProcessDPIAware()` in `Main` | MSAA rects are physical pixels; without it the window rect is DPI-virtualized |
 

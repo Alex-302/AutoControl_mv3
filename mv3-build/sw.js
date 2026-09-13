@@ -3581,6 +3581,7 @@
   let __acZoneCacheAt = 0;
   let __acZoneCachePend = null;
   let __acZoneMap = null;              // {trigId: [regions]} from trigActList
+  let __acZoneFree = {};               // {trigId: true} — some combo has NO mouse-over
   let __acZoneMapBuilt = false;
   let __acZonePort = null;             // warm connectNative port
   let __acZonePend = {};               // {seq: resolver}
@@ -3591,18 +3592,32 @@
     try {
       chrome.storage.local.get('trigActList', r => {
         const m = {};
+        const free = {};
         for (const [id, t] of (r.trigActList || [])) {
+          // `disabled` groups are NOT compiled into the type-60 payload (see
+          // _mh: `m.disabled || K(m.triggers …)`), so they must not gate
+          // anything either.
+          if (!t || t.disabled) continue;
           const zones = [];
+          let unscoped = false;
           for (const tr of (t.triggers || [])) {
             const mo = tr && tr.preconds && tr.preconds.mouseOver;
+            let scoped = false;
             if (Array.isArray(mo)) for (const x of mo) {
-              if (x && x.region != null && !zones.includes(x.region)) zones.push(x.region);
+              if (x && x.region != null) {
+                scoped = true;
+                if (!zones.includes(x.region)) zones.push(x.region);
+              }
             }
+            if (!scoped) unscoped = true;   // this combo fires without a zone condition
           }
           if (zones.length) m[String(id)] = zones;
+          if (unscoped) free[String(id)] = true;
         }
         __acZoneMap = m;
-        console.warn('[AC-MV3-ZONE] zone map:', JSON.stringify(m));
+        __acZoneFree = free;
+        console.warn('[AC-MV3-ZONE] zone map:', JSON.stringify(m),
+          'unscoped (no zone check):', JSON.stringify(Object.keys(free)));
       });
     } catch (e) {
       console.warn('[AC-MV3-ZONE] map build failed:', e.message);
@@ -3691,6 +3706,21 @@
     const zones = __acZoneMap && __acZoneMap[zid];
     const doDispatch = () => __acDispatch({ type: "nativeMsg", nativeType: 750, _live: true, data, _ts: ts });
     if (!zones) { doDispatch(); return; }          // not zone-gated → as before
+    // ONE ACTION, SEVERAL COMBOS (2026-09-13, user report): the native's 750
+    // names the ACTION, not the combo that matched, so the regions collected
+    // from ALL combos of an action used to be applied to every one of its 750s.
+    // "Left Alt + Vert. Wheel" next to a "Vert. Wheel over Browser tab" combo
+    // therefore fired ONLY while the cursor was over that zone (and adding
+    // "mouse over Browser window" to it 'fixed' the trigger because zone 1
+    // matches everywhere over the browser). A combo WITHOUT a mouse-over
+    // condition must not be judged by its siblings' zones — the engine has
+    // already applied the region decision for the region-scoped combos (v19
+    // reads the very same helper table).
+    if (__acZoneFree[zid]) {
+      console.warn(`[AC-MV3-ZONE] trig ${zid}: a sibling combo has no mouse-over condition → executing without the zone check`);
+      doDispatch();
+      return;
+    }
     // Only the regions the helper can actually verify are checked here. The
     // AutoControl MENU-ITEM regions (UI 40-51 → engine 60-71) are classified
     // by the ENGINE itself (it knows which menu item is hovered and of what

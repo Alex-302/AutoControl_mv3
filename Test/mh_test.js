@@ -2517,6 +2517,100 @@ vm.runInContext(`
     bad.length === 0, bad.length ? bad.join('; ') : 'file2.js / main.html / file40.css / file46.css are clean');
 }
 
+// ---------- B55. Zone gate vs. multi-combo actions (2026-09-13) ----------
+// USER REPORT: "Left Alt + Vert. Wheel" (an action that ALSO has a sibling
+// combo "Vert. Wheel over Browser tab") stopped firing; adding "mouse over
+// Browser window" to it made it work again. ROOT CAUSE: the native's 750 names
+// the ACTION, not the combo that matched (Docs/NATIVE_PROTOCOL.md §5:
+// `{id, trigInstId, mouseGest?, extEvtData?}`), so the regions collected from
+// ALL combos of an action were applied to every one of its 750s — the un-scoped
+// Alt combo was judged by its sibling's "Browser tab" zone and skipped. Adding
+// "Browser window" (region 1, always in the helper's set over the browser)
+// "fixed" it because the zones are UNIONed. Regression from the zone gate
+// (2026-09-03/12 — nothing was gated before it). The fix: a combo WITHOUT a
+// mouse-over condition exempts the whole action from the zone check, and
+// `disabled` groups (which _mh never compiles) no longer gate anything.
+//
+// The two functions are EVAL'D from the real sw.js source (a source-pattern
+// check would not notice a wrong decision), with the real helper answers.
+{
+  const swSrc = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const silent = { warn() {}, log() {} };
+  const build = (() => {
+    const i0 = swSrc.indexOf('  function __acBuildZoneMap()');
+    const src = i0 < 0 ? '' : swSrc.slice(i0, swSrc.indexOf('\n  }\n', i0) + 5);
+    return (list) => new Function('chrome', 'console', `
+      let __acZoneMap = null; let __acZoneFree = {};
+      ${src}
+      __acBuildZoneMap();
+      return { map: __acZoneMap, free: __acZoneFree };
+    `)({ storage: { local: { get: (k, cb) => cb({ trigActList: list }) } } }, silent);
+  })();
+  const bad = [];
+  try {
+    if (!build) bad.push('__acBuildZoneMap not found in sw.js');
+    // the screenshot's "SWITCH TO RIGHT TAB": Alt+wheel (no condition) + wheel over a Browser tab
+    const r1 = build([['5', { title: 'SWITCH TO RIGHT TAB', triggers: [
+      { combins: [{ eventId: 512, preconds: [{ keyEvt: 164 }] }] },
+      { combins: [{ eventId: 512, preconds: [] }], preconds: { mouseOver: [{ region: 12 }] } },
+    ] }]]);
+    if (JSON.stringify(r1.map) !== '{"5":[12]}') bad.push('map=' + JSON.stringify(r1.map));
+    if (r1.free['5'] !== true) bad.push('the un-scoped Alt combo did not mark the action as free');
+    const r2 = build([
+      ['7', { title: 'scoped', triggers: [{ combins: [{ eventId: 512 }], preconds: { mouseOver: [{ region: 12 }] } }] }],
+      ['9', { disabled: true, triggers: [{ combins: [{ eventId: 512 }], preconds: { mouseOver: [{ region: 15 }] } }] }],
+      ['10', { title: 'plain', triggers: [{ combins: [{ eventId: 9 }] }] }],
+    ]);
+    if (JSON.stringify(r2.map) !== '{"7":[12]}') bad.push('scoped/disabled map=' + JSON.stringify(r2.map));
+    if (r2.free['7']) bad.push('a fully zone-scoped action was marked free');
+    if (r2.free['10'] !== true) bad.push('a plain action without any mouse-over was not marked free');
+    if (r2.map['9']) bad.push('a disabled group still gates (id 9 is in the map)');
+  } catch (e) { bad.push('map builder: ' + e.message); }
+  check('zone map: skips disabled groups, exempts actions with an un-scoped combo (2026-09-13)',
+    bad.length === 0, bad.length ? bad.join('; ') : 'Alt+wheel next to "over Browser tab" → free; scoped stays gated');
+
+  // the gate itself: the same three actions, with the helper's real answers
+  try {
+    const i0 = swSrc.indexOf('  function __acDispatchTrigger750(');
+    const i1 = swSrc.indexOf('  __acBuildZoneMap();', i0);
+    if (i0 < 0 || i1 < 0) throw new Error('__acDispatchTrigger750 not found');
+    const KNOWN = [1, 3, 4, 12, 15, 16, 17, 20, 21, 30, 33];
+    const run = (map, free, zoneSet, id) => {
+      const calls = { dispatched: 0, asked: 0 };
+      const gate = new Function('__acDispatch', '__acZoneMap', '__acZoneFree', '__acZoneAsk',
+        '__AC_ZONE_KNOWN', '_Sk', 'handshakeSk', 'console',
+        swSrc.slice(i0, i1) + '\nreturn __acDispatchTrigger750;')(
+        () => { calls.dispatched++; }, map, free,
+        () => { calls.asked++; return Promise.resolve(zoneSet); },
+        KNOWN, 1000, 1000, silent);
+      gate({ id: 1000 + id }, 0);
+      return calls;
+    };
+    // the reported case: un-scoped Alt combo, sibling "over Browser tab", cursor over the PAGE
+    const a = run({ '5': [12] }, { '5': true }, [3, 1], 5);
+    // a fully scoped action: over the page it must be skipped, over the tab strip it must fire
+    const b = run({ '7': [12] }, {}, [3, 1], 7);
+    const c = run({ '7': [12] }, {}, [12, 4, 1], 7);
+    // not gated at all (plain action) → dispatch without even asking the helper
+    const d = run(null, {}, [3, 1], 11);
+    Promise.resolve().then(() => Promise.resolve()).then(() => {
+      const bad2 = [];
+      if (a.dispatched !== 1) bad2.push('un-scoped combo of a zone-scoped action NOT dispatched (=' + a.dispatched + ')');
+      if (a.asked !== 0) bad2.push('the exempt action still asked the helper');
+      if (b.dispatched !== 0) bad2.push('a zone-scoped action fired over the page');
+      if (b.asked !== 1) bad2.push('the helper was not asked for a scoped action');
+      if (c.dispatched !== 1) bad2.push('a zone-scoped action did NOT fire over its own zone');
+      if (d.dispatched !== 1) bad2.push('a plain action was not dispatched');
+      if (d.asked !== 0) bad2.push('a plain action asked the helper');
+      check('zone gate: un-scoped combos bypass the check, scoped ones are still verified (2026-09-13)',
+        bad2.length === 0, bad2.length ? bad2.join('; ') : 'Alt+wheel (page) → dispatch; over-tab combo → hit/miss correct');
+    });
+  } catch (e) {
+    check('zone gate: un-scoped combos bypass the check, scoped ones are still verified (2026-09-13)',
+      false, e.message.split('\n')[0]);
+  }
+}
+
 // ---------- summary ----------
 setTimeout(() => {
   console.log('---');

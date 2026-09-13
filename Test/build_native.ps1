@@ -25,7 +25,11 @@ $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 
 $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E'
-$EXPECT_HELPER = '6988B49BCBEC162CE03EFDC94F789F17AFC28C98EC890E7B26FCF0E464F262E6'
+# 2026-09-13: the helper now binds to the engine of ITS OWN browser (window-list
+# check in EngineIsMine) - the old rule "first engine pid" made both helpers
+# write into the same engine when two browsers ran (the other browser's engine
+# kept the always-match fallback -> "wheel over the page switches tabs").
+$EXPECT_HELPER = '091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2'
 $PRISTINE_SHA  = '8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09'
 # Pristine input: the repo copy first (clean checkout works), the deployed
 # backup as fallback (that is where the recipe used to read from).
