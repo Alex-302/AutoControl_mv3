@@ -142,7 +142,7 @@ checks:
 
 ### A.6 Source invariants (do not "clean up" these)
 
-`mv3-build/mh_test.js` (B53) pins the parts that took the longest to find:
+`Test/mh_test.js` (B53) pins the parts that took the longest to find:
 
 | Invariant | Why |
 |---|---|
@@ -302,7 +302,7 @@ Verification checklist:
 
 1. `Get-FileHash` of the built file == the hash above (bit-for-bit).
 2. Byte-diff against the pristine must show exactly the three ranges of §B.1.
-3. `node mv3-build/mh_test.js` → B53b–B53g check the cave layout constants
+3. `node Test/mh_test.js` → B53b–B53g check the cave layout constants
    (`ORIG_BLOCK = 0x1C`, the `ret` positions), the helper's writer, the docs and
    the Ghidra listing.
 4. **Assembly ⇄ bytes proof** (`node Test/patch_bytes_verify.js`): decodes the

@@ -255,7 +255,7 @@ visible tab), **Save URL ✅ (all methods — DNR session rules, §7-2)**,
 ### 3.4 Verification
 
 `../Test/SCRIPTING-API-TEST.js` (23 in-browser tests, run via RUN SCRIPT on a non-CSP
-page) + `../mv3-build/mh_test.js` (SW harness: bundle load, `_Yh` lexical binding,
+page) + `../Test/mh_test.js` (SW harness: bundle load, `_Yh` lexical binding,
 XHR shim, userAPI dispatch). Known end-to-end-verified chains: "Download all
 images" and "Take a shot" (captureTab → setClipboard → openURL → on →
 setTabState → execAction → clpbrdPaste).
@@ -277,6 +277,7 @@ setTabState → execAction → clpbrdPaste).
 | Uninstall native component / Emergency repair / context-menu switches | ✅ | Emergency repair = SW repair broadcast (§8) |
 | Toasts / `_Cr` badge | ✅ | badge on the toolbar icon works in the SW (Emergency Repair Wait/OK/Error); the file71.html floating popups work from the SW since 2026-08-12 (`_Fo` → `scripting.executeScript` into the popup tab — §7-15: `_Kg`/`_Ht` REPAIR COMPLETE diagnostics, `_Lh`, `_Uk`); z[800] no-hook uses chrome.notifications by design (proven pattern); chrome.notifications also in use (saveUrl notif, protected-page hint). Remaining: z[800] classification → §7-4 (closed 2026-08-10) |
 | Live config apply | ✅ | `storage.onChanged` → `_Gf` in SW — no restart |
+| Donation button + panel, Help-tab “rate us” box | ➖ removed | **Deliberate deviation** (2026-09-13, user request): the upstream project is abandoned, so the port neither asks for money nor for Web Store ratings. Gone: `<contribBtn>` (file2.js `n()`, with its 60 s bounce animation), `<template id=contribPanel>` (PayPal / buymeacoffee), the `${#rateUs}` include + `<template id=rateUs>`, and the dead CSS in file46.css/file40.css. `ext-mv2/` keeps the originals as the reference — do not re-copy. mh_test **B54** |
 
 ## 5. Area E — Data & persistence
 

@@ -1,4 +1,6 @@
-# AutoControl MV3 — Installation Guide (unpacked build)
+# AutoControl MV3 - Customize keyboard shortcuts and hotkeys, Mouse, Wheel, Rocker gestures, Bookmark shortcuts, Joystick actions
+
+**MV3 port — installation guide (unpacked build)**
 
 > The MV3 port **must be installed as an unpacked extension** (developer mode).
 > It is a work-in-progress build: it relies on dev-mode freedoms
@@ -31,7 +33,8 @@ The **original AutoControl** and documentation are available at:
 - **The MV3-specific pieces are written from scratch** — the service-worker
   brain (`sw.js`), the bundle glue (`sw_prelude.js`), the page-side shims
   (`mv3_shim.js`, `mv3_native_shim.js`), the offscreen document, and the
-  test harness (`mv3-build/mh_test.js`). These replace the MV2 background
+    test harness (`Test/mh_test.js` — kept OUT of the extension folder, which
+    is the packaged artifact). These replace the MV2 background
   page and adapt the original code to Manifest V3 APIs.
 - **The native component is the ORIGINAL AutoControl binaries** — the
   extension embeds and deploys the original `AutoControlZero.exe` (proxy/
@@ -46,6 +49,81 @@ The human role was reviewing, testing and guiding the process.
 
 > The MV2 baseline lives in `ext-mv2/` and is kept **untouched** — it is the
 > reference for the port and must not be edited.
+
+### 1.1 Original description (Chrome Web Store listing)
+
+Customize keyboard shortcuts and hotkeys, Mouse gestures, Wheel gestures, Rocker gestures, Bookmark shortcuts, Joystick actions.[^1]
+
+#### Summary
+
+AutoControl is a comprehensive solution to fully customize the way you control your browser using keyboard, mouse and joysticks.
+
+This is the only shortcut manager that can redefine and disable ALL factory keyboard and mouse shortcuts in Chrome.
+This is the only shortcut manager that works on ALL browser tabs.
+
+None of this is possible with regular Chrome extensions.
+AutoControl IS NOT A REGULAR EXTENSION.
+
+AutoControl currently works on Windows operating systems only.
+If you are still interested, read on to learn why AutoControl is different.
+
+#### AutoControl is a native extension
+
+AutoControl brings out the power of Chrome's native extensibility to gain essential advantages over regular extensions:
+
+- It can customize or disable ALL browser shortcuts, even those prohibited to regular extensions, such as Ctrl+Tab, Ctrl+ScrollWheel, and any other.
+- Keyboard shortcuts and gestures work on ALL tabs, be it the New Tab Page, extension pages, settings pages, protected pages, PDF documents, you name it.
+- It uses a single lightweight content script instead of injecting code into every page, leaving pages intact and conserving CPU and memory. [^2]
+- Keyboard shortcuts and mouse gestures are implemented natively, which makes them respond instantly at all times.
+
+Learn more about native extensions at the [FAQ](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/faq.htm "AutoControl FAQ").
+
+#### Feature list
+
+- Customize or disable Chrome's factory keyboard and mouse shortcuts.
+- Define your own custom keyboard/mouse shortcuts and gestures.
+- Mouse gestures support horizontal, vertical and diagonal motion.
+- Supports wheel gestures, rocker gestures and multi-directional drag.
+- Keyboard shortcuts and mouse gestures work on ALL tabs. PERIOD.
+- Works in incognito windows when "Allow in Incognito" option is ON.
+- Shortcuts support wildcards to allow or disallow extra keys.
+- A shortcut may be any combination of keyboard keys, mouse buttons, joystick buttons and mouse gestures.
+- Keyboard shortcuts can have multiple steps. [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/triggers.htm#multiStep "Multi-step triggers")
+- Supports address bar shortcuts. [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/address-bar-shortcuts.htm "Address bar shortcuts")
+- Supports hover-sensitive shortcuts and gestures. [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/hover-sensitive-shortcuts.htm "Hover-sensitive shortcuts")
+- Keyboard shortcuts and mouse gestures can work even when the browser is unfocused or closed.
+- Use keyboard shortcuts and gestures to open any bookmark/folder.
+- You can restrict shortcuts and gestures to specific websites.
+- Create custom toolbar buttons to perform any desired action. [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/custom-toolbar-buttons.htm "Custom toolbar buttons")
+- Create custom menus with your open tabs, closed tabs, bookmarks, bookmark folders and more. [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/action-menus.htm "Action menus")
+- Menus can display tab thumbnail previews. [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/switch-to-last-used-tab-in-chrome.htm#tab-switcher "Tab switcher with thumbnail previews")
+- Supports a wide variety of actions: Tab actions, Window actions, Bookmark actions, Clipboard actions and more.
+- Actions can be applied to one or more tabs and windows simultaneously.
+- Actions are composable, they may be simple or complex. [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/actions.htm "Actions")
+- Provides a scripting API and script editor that allows to build your own custom actions. [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/scripting/default.htm "Scripting API")
+- Can synchronize your settings across different profiles on the same computer or the same profile across different computers.
+- Works entirely offline. No need for an internet connection.
+
+See what's new at [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/update-history.htm "Update history").
+
+#### System requirements
+
+Being a native extension demands additional development effort to support each operating system. For this reason, AutoControl is initially supported on:
+
+- Windows 7
+- Windows 8/8.1
+- Windows 10
+- Windows 11
+
+#### Permissions
+
+When installing you'll see a message saying that the extension can "Read and change all your data on the websites you visit".
+This is a standard message generated by Chrome. This extension does NOT access or collect any personal data.
+
+Please read our privacy policy to learn more: [🔗](https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/privacy-policy.htm "Privacy policy").
+
+[^1]: Original Chrome Web Store description of the abandoned extension. The links point to a [mirror](https://alex-302.github.io/AutoControl_mv3/ "AutoControl site mirror") of the dead `autocontrol.app` site.
+[^2]: Reworded for the MV3 port: it needs one small content script on all pages.
 
 ---
 
@@ -78,6 +156,7 @@ AutoControl-Keyboard-shortcuts-Mouse-gestures-Chrome/
 │   └── patches/            #   how original/ becomes patched/
 │       └── patch_zones_v19.js                 # the only active patch
 ├── Test/                   # the toolset (helpers, probes, zone test suite)
+│   ├── mh_test.js                 # SW regression harness (node Test/mh_test.js)
 │   ├── ac_zone_helper.cs          # zone-helper SOURCE (our own C# program)
 │   ├── zone_helper_smoke.js       # helper smoke test (native-messaging frame)
 │   ├── build_native.ps1           # rebuilds engine + helper, verifies SHA-256

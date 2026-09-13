@@ -492,6 +492,17 @@
     executable page and the matcher provably has a single direct caller — the
     two assumptions the patch would silently depend on otherwise.
 
+#### Repository layout (extension & tooling)
+
+- **The regression harness moved out of the extension folder** (2026-09-13):
+  `mv3-build/mh_test.js` → `Test/mh_test.js`. `mv3-build/` is the shipped
+  artifact (it is loaded as the unpacked extension and packaged as-is), so it
+  must contain nothing but the files the extension actually loads — development
+  tooling lives in `Test/`. The harness itself is unchanged: it still loads
+  `sw_core_bundle.js` from `mv3-build/`, and its checks are the same 102 ones
+  (including the new B54 for the removed donation/rating UI). Run it with
+  `node Test/mh_test.js`.
+
 #### Settings UI
 
 - The five hover-region options no longer carry the `⚠ (broken in Chrome 148+)`
@@ -501,6 +512,10 @@
   UNPATCHED engine — still needs `Test/deploy_patched_engine.ps1`; that is
   documented in `README.md` §4.4 instead of a suffix in the UI. Reload the
   settings page (or the extension) to pick the change up.
+- **The donation and rating prompts are removed.** The settings tab bar no longer
+  shows the "Support the project" button (it opened a PayPal / Buy Me a Coffee
+  panel) and the **Help** tab no longer shows the "Did you like AutoControl?"
+  box with its Web Store rating link. The upstream project is abandoned.
 
 #### Native component
 
@@ -521,6 +536,43 @@
 - **Status display**: the icon badge and Chrome notifications are used from
   the worker; the floating popup windows are filled by injecting content
   into the popup page (service-worker-safe equivalent of the original).
+
+#### Project site & documentation
+
+- The manifest's `homepage_url` now points to the **site mirror**
+  (<https://alex-302.github.io/AutoControl_mv3/>) — the original
+  `autocontrol.app` domain is dead.
+- `README.md` gains §1.1, the **original Chrome Web Store description** of the
+  abandoned extension, kept for reference: every link in it points to the
+  mirror, and the one claim that no longer matches the port ("no code
+  injection") was reworded to how the MV3 build actually works.
+- The README headline is now the extension's **original store name**
+  (`AutoControl: Keyboard shortcuts, Mouse gestures`), with the
+  port/installation framing kept as a subtitle line below it.
+- The dead **Chrome Web Store link** in the README is replaced by the archived
+  snapshot of the listing, labelled "(archived)" — no dead store URL is kept.
+- **The settings help links now work again**: every documentation link in the
+  extension's tooltips/help (FAQ, triggers, actions, MRU tabs, scripting API,
+  hover-sensitive shortcuts, …) pointed at the dead `autocontrol.app` and led
+  nowhere; they now open the corresponding page of the site mirror. Two links
+  have no mirror copy and stay dead by design: the "Chromium bugs" page and the
+  installer download (`Native-Component.exe` — the port installs the native
+  component from its own bundle instead).
+- The "Chromium bugs" help page, missing from the site copy, was **restored into
+  the mirror** from a 2023 Wayback Machine snapshot (the archive toolbar is not
+  part of the restored page).
+- On the mirror's home page the **"Release RAM without closing tabs"** article
+  is listed again — upstream had the entry commented out (and pointed at an
+  extension-less absolute path); it now uses the same relative `…​.htm` form as
+  its neighbours.
+- The **Help tab** now also lists *Release RAM without closing tabs* among its
+  articles (the same page the *Unload tabs* action's help bubble links to).
+- **The in-settings demo player became a list of links.** The step-by-step
+  animations (Help → *Show demos*, and the *See a quick demo* tip in the Actions
+  pane) loaded their screenshots from the now-dead project site, and those
+  screenshots were never archived — the player could only spin on a missing
+  image. The three entries now open the matching pages of the site mirror
+  (triggers, hover-sensitive shortcuts, determining the hovered element).
 
 ### Known limitations
 

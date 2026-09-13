@@ -16,7 +16,7 @@ in which order, and why it failed*. That history is expensive to re-derive
 > below, the file now lives here. Bare file NAMES in the docs are still valid
 > (`patch_zone12_v16.js` = `Test/archive/zone-re/patch_zone12_v16.js`).
 
-Nothing here is part of the build, the test harness (`mv3-build/mh_test.js`)
+Nothing here is part of the build, the test harness (`Test/mh_test.js`)
 or the shipped extension.
 
 ## How this archive was created (2026-09-12)

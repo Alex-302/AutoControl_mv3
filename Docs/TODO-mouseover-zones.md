@@ -841,7 +841,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | `Test/patch_zones_v19diag.js` | diagnostic variant (records the asked-for regions) | needs the accName build; not for zone work |
 | `AutoControl_native/com.autocontrol.zonehelper.json` | host manifest (`path` = the LOCALAPPDATA exe) | unchanged |
 | `mv3-build/sw.js` | zone gate (`__acZoneAsk` / `__acDispatchTrigger750` / `__acBuildZoneMap`) | ✅ multi-zone intersect + menu pass-through + 120 ms burst cache + 2.5 s helper keepalive + `_Sk` re-sync |
-| `mv3-build/mh_test.js` | smoke tests | ✅ B53 (zone gate + patch/helper layout), B53b–B53g (patch CLI, docs vs bytes, the byte proof + its teeth test, helper writer, Ghidra listing) |
+| `Test/mh_test.js` | smoke tests | ✅ B53 (zone gate + patch/helper layout), B53b–B53g (patch CLI, docs vs bytes, the byte proof + its teeth test, helper writer, Ghidra listing) |
 | `C:\Work\AutoControl-…-Chrome\mv3-build\sw.js` | **the copy Chrome actually loads** | ⚠ must be updated too (load-path gotcha, §2d) |
 | `Test/patch_bytes_verify.js` | **proof**: decode the injected bytes, assert every branch target, diff vs the original | ✅ new 2026-09-13 |
 | `Test/engine_abi_dump.js` | PE sections, call sites, references to the matcher, cave page mapping — **as a check** (`ABI AUDIT: OK` / exit 1) | ✅ 2026-09-13 |

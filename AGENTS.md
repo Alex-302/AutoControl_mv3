@@ -61,7 +61,9 @@ This includes comments, log strings, and error messages in `sw.js`,
   `HANDOFF-2026-08-06-unstaged.md`, `RIGHT-CLICK-ISSUE.md`,
   `NATIVE-REVERSING-2026-08-31.md` (hover-region/MSAA root cause, Ghidra
   RE session — addresses, Chromium facts, live region map, patch plan).
-- **`Test/`** = the LIVE toolset: `SCRIPTING-API-TEST.js` (in-browser API
+- **`Test/`** = the LIVE toolset: `mh_test.js` (**the SW harness — it lives
+  here, NOT in `mv3-build/`: that folder is the extension itself and must stay
+  clean**), `SCRIPTING-API-TEST.js` (in-browser API
   self-test), `AutoControl-settings-test.acs` (settings snapshot for mh_test),
   the zone tools (`ac_zone_helper.cs`, `zone_add_test.js`, `zone_probe.ps1`,
   `zone_fg_wheel.ps1`, `zone_e2e_test.ps1`, `engine_zone_write.ps1`,
@@ -87,6 +89,10 @@ This includes comments, log strings, and error messages in `sw.js`,
 - **`mv3-build/`** = the MV3 port (SW-brain). **This is where ALL work
   happens.** Load this folder in Chrome as an unpacked extension. Contains its
   own copies of the core `file*.js`/`res/` — independent from `ext-mv2/`.
+  **The folder is the shipped artifact — keep it CLEAN (user rule
+  2026-09-13):** only files the extension actually loads belong here. Dev-only
+  material (test harnesses, probes, helpers) goes to `Test/`; the harness
+  `mh_test.js` was moved there for exactly that reason.
 - **`Toolbar-buttons/`** = auxiliary builds/assets (MV2/MV3 pairs: base,
   Duplicate, Mute, Pin, Unload).
 - NOTE: the old loose MV3 shims at the repo root were REMOVED (cleanup
@@ -95,7 +101,7 @@ This includes comments, log strings, and error messages in `sw.js`,
 ## Contribution rules (post-task)
 
 - You MUST verify your change with the harness:
-  `node mv3-build/mh_test.js` — expect `SUMMARY: N pass, 0 known gaps,
+  `node Test/mh_test.js` — expect `SUMMARY: N pass, 0 known gaps,
   0 FAIL` (exit 1 on FAIL). Filter: `2>&1 | Select-String -Pattern
   "PASS|FAIL|GAP|SUMMARY"`.
 - You MUST keep `mh_test.js` current — every new fix ships with a smoke test
@@ -111,7 +117,7 @@ This includes comments, log strings, and error messages in `sw.js`,
      deliberately accept `PROOF HOLDS (PARTIAL)`).
   2. `powershell -File Test/build_native.ps1` → both hashes OK
      (engine `1A10EDD1…`, helper `6988B49B…`).
-  3. `node mv3-build/mh_test.js` → B53b–B53g `[PASS]`: CLI + determinism,
+  3. `node Test/mh_test.js` → B53b–B53g `[PASS]`: CLI + determinism,
      docs == bytes, the decoder proof, its mutation (teeth) test, the helper
      writer == the verifier's simulation, the Ghidra listing == the build.
   4. `node Test/engine_abi_dump.js <build>` → must end with `ABI AUDIT: OK`
@@ -331,8 +337,11 @@ This includes comments, log strings, and error messages in `sw.js`,
 
 ## Test harnesses (used repeatedly — keep them working)
 
-- **`mv3-build/mh_test.js`** — Node `vm` harness loading `sw_core_bundle.js`
-  with stubbed `chrome`/DOM globals. Validates: bundle loads, `_Yk===chrome`,
+- **`Test/mh_test.js`** — Node `vm` harness loading `sw_core_bundle.js`
+  from `../mv3-build/` (the extension folder is addressed as `MV3` — the
+  harness lives in `Test/` so the build folder stays clean; `__dirname` is
+  `Test/`, never the extension) with stubbed `chrome`/DOM globals. Validates:
+  bundle loads, `_Yk===chrome`,
   z-handler completeness (15 base types), prelude browserAction→action alias
   and onClicked listener count, `_As` scheme gate (file://), `_9w` inert
   loading (playAudio routed to the offscreen doc), webRequest absence (saveUrl
@@ -342,9 +351,10 @@ This includes comments, log strings, and error messages in `sw.js`,
   and userAPI dispatch (must be exactly 1 answering listener), the mouse-over
   zone gate (11 known regions / menu pass-through / 120 ms burst cache /
   helper rules / the v19 patch builder + the table layout in the helper —
-  B53). Output
+  B53), the removed donation/rating UI (file2.js / main.html / CSS — B54).
+  Output
   `[PASS]`/`[FAIL]`/`[GAP ]`/`[FIXED?]`; exit 1 on FAIL. Path-independent
-  (`__dirname`). Current: 94 pass / 0 gaps / 0 FAIL.
+  (`__dirname`). Current: 102 pass / 0 gaps / 0 FAIL.
 - **`Test/SCRIPTING-API-TEST.js`** — in-browser self-test of the whole ACtl
   API (23 tests), run via RUN SCRIPT on a normal page. 23/23 stable. Every
   failure prints an unmissable banner (`[AC-API-TEST: FAIL]`) + a final
@@ -1047,6 +1057,19 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   after 8s, if `<html>` still lacks `visible`, force
   `addClass("visible") + display:block` (idempotent).
 - **Mojibake in UI** — see Encoding rules (`<meta charset="utf-8">`).
+- **Donation / rating UI REMOVED (2026-09-13, user request)** — the upstream
+  project is abandoned, so the port does not solicit money or Web Store
+  reviews. Deleted: the "Support the project" tab-bar button (`<contribBtn>`,
+  built by file2.js `n()` — it also ran the 60 s bounce animation
+  `q()`/`setInterval(q,6E4)`), the panel it opened (`<template id=contribPanel>`
+  — PayPal / buymeacoffee) and the Help tab's rating box (`${#rateUs}` include
+  + `<template id=rateUs>`), plus their now-dead CSS (file46.css
+  `contribBtn*`, `@keyframes contribBounce`, `[contribPanel] *`, `donateBtns`,
+  `[paypal]*`, `[coffee]*`, the four `rateUs*` rules; file40.css the
+  `contribBtn` entry of the help-panel font group). ⚠ `ext-mv2/` still carries
+  all of it — do NOT re-copy these blocks on a future merge. mh_test **B54**
+  pins the removal (and guards helpPanel/installPane against an over-eager
+  deletion).
 - **Toasts vs badge** — `_Cr` is the icon BADGE (works in the SW). The
   file71.html floating popups WORK from the SW since 2026-08-12 (FEATURES-MV3.md
   §7-15): the shim overwrites `window._Fo` (file70's MV2 version used
@@ -1385,6 +1408,41 @@ otherwise the next session starts from zero. Concretely:
    drop → Zero exit on EOF → fresh Zero spawns a fresh engine)" is now
    NATIVE_PROTOCOL §18, and `_co`/`_ze`/`_nk`/`_Cr`/`_j`/`_nt`/`_2u` +
    55/451 are in DECODE.md.
+7. **Links to the dead AutoControl site — always use the mirror.**
+   `autocontrol.app` is dead: never reintroduce its URLs (`www.autocontrol.app/…`,
+   the Web Store listing, `files/Native-Component.exe`) in docs, README or code.
+   The working copy is the GitHub Pages mirror
+   <https://alex-302.github.io/AutoControl_mv3/> — the original paths plus
+   `.htm` (`…/https@www.autocontrol.app/faq.htm`); the exact page mapping is in
+   README §1.1. The ONLY intentional exceptions are the struck-through original
+   website URL in `README.md` §1 (the "it's dead" notice) and the
+   `web.archive.org` snapshot of the Web Store listing (the dead store URL
+   itself is intentionally gone from the README).
+   ⚠ The UI's own help links point at the mirror since 2026-09-13: `_Zl`
+   (mirror base, `file10.js`) + the `_4a` URL map — `file78_mv3.js` AND
+   `file78.js` extend the map (both are loaded by `main.html`, the LATER one
+   wins — keep them in sync), and the tooltip texts in
+   `file28/file33/file65/file75/file80` reference `_4a.*` keys. Every mapped
+   page carries `.htm` and `scrtDoc` is the mirror's `scripting/` DIRECTORY
+   (sub-page call sites append `<name>.htm`). `_Zo` (the dead base) survives for
+   exactly two non-doc endpoints — telemetry `appEvent` and the animated-demo
+   base in `file36`; never point new user-visible links at it. Two mapped pages
+   needed restoring: `chromium-bugs` was downloaded from the Wayback snapshot
+   (2023-09-03, raw `id_` URL — no archive toolbar) and lives in the mirror as
+   `chromium-bugs.htm` with its 5 images; `files/Native-Component.exe` has NO
+   snapshot anywhere and stays dead (the port installs the native component
+   from its own `file69.dat`). Inventory: `/memories/session/autocontrol-mv3.md`.
+   ⚠ **Demo entries are LINKS now (2026-09-13)** — the Help → *Show demos*
+   panel (`main.html` template `demoPanel`) lists three links to mirror guides
+   instead of playing `file9.js` animations: those need the dead site's
+   screenshots (`/demos/<name>/imgN.png`), which were NEVER archived (a CDX
+   prefix query on `/demos/` returns exactly 2 files). Do not re-wire them to
+   the player (`_Be`/`_Rj`/`_Yt`). The animated illustrations on the mirror
+   pages themselves (`hvrdElem*Anim.htm`, iframed by
+   `determining-hovered-element.htm`) still work — they are SVG, not
+   screenshots. Untouched on purpose (user decision): the switches tooltip demo
+   (`file65.js`, `initDemo=setSwtchs`) and the Settings-File-Editor welcome demo
+   (`file65.js`, `<demoPH demoName=SFEimport>`) — both equally broken.
 
 ## Where to look for docs
 

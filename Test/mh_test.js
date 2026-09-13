@@ -5,14 +5,21 @@
 // expectations tracked in FEATURES-MV3.md §7 (playAudio, saveUrl DNR,
 // file:// gate, _9w inert loading, browserAction alias).
 // §N references in comments point to Docs/FEATURES-MV3.md.
-// Run: node mv3-build/mh_test.js   (cwd-independent; paths are __dirname-based)
+// Run: node Test/mh_test.js   (cwd-independent; paths are __dirname-based)
+//
+// NOTE (2026-09-13): the harness used to live in `mv3-build/` — that folder is
+// the extension itself and must stay clean (it is loaded/packaged as-is), so
+// the file moved to `Test/` next to the rest of the tooling. The extension
+// folder is now always addressed as MV3 (see below); every `path.join(__dirname,
+// '..', ...)` below still lands in the repo root, so only the extension-file
+// reads need MV3.
 'use strict';
 const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
-const MV3 = __dirname; // mv3-build/
-// ACS settings snapshot lives in ../Test/ (renamed 2026-08-05)
-const ACS = path.join(__dirname, '..', 'Test', 'AutoControl-settings-test.acs');
+const MV3 = path.join(__dirname, '..', 'mv3-build'); // the extension (NEVER write here)
+// ACS settings snapshot lives next to this file (renamed 2026-08-05)
+const ACS = path.join(__dirname, 'AutoControl-settings-test.acs');
 
 // ---------- result framework ----------
 let passes = 0, gaps = 0, failures = 0, notes = 0;
@@ -454,7 +461,7 @@ setTimeout(() => {
   // RECONNECT if Zero did not pick up the engine (Zero starts the engine at
   // its own startup).
   try {
-    const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+    const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
     check('sw.js engine auto-install branch',
       sw.includes('unpackBundledEngine') && sw.includes('proceedAfterFileCheck') &&
       sw.includes('waitForEngineReady') && sw.includes('taskkill') &&
@@ -470,7 +477,7 @@ setTimeout(() => {
   // cascade (each new Zero spawns a duplicate engine → file check 2 forever
   // until a reload). The connection generation must be bumped per connect.
   try {
-    const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+    const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
     check('sw.js stale-port gen guard',
       sw.includes('__acConnGen') && sw.includes('doHandshake(gen)') &&
       sw.includes('onDisc(gen)') && sw.includes('onConnError(reason, gen)') &&
@@ -489,7 +496,7 @@ setTimeout(() => {
   // deploy path (unpackBundledEngine through the r===2 block). Comment
   // mentions of the deleted command are fine; only actual EXECUTION matters.
   try {
-    const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+    const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
     const execDel = /(?:_iw|runCmd)\(\s*"del \/Q \/F AutoCtrl_\*\.exe"/.test(sw);
     const nukeCall = /nukeHostTree\(/.test(sw);
     const r2Start = sw.indexOf('if (r === 2)');
@@ -512,7 +519,7 @@ setTimeout(() => {
   // 4th in the re-deploy branch (2026-08-07, reinstall path), 5th AFTER the
   // r===2 block closes — that is the block end.
   try {
-    const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+    const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
     const r2Start = sw.indexOf('if (r === 2)');
     const p1 = sw.indexOf('proceedAfterFileCheck();', r2Start + 1);
     const p2 = sw.indexOf('proceedAfterFileCheck();', p1 + 1);
@@ -540,7 +547,7 @@ setTimeout(() => {
   // (which triggers scheduleRetry → infinite loop). The r===2 block must
   // have a "giving up" path that disconnects without scheduling retry.
   try {
-    const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+    const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
     const r2Start = sw.indexOf('if (r === 2)');
     const p1 = sw.indexOf('proceedAfterFileCheck();', r2Start + 1);
     const p2 = sw.indexOf('proceedAfterFileCheck();', p1 + 1);
@@ -572,7 +579,7 @@ setTimeout(() => {
   // symptom: "script disappeared from settings after refresh". The patch may
   // only fill binSwtch INSIDE an already-present customEntities.
   try {
-    const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+    const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
     const qjStart = sw.indexOf('__acOrigQj = _Qj');
     const qjEnd = sw.indexOf('return r;', qjStart);
     const qjBlock = qjStart >= 0 ? sw.substring(qjStart, qjEnd > 0 ? qjEnd : qjStart + 800) : '';
@@ -2473,6 +2480,41 @@ vm.runInContext(`
     check('patch proof: the Ghidra listing == the current build, byte for byte (2026-09-13)',
       false, e.message.split('\n')[0]);
   }
+}
+
+// ---------- B54. Donation / rate-us UI removed (2026-09-13) ----------
+// The upstream project is abandoned, so the port neither asks for money nor
+// for Web Store ratings (user request 2026-09-13). Removed from the settings
+// UI:
+//  (a) the "Support the project" button in the tab bar — `<contribBtn>`,
+//      created by file2.js `n()`, which ALSO opened the panel below and
+//      bounce-animated itself every 60s (`q()` + `setInterval(q,6E4)`);
+//  (b) the donation panel that button opened — `<template id=contribPanel>`
+//      (PayPal + BuyMeACoffee links);
+//  (c) the Help tab's "Did you like AutoControl?" box — the `${#rateUs}`
+//      include plus `<template id=rateUs>`;
+//  (d) their now-dead CSS: file46.css `contribBtn*`, `@keyframes
+//      contribBounce`, `[contribPanel] *`, `donateBtns`, `[paypal]*`,
+//      `[coffee]*` and the four `rateUs*` rules; file40.css the `contribBtn`
+//      entry of the help-panel font group.
+// The MV2 originals (`ext-mv2/`, the untouched reference) still carry all of
+// it — this check fails if a future merge/copy brings the UI back.
+{
+  const f2 = fs.readFileSync(path.join(MV3, 'file2.js'), 'utf8');
+  const mainHtml = fs.readFileSync(path.join(MV3, 'main.html'), 'utf8');
+  const css46 = fs.readFileSync(path.join(MV3, 'file46.css'), 'utf8');
+  const css40 = fs.readFileSync(path.join(MV3, 'file40.css'), 'utf8');
+  const DEAD = /contribBtn|contribPanel|donateBtns|contribBounce|rateUs/i;
+  const bad = [];
+  if (DEAD.test(f2)) bad.push('file2.js still builds the donation button');
+  if (DEAD.test(mainHtml) || /paypal|buymeacoffee/i.test(mainHtml)) bad.push('main.html still carries the donation/rating markup');
+  if (DEAD.test(css46) || DEAD.test(css40)) bad.push('the dead donation CSS is back');
+  // guards against an over-eager deletion — these MUST survive
+  if (!/<template id=helpPanel>/.test(mainHtml)) bad.push('main.html lost the helpPanel template');
+  if (!/<template id=installPane>/.test(mainHtml)) bad.push('main.html lost the installPane template');
+  if (!mainHtml.includes('${#uninstall}') || !mainHtml.includes('${#busySign}')) bad.push('main.html lost a template include');
+  check('donation + rate-us UI removed from the settings and Help tabs (2026-09-13)',
+    bad.length === 0, bad.length ? bad.join('; ') : 'file2.js / main.html / file40.css / file46.css are clean');
 }
 
 // ---------- summary ----------
