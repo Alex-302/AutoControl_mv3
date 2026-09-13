@@ -64,9 +64,13 @@ public class EW {
 "@
 
 $engines = (Get-CimInstance Win32_Process -Filter "Name='AutoCtrl_2025.4.22.0.exe'").ProcessId
+# Every Chromium-family browser can run the extension, so enumerate the whole
+# family (mirrors `IsBrowserName` in Test/ac_zone_helper.cs). The browser
+# process is the one without a `--type=` switch (children are renderers/GPU).
+$browserNames = 'chrome.exe','brave.exe','msedge.exe','opera.exe','vivaldi.exe','yandex.exe','chromium.exe','thorium.exe'
 $browsers = @()
-foreach ($p in (Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -notmatch '--type=' })) {
-  $browsers += [pscustomobject]@{ pid = $p.ProcessId; name = ($p.ExecutablePath -replace '\\Application\\chrome.exe$',''); wins = [EW]::BrowserWindows($p.ProcessId) }
+foreach ($p in (Get-CimInstance Win32_Process | Where-Object { $browserNames -contains $_.Name.ToLower() -and $_.CommandLine -notmatch '--type=' })) {
+  $browsers += [pscustomobject]@{ pid = $p.ProcessId; name = (($p.ExecutablePath -replace '\\[^\\]+$','') + '  (' + $p.Name + ')'); wins = [EW]::BrowserWindows($p.ProcessId) }
 }
 foreach ($b in $browsers) { Write-Output ("browser {0} pid={1}: {2} windows: {3}" -f $b.name, $b.pid, $b.wins.Count, (($b.wins | ForEach-Object { '0x' + $_.ToString('X') }) -join ' ')) }
 

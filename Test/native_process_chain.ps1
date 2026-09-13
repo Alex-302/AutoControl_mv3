@@ -39,4 +39,6 @@ Write-Output "=== ZEROS ==="
 Get-CimInstance Win32_Process -Filter "Name='AutoControlZero.exe'" | ForEach-Object { Write-Output ("  " + (Get-Chain $_.ProcessId)) }
 Write-Output ""
 Write-Output "=== BROWSER PROCESSES ==="
-Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -notmatch '--type=' } | ForEach-Object { Write-Output ("  pid={0}  {1}" -f $_.ProcessId, $_.ExecutablePath) }
+# the whole Chromium family (mirrors `IsBrowserName` in Test/ac_zone_helper.cs)
+$browserNames = 'chrome.exe','brave.exe','msedge.exe','opera.exe','vivaldi.exe','yandex.exe','chromium.exe','thorium.exe'
+Get-CimInstance Win32_Process | Where-Object { $browserNames -contains $_.Name.ToLower() -and $_.CommandLine -notmatch '--type=' } | ForEach-Object { Write-Output ("  {0,-16} pid={1}  {2}" -f $_.Name, $_.ProcessId, $_.ExecutablePath) }

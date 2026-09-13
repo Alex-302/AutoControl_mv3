@@ -55,7 +55,9 @@ Write-Output ("  GA_ROOT of it   : " + [WP]::Describe([WP]::GetAncestor($h, 2)))
 Write-Output ("  FOREGROUND      : " + [WP]::Describe([WP]::GetForegroundWindow()))
 Write-Output ""
 Write-Output "browser windows:"
-Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -notmatch '--type=' } | ForEach-Object {
+# the whole Chromium family (mirrors `IsBrowserName` in Test/ac_zone_helper.cs)
+$browserNames = 'chrome.exe','brave.exe','msedge.exe','opera.exe','vivaldi.exe','yandex.exe','chromium.exe','thorium.exe'
+Get-CimInstance Win32_Process | Where-Object { $browserNames -contains $_.Name.ToLower() -and $_.CommandLine -notmatch '--type=' } | ForEach-Object {
   $pr = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
-  Write-Output ("  pid={0} hwnd={1}  {2}" -f $_.ProcessId, $pr.MainWindowHandle, ($_.ExecutablePath -replace '\\Application\\chrome.exe$',''))
+  Write-Output ("  pid={0} hwnd={1}  {2}" -f $_.ProcessId, $pr.MainWindowHandle, $_.ExecutablePath)
 }
