@@ -29,7 +29,10 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # check in EngineIsMine) - the old rule "first engine pid" made both helpers
 # write into the same engine when two browsers ran (the other browser's engine
 # kept the always-match fallback -> "wheel over the page switches tabs").
-$EXPECT_HELPER = '091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2'
+# 2026-09-15: Opera/Vivaldi support - docDepth fix (Vivaldi keeps its whole UI
+# inside the page DOCUMENT), tabs found deeper (d0..d3), browser-menu button
+# found BY NAME (Opera's "Menu" / Vivaldi's "Menu", left side).
+$EXPECT_HELPER = 'E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC'
 $PRISTINE_SHA  = '8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09'
 # Pristine input: the repo copy first (clean checkout works), the deployed
 # backup as fallback (that is where the recipe used to read from).

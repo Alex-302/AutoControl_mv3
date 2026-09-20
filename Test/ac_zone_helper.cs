@@ -137,6 +137,9 @@ public static class ZoneHelper {
   private static int Role(IAccessible a) {
     try { return (int)a.get_accRole(0); } catch { return -1; }
   }
+  private static string Name(IAccessible a) {
+    try { object n = a.get_accName(0); return n == null ? "" : n.ToString(); } catch { return ""; }
+  }
   private static bool Rect(IAccessible a, out RECT r) {
     r = new RECT();
     try {
@@ -146,10 +149,11 @@ public static class ZoneHelper {
       return w > 0 && h > 0;
     } catch { return false; }
   }
-  // The kebab ("Customize and control Chrome") is not exposed as a named
-  // element in Chrome 150: identify it by POSITION - a button in the toolbar
-  // whose right edge hugs the window's right edge (this mirrors the engine's
-  // own position-based zone-30 check in FUN_004156f0). The "New Chrome
+  // The kebab IS exposed in the a11y tree as role 57 BUTTONMENU named "Chrome"
+  // (the earlier "missing" report was made on an outdated Chrome 150 and could
+  // not be re-checked then). It is identified by POSITION - a button in the
+  // toolbar whose right edge hugs the window's right edge (this mirrors the
+  // engine's own position-based zone-30 check in FUN_004156f0). The "New Chrome
   // available" update pill occupies that same rightmost slot in some builds
   // (user request 2026-09-12: "the update pill area is equivalent to the
   // three-dot button - make it work the same"), so it is accepted too: the
@@ -239,6 +243,18 @@ public static class ZoneHelper {
     int docDepth = -1;
     for (int d = 0; d < MAXDEPTH; d++) if (roles[d] == 15) { docDepth = d; break; }
     bool inPage = docDepth >= 0;
+    // Vivaldi (2026-09-15): its whole UI lives INSIDE the page document - the
+    // omnibox's chain is 42 -> 20 -> 22 (Address) -> ... -> 15 (the page
+    // DOCUMENT), so the naive "a DOCUMENT in the chain = the page" rule made
+    // every point of the browser look like the page (zones always [3,1]).
+    // Chrome never has chrome roles BELOW the document; a page can only have
+    // ARIA roles (input=42, toolbar=22) below it. Distinguish: a TOOLBAR (22)
+    // or PAGETAB/PAGETABLIST (37/60) below the document is Vivaldi's UI.
+    if (inPage) {
+      for (int d = 0; d < docDepth && d < 8; d++) {
+        if (roles[d] == 22 || roles[d] == 37 || roles[d] == 60) { inPage = false; break; }
+      }
+    }
     // Chrome-role detection: the chain is walked from the hovered element
     // UPWARDS (d0 = the element, higher d = closer to the window), so the
     // page's own ARIA roles sit BELOW the DOCUMENT (d < docDepth) and the
@@ -249,16 +265,30 @@ public static class ZoneHelper {
     // drive the browser-UI rules.
     bool inToolbar = false, inGroup = false;
     for (int d = 0; d < MAXDEPTH; d++) {
-      if (docDepth >= 0 && d <= docDepth) continue;   // inside the page
-      if (roles[d] == 22) inToolbar = true;        // TOOLBAR
-      if (d > 0 && roles[d] == 20) inGroup = true; // GROUPING (the omnibox container)
+      if (inPage && d <= docDepth) continue;        // inside the page
+      if (roles[d] == 22) inToolbar = true;         // TOOLBAR
+      if (d > 0 && roles[d] == 20) inGroup = true;  // GROUPING (the omnibox container)
     }
     // Inside a DOCUMENT = inside the page: no browser-chrome rule may fire.
     bool ui = !inPage;
 
     bool isTabBtn = ui && roles[0] == 43 && roles[1] == 37;   // the hovered element IS a tab button
     bool isNewTabBtn = ui && roles[0] == 43 && roles[1] == 60;
-    bool stripNear = ui && (roles[0] == 37 || roles[1] == 37 || roles[0] == 60 || roles[1] == 60);
+    // The TAB itself: Opera/Vivaldi put the PAGETAB deeper (41 -> 16 -> 37,
+    // Chrome has 37 at d1). Accept 37/60 anywhere in d0..d3; the d1 check
+    // stays valid for Chrome (41/37 there).
+    int tabDepth = -1;
+    for (int d = 0; d <= 3; d++) {
+      if (ui && (roles[d] == 37 || roles[d] == 60)) { tabDepth = d; break; }
+    }
+    bool stripNear = tabDepth >= 0;
+    // The browser-menu button has a NAME in Opera/Vivaldi (the localized
+    // "Menu"; the Russian UI name is matched via the unicode escape below)
+    // and sits on the LEFT - the kebab rule (right edge) is Chrome only.
+    // A site-info lock (57) in Chrome is named by the page title.
+    bool menuByName = ui && (roles[0] == 43 || roles[0] == 57) &&
+      (Name(chain[0]).IndexOf("menu", StringComparison.OrdinalIgnoreCase) >= 0 ||
+       Name(chain[0]).IndexOf("\u043c\u0435\u043d\u044e", StringComparison.OrdinalIgnoreCase) >= 0);
 
     int[] zs = new int[8];
     int n = 0;
@@ -275,28 +305,39 @@ public static class ZoneHelper {
       if (isTabBtn) tbZone = TabButtonZone(chain[1], pt);
       else if (roles[0] == 37) tbZone = TabButtonZone(chain[0], pt);
       else if (roles[1] == 37) tbZone = TabButtonZone(chain[1], pt);
+      else if (tabDepth >= 2 && roles[tabDepth] == 37) tbZone = TabButtonZone(chain[tabDepth], pt);
       if (tbZone != 0) zs[n++] = tbZone;
       // 4. New tab button: a PUSHBUTTON whose parent is the PAGETABLIST.
       if (isNewTabBtn) zs[n++] = Z_NEWTAB;
       // 5. Omnibox: the address text field (42 EDIT at d0/d1) or the
       //    site-info (lock) button - a BUTTONMENU (57) inside the group.
+      //    NOT the browser-menu button of Opera/Vivaldi (also 57, but NAMED
+      //    as the menu button - handled below).
       if (roles[0] == 42 || roles[1] == 42) zs[n++] = Z_OMNIBOX;
-      else if (roles[0] == 57 && roles[1] == 20) zs[n++] = Z_OMNIBOX;
+      else if (roles[0] == 57 && roles[1] == 20 && !menuByName) zs[n++] = Z_OMNIBOX;
       // 6. Bookmark (star) button: a PUSHBUTTON inside the omnibox group,
       //    which itself sits inside the toolbar band.
       if (roles[0] == 43 && inGroup && inToolbar) zs[n++] = Z_BOOKMARK;
+      // 6b. Browser menu button BY NAME - Opera (role 57) and Vivaldi
+      //     ("Menu", role 43) put it on the LEFT, NOT inside the
+      //     toolbar (the kebab rule below is Chrome-only geometry). The name
+      //     also stops it from being read as the omnibox site-info lock.
+      if (menuByName) zs[n++] = Z_MENUBTN;
       // 7. Toolbar band (role 22 in the ancestry) + the browser menu button
-      //    (the kebab, or the update pill that occupies its slot).
+      //    (the kebab / update pill at the right edge in Chrome; Opera's
+      //    and Vivaldi's menu buttons on the LEFT, found by name).
       if (inToolbar) {
         zs[n++] = Z_TOOLBAR;
-        if ((roles[0] == 43 || roles[0] == 57) && IsRightEdgeButton(chain[0], pt)) zs[n++] = Z_MENUBTN;
+        if ((roles[0] == 43 || roles[0] == 57) && IsRightEdgeButton(chain[0], pt))
+          zs[n++] = Z_MENUBTN;
       }
-      // 8. Browser tab: a PAGETAB at d0/d1, or the PAGETABLIST (strip area /
-      //    gap). EXCLUSIONS: the "+" button's parent IS the PAGETABLIST
-      //    (handled above), and a point that hit one of the tab's BUTTONS
-      //    (Close/Speaker) is not "the tab" - giving them 12 would run a
-      //    zone-12 AND a zone-15/17 action at once.
-      if (tbZone == 0 && (roles[0] == 37 || (roles[1] == 37 && !isTabBtn))) zs[n++] = Z_TAB;
+      // 8. Browser tab: a PAGETAB / PAGETABLIST anywhere in d0..d3 (Chrome:
+      //    d0/d1; Opera/Vivaldi: deeper - see tabDepth above). EXCLUSIONS:
+      //    the "+" button's parent IS the PAGETABLIST (handled above), and a
+      //    point that hit one of the tab's BUTTONS (Close/Speaker) is not
+      //    "the tab" - giving them 12 would run a zone-12 AND a zone-15/17
+      //    action at once.
+      if (tbZone == 0 && tabDepth >= 0 && !(tabDepth == 0 && roles[0] == 43)) zs[n++] = Z_TAB;
       else if ((roles[0] == 60 || roles[1] == 60) && !isNewTabBtn) zs[n++] = Z_TAB;
       // 9. TITLE AREA = the WHOLE top band of the window: the caption, the
       //    tab strip, the omnibox and the toolbar - everything above the page

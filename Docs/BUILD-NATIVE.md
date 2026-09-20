@@ -5,7 +5,7 @@ components** of this port from their inputs:
 
 | Component | Input | Output (deployed) |
 |---|---|---|
-| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **17408**, sha256 `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2` (deterministic build, 2026-09-13) |
+| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **17408**, sha256 `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC` (deterministic build, 2026-09-15) |
 | **Patched engine** (`AutoCtrl_2025.4.22.0.v19.exe`) | `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` (untouched upstream) | size **695296**, sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
 
 Everything below was verified on 2026-09-12 by rebuilding and comparing hashes
@@ -61,7 +61,7 @@ dotnet $csc /nologo /optimize+ /deterministic+ /nostdlib+ `
   /r:"$fw\mscorlib.dll" /r:"$fw\System.dll" /r:"$fw\Accessibility.dll" `
   /out:"$out" Test\ac_zone_helper.cs
 
-Get-FileHash $out -Algorithm SHA256      # must print 091627630D... (see the table above)
+Get-FileHash $out -Algorithm SHA256      # must print E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC (see the table above)
 ```
 
 Notes:
@@ -85,19 +85,25 @@ Framework compiler:
 
 ⚠ **This compiler is NOT reproducible**: two runs of the very same command
 differ in ~4.6 KB of metadata (MVID/heap ordering); the legacy file
-(`493A7276FA87BEA3…`, size 15872) therefore cannot be re-derived bit-for-bit
+(`493A7276FA87BEA324E6E25E4BD8E4576CEEE9FC4E1E517692A3597E91612DB7`, size 15872) therefore cannot be re-derived bit-for-bit
 from the source. It is functionally equivalent to the deterministic build
 (both answer the smoke test identically). Use §A.2 for anything new.
 
 **Status 2026-09-12:** the deployed helper IS the deterministic §A.2 build
-(`6988B49B…`); the legacy one was renamed to
+(`6988B49BCBEC162CE03EFDC94F789F17AFC28C98EC890E7B26FCF0E464F262E6`); the legacy one was renamed to
 `ac_zone_helper.exe.bak-493A7276` in `%LOCALAPPDATA%\AutoControl\`.
 
-**Status 2026-09-13:** rebuilt as `091627630D…` (17408 bytes) with the
+**Status 2026-09-13:** rebuilt as `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2` (17408 bytes) with the
 multi-browser engine binding of §A.6 — `pids[0]` was replaced by
 "the engine that tracks MY browser's windows", so with two browsers running
-the two helpers no longer write into the same engine. The `6988B49B…` build
+the two helpers no longer write into the same engine. The `6988B49BCBEC162CE03EFDC94F789F17AFC28C98EC890E7B26FCF0E464F262E6` build
 was the previous deterministic one (same recipe, no binding fix).
+
+**Status 2026-09-15:** rebuilt again as `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC` (same size, 17408
+bytes) — adds Opera/Vivaldi support: docDepth fix (Vivaldi keeps its whole UI
+inside the page DOCUMENT), tabs found deeper (d0..d3), browser-menu button
+found BY NAME (Opera's "Menu" / Vivaldi's "Menu", left side). The `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2` build
+was the previous one (own-engine binding only).
 
 ### A.4 Verify the build before installing
 

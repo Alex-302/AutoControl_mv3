@@ -13,7 +13,7 @@ zone.
 ## 1. Environment & prerequisites (before EVERY test session)
 
 1. **Engine build**: the DEPLOYED engine since 2026-09-12 is **v19**
-   (`AutoControl_native/patches/patch_zones_v19.js`, sha `1A10EDD1…`) — built
+   (`AutoControl_native/patches/patch_zones_v19.js`, sha `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`) — built
    from `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` (untouched
    upstream), so it carries the zone-table
    cave but **NOT** the accName patch (the older v4 build did; the helper
@@ -22,15 +22,15 @@ zone.
    **Bit-for-bit rebuild of both native parts → `Docs/BUILD-NATIVE.md`**
    (one command: `powershell -File Test/build_native.ps1`;
    `-UpdatePatched` also refreshes `AutoControl_native/patched/`).
-   - the old v4 accName builds (`da8c03d8…` diag-ON, `53b42096…` diag-off)
+   - the old v4 accName builds (`DA8C03D85456A8EC047E4F2AD242A96A3F3DB11C7B1D852DEE7C06864A93F09E` diag-ON, `53B42096691870A2495A5073C297BA96DAAE8BC6F6E0BC18DEEBAF30B4499D1D` diag-off)
      used to live in the repo as `…patched-v4*` — **deleted 2026-09-12** (the
      binaries are gone). Rebuild one with `node Test/patch_accname.js
      --diag-on` into a scratch folder if you really need the 792 diagnostics;
      NOTE it does NOT contain the v19 zone-table cave, so zones fall back to
      v18 behaviour (helper-down) while you run it. For zone work use the v19
      build above.
-   - original pristine: `AutoControl_native/original/` = `8ae9a669…`.
-1b. **Helper build**: deployed since 2026-09-13 is `091627630D…` (17408 bytes,
+   - original pristine: `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` = sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09`.
+1b. **Helper build**: deployed since 2026-09-15 is `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC` (17408 bytes,
     deterministic Roslyn build). Two things about it matter for testing:
     * with **several browsers** running there are several engines, and the
       helper writes only into the engine that tracks **its own** browser's
@@ -202,7 +202,7 @@ cursor (`Test/_ac_mouse.ps1 -Action move`) and read the role.
   Deploy any build with `Test\deploy_patched_engine.ps1 -Source <exe> -Force`.
 - A vanilla (unpatched) engine never sends 792; the SW handler is a
   no-op without it.
-- Hashes: `--diag-off` = `53b42096…`, `--diag-on` = `da8c03d8…`.
+- Hashes: `--diag-off` = `53B42096691870A2495A5073C297BA96DAAE8BC6F6E0BC18DEEBAF30B4499D1D`, `--diag-on` = `DA8C03D85456A8EC047E4F2AD242A96A3F3DB11C7B1D852DEE7C06864A93F09E`.
 
 **⚠ WARNING (2026-08-31, live-verified): never run zone tests with the
 diag-ON build** — the 792 send inside the hover path breaks the zone
@@ -223,7 +223,7 @@ FUN_0040b610 got NOTHING over the tabs. PowerShell probes see 41/37, but
 that is a different MSAA client; the engine's own path never gets a tab
 element, so role-based selectivity is impossible.
 
-**Current deployed engine: v18** (`F96BF544…`, built by
+**Engine v18** (`F96BF5442B8660AC93FCAFC0FFFAC87630DDD3A65DFCDCE1FDDDC6F26359286F`, built by
 `Test/patch_zones_v18.js`) — v16 zone-12 semantics PLUS a code-cave
 trampoline at `FUN_004156f0` entry making EVERY region below 60 match, so
 the engine DELIVERS the 750 for the close button / "+" / speaker / menu

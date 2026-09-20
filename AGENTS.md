@@ -30,9 +30,9 @@ runs against these files.
   fix is to load the extension from this repo
   (`chrome://extensions` → Load unpacked → `mv3-build/`).
 - Use **repo-relative paths** in commands, docs and notes (`mv3-build\sw.js`,
-  `Test\mh_test.js`, `AutoControl_native\patched\...`). Absolute paths are
-  machine-specific and must not appear in this file; for machine folders use
-  environment variables (`$env:LOCALAPPDATA\...`).
+  `Test\mh_test.js`, `AutoControl_native\patched\AutoCtrl_2025.4.22.0.v19.exe`).
+  Absolute paths are machine-specific and must not appear in this file; for
+  machine folders use environment variables (e.g. `$env:LOCALAPPDATA\AutoControl\AutoCtrl_2025.4.22.0.exe`).
 - Read-only inspection of an outside folder (listing, hashes, `git status`,
   `git log` of another checkout) is fine — it is the WRITE side that needs
   permission.
@@ -75,6 +75,12 @@ This includes comments, log strings, and error messages in `sw.js`,
   `window_at_point.ps1` — what window/application is under a screen point;
   `native_process_chain.ps1` — ancestor chains of the native processes, and why
   the engine's own chain is useless for the binding question),
+  the MSAA scanners (`zone_scan.ps1` — MSAA signature scan of a browser window:
+  `-Browser chrome|sxs|brave|vivaldi|opera|edge|yandex`, `-Exe <path>` for the
+  portable builds, `-Hwnd <n>`, `-NoAuto` to skip the auto row detection;
+  `msaa_chain.ps1` — the "why did the zone miss" dump: full ancestor chain +
+  children with rects at `-Point "x,y"` / `-Points "a,x,y;b,x,y"`; both are
+  read-only, do not move the cursor),
   the SW-console readers (`ac_swlog_dump.js`, `ac_swlog_act.js`,
   `ac_swlog_record.js`), `zone-tests/` (the zone regression suite + its
   `README.md`) and `native-disasm/` (Ghidra decompiler export of the engine —
@@ -123,7 +129,7 @@ This includes comments, log strings, and error messages in `sw.js`,
      (`--orig <pristine.exe>` for another original, `--no-diff` only if you
      deliberately accept `PROOF HOLDS (PARTIAL)`).
   2. `powershell -File Test/build_native.ps1` → both hashes OK
-     (engine `1A10EDD1…`, helper `091627630D…`).
+     (engine `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`).
   3. `node Test/mh_test.js` → B53b–B53g `[PASS]`: CLI + determinism,
      docs == bytes, the decoder proof, its mutation (teeth) test, the helper
      writer == the verifier's simulation, the Ghidra listing == the build.
@@ -722,6 +728,31 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   is used by the MRU triggers. The earlier "18 never fires" result was measured
   with `keybd_event`/`mouse_event`, which the engine does not treat like real
   input. Bundle's name table: `[[18,"Alt"],[164,"Left Alt"],[165,"Right Alt"]]`.
+- **Zone classification in Chromium FORKS (2026-09-15, helper `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`)**:
+  Chrome/Canary/Brave expose the same a11y tree — all zones work. Opera and
+  Vivaldi differ, and the helper now handles them:
+  * **Vivaldi**: (a) its whole UI lives INSIDE the page DOCUMENT in the a11y
+    tree (the omnibox chain is 42→20→22→…→15) — the naive "a DOCUMENT in the
+    chain = the page" made every point classify as page; the helper now treats
+    22/37/60 BELOW the document as UI (docDepth fix). (b) It must be launched
+    with `--force-renderer-accessibility` — without it the UI is invisible to
+    MSAA and everything classifies as the page. (c) Tabs are deeper (41→16→37
+    instead of 41→37): the tab rule now accepts 37/60 anywhere in d0..d3.
+  * **Opera**: tabs are also deeper; the browser-menu button is role 57
+    (the localized "Menu") on the LEFT and NOT inside the toolbar — the helper
+    now finds it by NAME (`Name()` contains "menu", the Russian UI name via a
+    unicode escape) and no longer misreads it as the
+    site-info lock (false 21).
+  * **NOT implementable in Opera/Vivaldi**: the tab's SPEAKER icon — the sound
+    is drawn over the favicon in a single element (role 40) present on every
+    tab, so a playing tab is indistinguishable from a silent one; and the tab's
+    CLOSE button (role 16 there, not a 43 button). These zones stay
+    Chrome/Brave-only (README §5a "Known issues").
+  * Registry: Opera/Vivaldi need their OWN `NativeMessagingHosts` hives
+    (`HKCU\Software\Opera Software\NativeMessagingHosts\hrich.autocontrol` and
+    `HKCU\Software\Opera Software\NativeMessagingHosts\com.autocontrol.zonehelper`;
+    `HKCU\Software\Vivaldi\NativeMessagingHosts\hrich.autocontrol` and
+    `HKCU\Software\Vivaldi\NativeMessagingHosts\com.autocontrol.zonehelper`).
 - **Action-queue watchdog** — hook the bundle's `__acLog` DIRECTLY
   (`t === 'OK'` is the exact completion marker; `__acLog` is a top-level
   function declaration → classic-script global, reassignment from sw.js is
@@ -800,7 +831,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   `AutoControl_native\patches\patch_zones_v19.js` builds from
   `AutoControl_native\original\AutoCtrl_2025.4.22.0.exe`
   and applies ONLY its own cave + entry jmp (plus the two v16 NOPs when built
-  with the `v16` argument), so the running engine (hash `1A10EDD1…`) contains
+  with the `v16` argument), so the running engine (hash `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`) contains
   no accName stub — verified by byte comparison with the pristine at
   `FUN_0040bdf0`. It does not matter for zones: **the HELPER queries
   `get_accName` itself** (`Test/ac_zone_helper.cs`, `acc.get_accName(0)` before
@@ -830,9 +861,11 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   the PAGETABLIST 60), **20** toolbar (role 22 in the ancestry), **21**
   omnibox (role 42 at d0/d1, or the lock button 57 under the GROUPING 20),
   **30** browser menu (any toolbar button whose right edge is within 60 px
-  of the window's right edge — the kebab is NOT exposed as an element in
-  Chrome 150 AND the "New Chrome available" update pill occupies its slot,
-  so the pill counts as the menu button: user request 2026-09-12), **33**
+  of the window's right edge — the kebab IS exposed as an element in the
+  a11y tree (role 57, name "Chrome"); the earlier "missing" report was
+  made on an outdated Chrome 150 and could not be re-checked then; the
+  "New Chrome available" update pill occupies its slot in some builds and
+  counts as the menu button (user request 2026-09-12), **33**
   bookmark star (43 inside the GROUPING 20 which sits in the toolbar).
   NOT implemented in the helper: menu items 40-51 — those are passed
   through to the engine (see the gate note below).
@@ -849,7 +882,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   the engine's own logic (menu regions). The build itself ships the
   "always match" prefix (variant A) so an engine started without the helper
   behaves like v18; the helper rewrites bytes `0x00..0x1B` within ~1 s of the
-  first classification. Deployed engine hash `1A10EDD1…`, helper `091627630D…`
+  first classification. Deployed engine hash `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`
   (deterministic build; the previous non-reproducible legacy build is kept as
   `ac_zone_helper.exe.bak-493A7276` in the data dir).
   (rebuild: `powershell -File Test/build_native.ps1 -UpdatePatched`, deploy with
@@ -883,7 +916,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   extension its engine LOCKS the file: kill the engines and copy in the same
   loop (the deploy script stops only Chrome SxS by design).
   ⚠ **SEVERAL BROWSERS RUNNING = SEVERAL ENGINES — the helper MUST bind to
-  ITS OWN (FIXED 2026-09-13, helper `091627630D…`).** Every browser spawns its
+  ITS OWN (FIXED 2026-09-13, helper `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2`, now `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`).** Every browser spawns its
   own `AutoControlZero`→engine pair and each engine keeps its OWN zone table.
   The helper used to take `FindEnginePids()[0]` ("the first engine"), so with
   two browsers open BOTH helpers wrote into the SAME engine while the other one

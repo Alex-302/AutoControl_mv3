@@ -147,12 +147,12 @@ AutoControl-Keyboard-shortcuts-Mouse-gestures-Chrome/
 │   ├── README.md           #   ← structure explained (original / patched / patches)
 │   ├── AutoControl.manifest                  # engine host manifest (path = Zero)
 │   ├── com.autocontrol.zonehelper.json       # zone-helper host manifest
-│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, 091627630D…)
+│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC)
 │   ├── original/           #   untouched upstream files — NEVER edited
-│   │   ├── AutoControlZero.exe        # proxy/launcher (= installer)  994E14D2…
-│   │   └── AutoCtrl_2025.4.22.0.exe   # engine (global hooks)         8AE9A669…
+│   │   ├── AutoControlZero.exe        # proxy/launcher (= installer)  994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38
+│   │   └── AutoCtrl_2025.4.22.0.exe   # engine (global hooks)         8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09
 │   ├── patched/            #   the CURRENT build (put THIS into the install)
-│   │   └── AutoCtrl_2025.4.22.0.v19.exe       # zone-table build      1A10EDD1…
+│   │   └── AutoCtrl_2025.4.22.0.v19.exe       # zone-table build      1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E
 │   └── patches/            #   how original/ becomes patched/
 │       └── patch_zones_v19.js                 # the only active patch
 ├── Test/                   # the toolset (helpers, probes, zone test suite)
@@ -214,7 +214,7 @@ Open
 | Toggle | Required? | Purpose |
 | --- | --- | --- |
 | **Allow user scripts** | ✅ **REQUIRED** | The Run Script engine executes user code via `chrome.userScripts` (Chrome 120+). Without this toggle, scripts fall back to a MAIN-world eval that is blocked by strict page CSP. If the toggle is off, script actions fail with *"userScripts API unavailable — enable 'Allow user scripts' on chrome://extensions"*. |
-| **Allow access to file URLs** | ⚠️ optional | Needed **only** if you use local `file://` paths: `ACtl.getFile('C:\\...')`, `ACtl.saveURL(..., 'C:\\...')`, local page access / `file://` URL conditions in triggers. Same requirement as MV2. Leave off if you don't use file paths. |
+| **Allow access to file URLs** | ⚠️ optional | Needed **only** if you use local `file://` paths: `ACtl.getFile('C:\path\to\file.txt')`, `ACtl.saveURL(..., 'C:\path\to\file.txt')`, local page access / `file://` URL conditions in triggers. Same requirement as MV2. Leave off if you don't use file paths. |
 | **Allowed in Incognito** | ⚠️ optional | Only if you want AutoControl to work in incognito windows. |
 
 ---
@@ -303,6 +303,32 @@ The extension never reads this folder: the installer is extracted from
      `reg add "HKCU\Software\Google\Chrome\NativeMessagingHosts\com.autocontrol.zonehelper" /ve /t REG_SZ /d "$env:LOCALAPPDATA\AutoControl\com.autocontrol.zonehelper.json" /f`
      (use `%LOCALAPPDATA%` instead of `$env:LOCALAPPDATA` if you run it from
      `cmd` — PowerShell would store the variable name literally);
+   - **if you also use Opera or Vivaldi** — they read native hosts only from
+     their OWN vendor branches. Register BOTH hosts for each browser
+     (`hrich.autocontrol` and `com.autocontrol.zonehelper`), from `cmd`:
+
+     Opera:
+     ```cmd
+     reg add "HKCU\Software\Opera Software\NativeMessagingHosts\hrich.autocontrol" /ve /t REG_SZ /d "%LOCALAPPDATA%\AutoControl\AutoControl.manifest" /f
+     reg add "HKCU\Software\Opera Software\NativeMessagingHosts\com.autocontrol.zonehelper" /ve /t REG_SZ /d "%LOCALAPPDATA%\AutoControl\com.autocontrol.zonehelper.json" /f
+     ```
+
+     Vivaldi:
+     ```cmd
+     reg add "HKCU\Software\Vivaldi\NativeMessagingHosts\hrich.autocontrol" /ve /t REG_SZ /d "%LOCALAPPDATA%\AutoControl\AutoControl.manifest" /f
+     reg add "HKCU\Software\Vivaldi\NativeMessagingHosts\com.autocontrol.zonehelper" /ve /t REG_SZ /d "%LOCALAPPDATA%\AutoControl\com.autocontrol.zonehelper.json" /f
+     ```
+
+     Restart the browser afterwards. (These keys do not travel with a
+     portable browser folder — re-run after copying to another machine.)
+   - **Brave — nothing to do**: it falls back to Chrome's branch, so the
+     Chrome registration above is enough (verified 2026-09-15: the helper
+     attached to Brave's engine with only the Chrome keys present). If you
+     ever want to be explicit, its own branch is
+     `HKCU\Software\BraveSoftware\Brave-Browser\NativeMessagingHosts\hrich.autocontrol`
+     and
+     `HKCU\Software\BraveSoftware\Brave-Browser\NativeMessagingHosts\com.autocontrol.zonehelper`
+     (same values as the Chrome ones).
    - reload the extension → the SW console prints `[AC-MV3-ZONE] zone map: …`.
    ⚠ A Repair/reinstall re-deploys the UNPATCHED engine from `file76.dat` —
    repeat the engine step then. Background: §4.3 (zones) and §4.4 (patch).
@@ -494,8 +520,8 @@ stops working.
 
 ```
 powershell -ExecutionPolicy Bypass -File Test/build_native.ps1
-# === 1/2  ENGINE (original + byte patch)  ... 695296 bytes  1A10EDD1...  OK
-# === 2/2  HELPER (our C# source)         ...  17408 bytes  091627630D...  OK
+# === 1/2  ENGINE (original + byte patch)  ... 695296 bytes  1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E  OK
+# === 2/2  HELPER (our C# source)         ...  17408 bytes  E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC  OK
 # (add -UpdatePatched to also refresh AutoControl_native/patched/ with the build)
 ```
 
@@ -532,6 +558,45 @@ keep the `AutoControlZero.exe` proxy chain — do not run it standalone.
 
 Full in-browser self-test: `Test/SCRIPTING-API-TEST.js` (23 checks, run via the
 RUN SCRIPT action; see `AGENTS.md`).
+
+---
+
+## 5a. Known issues — mouse-over zones in Chromium forks (2026-09-15)
+
+The zones are classified by the external helper (`ac_zone_helper.exe`) via MSAA.
+Chrome / Chrome Canary / Brave expose the same accessibility tree, so **all
+zones work there** (verified live, including the tab's speaker icon while a tab
+plays sound). Opera and Vivaldi render their own UI and expose **different**
+trees; the helper was adapted for them on 2026-09-15.
+
+### Compatibility matrix (zone → browser)
+
+| Zone (as shown in the action editor) | Chrome | Brave | Opera | Vivaldi |
+|---|---|---|---|---|
+| Browser window | ✅ | ✅ | ✅ | ✅ |
+| Web page | ✅ | ✅ | ✅ | ✅ |
+| Title area (top band) | ✅ | ✅ | ✅ | ✅ |
+| Browser tab | ✅ | ✅ | ✅ | ✅ |
+| New tab "+" | ✅ | ✅ | ✅ | ❌ |
+| Toolbar | ✅ | ✅ | ✅ | ✅ |
+| Omnibox / address bar | ✅ | ✅ | ✅ | ✅ |
+| Bookmark button | ✅ | ✅ | ✅ | ❌ |
+| Browser menu button | ✅ | ✅ | ✅ | ✅ |
+| Tab's close button | ✅ | ✅ | ❌ | ❌ |
+| Tab's **speaker** icon | ✅ | ✅ | ❌ * | ❌ * |
+
+\* **The tab's speaker icon cannot work in Opera/Vivaldi** — the sound is drawn
+over the favicon in a single element (role 40 in Opera, an unnamed role-20
+box in Vivaldi) present on **every** tab, so a playing tab is
+indistinguishable from a silent one. This is not implementable via MSAA.
+
+Additional notes:
+
+* **Vivaldi must be started with `--force-renderer-accessibility`** — without
+  it its whole UI (toolbar, tabs) is invisible to MSAA and every point
+  classifies as the page.
+* Vivaldi keeps its entire UI *inside* the page document in the a11y tree —
+  the helper detects this and treats it as browser chrome (fixed 2026-09-15).
 
 ---
 

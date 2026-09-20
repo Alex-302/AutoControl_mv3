@@ -365,7 +365,7 @@ rebuild needed for those.
   poll on the SAME port (MV2 D(true) style) → one clean reconnect → poll →
   give up with guidance. NO del, NO nuke, NO chrome.runtime.reload, NO
   infinite retry. Verified: file76.dat decrypts to the exact reference exe
-  (MD5 D9BE9A...), tests A11-A13 cover the new invariants.
+  (MD5 D9BE9A1099D70FAFCEB59EF22DA5B44A), tests A11-A13 cover the new invariants.
 - **Native install requires extension reload (FIXED 2026-08-04, auto-reconnect)**.
   After the user installs the native component from the settings page
   ("Reinstall" + "Repair"), the SW didn't reconnect automatically — the user

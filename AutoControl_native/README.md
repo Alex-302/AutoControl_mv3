@@ -23,13 +23,13 @@ AutoControl_native/
 │                                          (name "hrich.autocontrol", path "AutoControlZero.exe")
 ├── com.autocontrol.zonehelper.json    <- native-host manifest of the ZONE HELPER
 ├── ac_zone_helper.exe                 <- OUR OWN binary: zone classifier (no hooks)
-│                                          current build: 091627630D…, built from
+│                                          current build: E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC, built from
 │                                          Test/ac_zone_helper.cs
 ├── original/                          <- untouched upstream files (never edited)
-│   ├── AutoCtrl_2025.4.22.0.exe       <- the PRISTINE engine      8AE9A669… (695 296 b)
-│   └── AutoControlZero.exe            <- the proxy/launcher       994E14D2… (332 800 b)
+│   ├── AutoCtrl_2025.4.22.0.exe       <- the PRISTINE engine      8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09 (695 296 b)
+│   └── AutoControlZero.exe            <- the proxy/launcher       994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38 (332 800 b)
 ├── patched/                           <- the CURRENT (fixed) build
-│   └── AutoCtrl_2025.4.22.0.v19.exe   <- zone-table build         1A10EDD1… (695 296 b)
+│   └── AutoCtrl_2025.4.22.0.v19.exe   <- zone-table build         1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E (695 296 b)
 └── patches/                           <- how original/ becomes patched/
     ├── README.md                      <- exact commands + what each patch does
     └── patch_zones_v19.js             <- the ONLY active patch (original -> v19)
@@ -79,7 +79,7 @@ Full byte-level explanation (addresses, the code cave, the runtime table):
 | `original/AutoCtrl_2025.4.22.0.exe` | 695 296 | `8AE9A669086BEA5C` | upstream (v2025.4.22) |
 | `original/AutoControlZero.exe` | 332 800 | `994E14D2BB306607` | upstream |
 | `patched/AutoCtrl_2025.4.22.0.v19.exe` | 695 296 | `1A10EDD191B80A80` | `patches/patch_zones_v19.js` |
-| `ac_zone_helper.exe` | 17 408 | `091627630DA4DFD9` | `Test/build_native.ps1` (Roslyn, deterministic) |
+| `ac_zone_helper.exe` | 17 408 | `E78DB22133BCC05F` | `Test/build_native.ps1` (Roslyn, deterministic) |
 
 > The engine the *extension* unpacks on a fresh install is a different file
 > (`mv3-build/file76.dat`, the distro build) — it has **no** zone fix, so a fresh

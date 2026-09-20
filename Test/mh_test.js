@@ -2166,7 +2166,9 @@ vm.runInContext(`
 //  (d) the helper source keeps the rules that took the longest to find: the
 //      close/speaker halves of a tab button, the "+" under the tab list and
 //      the right-edge rule that makes the "New Chrome available" pill count
-//      as the browser-menu button (the kebab is not exposed in Chrome 150).
+//      as the browser-menu button (the kebab IS exposed in the a11y tree as
+//      role 57 BUTTONMENU named "Chrome" - the earlier "missing" report was
+//      made on an outdated Chrome 150 and could not be re-checked then).
 //  (e) the engine patch builder exists and still contains the code-cave
 //      trampoline (regions < 60 always match; menu regions 60-71 keep the
 //      engine's native classification). Without it the engine DROPS the 750
@@ -2205,7 +2207,10 @@ vm.runInContext(`
   const hPageSafe = /bool ui = !inPage/.test(helper);
   const hOwnWindow = helper.includes('browserPid') && helper.includes('IsBrowserName');
   const hHeartbeat = helper.includes('Heartbeat') && helper.includes('CacheStore');
-  const hSpeakerNoTab = /tbZone == 0 && \(roles\[0\] == 37/.test(helper);
+  // the tab-zone rule must exclude a point that hit one of the tab's BUTTONS
+  // (Close/Speaker) - "giving them 12 would run a zone-12 AND a zone-15/17
+  // action at once". Pattern updated 2026-09-15 (tabDepth, Opera/Vivaldi).
+  const hSpeakerNoTab = /tbZone == 0 && tabDepth >= 0 && !\(tabDepth == 0 && roles\[0\] == 43\)/.test(helper);
 
   const patchFile = path.join(__dirname, '..', 'AutoControl_native', 'patches', 'patch_zones_v19.js');
   const patchExists = fs.existsSync(patchFile);

@@ -4,24 +4,44 @@
 # screen point, so we can hit-test any coordinate without disturbing the user.
 #
 # What it does:
-#   1. finds the largest Chrome SxS window, gets its rect,
-#   2. VERTICAL scans at 3 x-positions to locate the UI rows
+#   1. finds the window (any browser or an explicit HWND), gets its rect,
+#   2. finds the UI ROWS automatically (a vertical probe locates the tab
+#      strip / toolbar / omnibox rows by their roles - see -Auto), or falls
+#      back to the Chrome SxS defaults when the roles are not found,
+#   3. VERTICAL scans at 3 x-positions to locate the UI rows
 #      (title strip / tab strip / toolbar / page),
-#   3. HORIZONTAL run-length sweeps at those rows: prints each element
+#   4. HORIZONTAL run-length sweeps at those rows: prints each element
 #      (role/name/child-count) with its x-range - this is where the
 #      distinguishing signatures for the zones come from,
-#   4. enumerates the CHILDREN of one tab element (close button? audio
+#   5. enumerates the CHILDREN of one tab element (close button? audio
 #      indicator?) - needed for zones 15/17,
-#   5. dumps everything to %TEMP%\ac_zone_scan.txt.
+#   6. dumps everything to %TEMP%\ac_zone_scan.txt.
 #
 # The MSAA tree of Chrome 148+ sleeps until accName is queried (crbug
 # 416429182); every probe below wakes it first (AOP -> accName -> re-AOP),
 # exactly like ac_zone_helper.exe does.
 #
+# Window selection (first that matches):
+#   -Hwnd <n>            explicit window handle
+#   -Browser <name>      chrome | sxs | brave | vivaldi | opera | edge | yandex
+#                        (looks up the process by name/path)
+#   -Exe <path>          explicit exe path (e.g. the portable Vivaldi/Opera)
+#   -ProcessName <name>  process name, e.g. "vivaldi"
+#   (default: the largest Chrome SxS window)
+#
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File Test\zone_scan.ps1
-#   powershell -ExecutionPolicy Bypass -File Test\zone_scan.ps1 -Hwnd 123456 -Step 6
-param([int]$Hwnd = 0, [int]$Step = 8, [int]$Dump = 0)
+#   powershell -ExecutionPolicy Bypass -File Test\zone_scan.ps1 -Browser brave
+#   powershell -ExecutionPolicy Bypass -File Test\zone_scan.ps1 -Exe "C:\Work\Portable\Vivaldi\Application\vivaldi.exe"
+#   powershell -ExecutionPolicy Bypass -File Test\zone_scan.ps1 -Hwnd 123456 -Step 6 -NoAuto
+param(
+  [int]$Hwnd = 0,
+  [int]$Step = 8,
+  [int]$Dump = 0,
+  [string]$Browser = "",
+  [string]$Exe = "",
+  [string]$ProcessName = "",
+  [switch]$NoAuto
+)
 
 Add-Type -ReferencedAssemblies Accessibility @"
 using System;
@@ -100,7 +120,8 @@ public class ZoneScan {
     }
     if (tab == null) tab = acc;
     int n = 0; try { n = tab.accChildCount; } catch { }
-    parts.Add("parent: " + Desc(tab, out n2_ignore));
+    int n2 = 0;
+    parts.Add("parent: " + Desc(tab, out n2));
     for (int i = 1; i <= Math.Min(n, 12); i++) {
       object ch = null;
       try { ch = tab.get_accChild(i); } catch { }
@@ -127,14 +148,39 @@ public class ZoneScan {
     try { Marshal.ReleaseComObject(acc); } catch { }
     return string.Join("\n", parts.ToArray());
   }
-  static int n2_ignore;
 }
 "@
 
-# ---------- find the SxS window ----------
+# ---------- find the window ----------
 if ($Hwnd -eq 0) {
-  $cands = Get-Process chrome -ErrorAction SilentlyContinue |
-    Where-Object { $_.Path -like '*Chrome SxS*' -and $_.MainWindowHandle -ne 0 }
+  # resolve the process to look at: -Browser/-Exe/-ProcessName, else Chrome SxS
+  $lookup = ''
+  if ($Browser) {
+    $map = @{
+      'chrome' = 'chrome.exe'; 'sxs' = '*Chrome SxS*'; 'brave' = 'brave.exe';
+      'vivaldi' = 'vivaldi.exe'; 'opera' = 'opera.exe'; 'edge' = 'msedge.exe';
+      'yandex' = 'yandex.exe'
+    }
+    $lookup = $map[$Browser.ToLower()]
+    if (-not $lookup) { Write-Output "UNKNOWN -Browser '$Browser' (chrome|sxs|brave|vivaldi|opera|edge|yandex)"; exit 1 }
+  } elseif ($Exe) {
+    $lookup = Split-Path $Exe -Leaf
+  } elseif ($ProcessName) {
+    $lookup = $ProcessName + '.exe'
+  } else {
+    $lookup = '*Chrome SxS*'
+  }
+  $cands = @()
+  if ($lookup -like '*SxS*') {
+    $cands = Get-Process chrome -ErrorAction SilentlyContinue |
+      Where-Object { $_.Path -like $lookup -and $_.MainWindowHandle -ne 0 }
+  } elseif ($Exe) {
+    $cands = Get-Process -ErrorAction SilentlyContinue |
+      Where-Object { $_.Path -and $_.Path -eq $Exe -and $_.MainWindowHandle -ne 0 }
+  } else {
+    $cands = Get-Process -Name ($lookup -replace '\.exe$','') -ErrorAction SilentlyContinue |
+      Where-Object { $_.MainWindowHandle -ne 0 }
+  }
   $best = $null; $bestArea = 0
   foreach ($c in $cands) {
     $rr = New-Object ZoneScan+RECT
@@ -142,9 +188,9 @@ if ($Hwnd -eq 0) {
     $area = ($rr.r - $rr.l) * ($rr.b - $rr.t)
     if ($area -gt $bestArea) { $bestArea = $area; $best = $c }
   }
-  if (-not $best) { Write-Output "NO SXS WINDOW FOUND"; exit 1 }
+  if (-not $best) { Write-Output "NO WINDOW FOUND for '$lookup' - is the browser running?"; exit 1 }
   $Hwnd = $best.MainWindowHandle
-  Write-Output "Window: $($best.MainWindowTitle) hwnd=$Hwnd"
+  Write-Output "Window: $($best.MainWindowTitle) hwnd=$Hwnd path=$($best.Path)"
 }
 $r = New-Object ZoneScan+RECT
 [ZoneScan]::GetWindowRect([IntPtr]$Hwnd, [ref]$r) | Out-Null
@@ -202,24 +248,52 @@ SweepV ($l + 150)              'left (x=l+150)'
 SweepV ($l + [int]($w * 0.55)) 'middle'
 SweepV ($r.r - 180)            'right (x=r-180)'
 
-# ---------- 2. horizontal sweeps on the fixed rows ----------
+# ---------- 2. find the UI rows (auto) or fall back to Chrome defaults ----------
 $yTitle = $t + 5
 $yTab   = $t + 30
 $yTab2  = $t + 44
 $yTool  = $t + 88
+$yOmn   = $t + 88
+if (-not $NoAuto) {
+  Write-Output ""
+  Write-Output "=== AUTO-ROWS: vertical probe at x=$($l+150), y=$($t+2)..$($t+180) ==="
+  Emit "=== AUTO-ROWS: x=$($l+150) ==="
+  $roleAt = @{}   # role -> first y where it appears at d0/d1
+  for ($y = $t + 2; $y -le $t + 180; $y += 2) {
+    $d = Probe ($l + 150) $y
+    # roles of interest: 60=PAGETABLIST, 37=PAGETAB, 22=TOOLBAR, 42=EDIT
+    foreach ($role in 60, 37, 22, 42) {
+      if ($d -match ("role=" + $role + "\b")) {
+        if (-not $roleAt.ContainsKey($role)) { $roleAt[$role] = $y }
+      }
+    }
+  }
+  if ($roleAt.ContainsKey(60)) { $yTab = $roleAt[60] + 3; $yTab2 = $yTab + 8 }
+  elseif ($roleAt.ContainsKey(37)) { $yTab = $roleAt[37]; $yTab2 = $yTab + 8 }
+  if ($roleAt.ContainsKey(22)) { $yTool = $roleAt[22] + 3 }
+  if ($roleAt.ContainsKey(42)) { $yOmn = $roleAt[42] + 3 }
+  $summary = "tablist/tab first at y=" + $(if ($roleAt.ContainsKey(60)) { $roleAt[60] } elseif ($roleAt.ContainsKey(37)) { $roleAt[37] } else { '?' }) +
+    "  toolbar at y=" + $(if ($roleAt.ContainsKey(22)) { $roleAt[22] } else { '?' }) +
+    "  edit(omnibox) at y=" + $(if ($roleAt.ContainsKey(42)) { $roleAt[42] } else { '?' })
+  Write-Output $summary
+  Emit $summary
+}
+
+# ---------- 3. horizontal sweeps on the found rows ----------
 SweepH $yTitle 'title strip'
 SweepH $yTab   'tab strip A'
 SweepH $yTab2  'tab strip B'
 SweepH $yTool  'toolbar row'
+if ($yOmn -ne $yTool) { SweepH $yOmn 'omnibox row' }
 
-# ---------- 3. stop at the first tab element (close/speaker children) ----------
+# ---------- 4. stop at the first tab element (close/speaker children) ----------
 Write-Output ""
 Write-Output "=== ZOOM-IN: tab children (x=l+150, y=$yTab) ==="
 $pt = New-Object ZoneScan+POINT; $pt.x = $l + 150; $pt.y = $yTab
 $kids = [ZoneScan]::Kids($pt)
 Write-Output $kids; Emit "=== TAB CHILDREN ==="; Emit $kids
 
-# ---------- 4. zoom-in on the far right of the toolbar row (kebab/menu) ----------
+# ---------- 5. zoom-in on the far right of the toolbar row (kebab/menu) ----------
 Write-Output ""
 Write-Output "=== ZOOM-IN: right end of the toolbar row (x=r-40..r-150) ==="
 for ($x = $r.r - 30; $x -ge $r.r - 260; $x -= 20) {

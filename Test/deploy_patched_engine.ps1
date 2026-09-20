@@ -16,7 +16,7 @@
     AutoControl_native\original\*.exe                         pristine input
     AutoControl_native\patches\patch_zones_v19.js             original -> v19
 
-  The default build is the CURRENT one (zone table, sha 1A10EDD1...).
+  The default build is the CURRENT one (zone table, sha 1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E).
   Rebuild it with:  powershell -File Test\build_native.ps1 -UpdatePatched
 
   Removed 2026-09-12: the old accName v4 builds and the -Diag/-NoDiag switches
@@ -60,7 +60,7 @@ $variant = if ($srcHash -eq $H_V19)      { 'CURRENT v19 (zone table, helper-driv
            elseif ($srcHash -eq $H_PRISTINE) { 'PRISTINE (no zone fix at all!)' }
            else { 'UNKNOWN BUILD' }
 if ($variant -eq 'UNKNOWN BUILD' -and -not $Force) {
-  Write-Error "Unknown engine build ($($srcHash.Substring(0,16))...). Expected v19 (1A10EDD1...). Use -Force to deploy anyway."
+  Write-Error "Unknown engine build ($($srcHash.Substring(0,16))...). Expected v19 (1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E). Use -Force to deploy anyway."
 }
 Write-Host "Source: $Source" -ForegroundColor Cyan
 Write-Host "SHA-256: $srcHash  [$variant]" -ForegroundColor Cyan

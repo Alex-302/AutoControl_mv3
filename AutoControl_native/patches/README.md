@@ -10,7 +10,7 @@ node AutoControl_native/patches/patch_zones_v19.js out.exe
 node AutoControl_native/patches/patch_zones_v19.js out.exe D:\some\pristine.exe
 
 # legacy variant (NOT deployed, see the scope section below):
-node AutoControl_native/patches/patch_zones_v19.js out.exe v16      # 8696D276…
+node AutoControl_native/patches/patch_zones_v19.js out.exe v16      # 8696D2763030BF53F8A58124BA351F723349A43EFCD46F8D26F7EFD329236C49
 ```
 
 `v16` is a **flag** and may appear in any position; the other arguments are
@@ -307,7 +307,7 @@ against `%LOCALAPPDATA%\AutoControl\AutoCtrl_2025.4.22.0.exe`).
 | | |
 |---|---|
 | **included** (40 bytes) | the entry jump + the code cave — nothing else differs from the original |
-| **optional, NOT applied** | `node patch_zones_v19.js <out> v16` adds two 2026-09-01 NOPs (zone-12 window gate + role check) → `8696D276…`. Measured 2026-09-12: with them the engine consumes the wheel **everywhere** again (pages stop scrolling) — do not pass `v16` |
+| **optional, NOT applied** | `node patch_zones_v19.js <out> v16` adds two 2026-09-01 NOPs (zone-12 window gate + role check) → `8696D2763030BF53F8A58124BA351F723349A43EFCD46F8D26F7EFD329236C49`. Measured 2026-09-12: with them the engine consumes the wheel **everywhere** again (pages stop scrolling) — do not pass `v16` |
 | **not included, not needed** | the accName patch of the v2–v4 line (`Test/patch_accname.js`): the zone helper queries `get_accName` itself, which switches Chrome's accessibility tree on browser-wide. The 40-byte diff above proves no other change is present |
 | **not part of this component** | `ac_zone_helper.exe` — a separate program built from `Test/ac_zone_helper.cs` (`Test/build_native.ps1` covers both) |
 
@@ -324,7 +324,7 @@ memory (helper writes): 83 fa 28 73 17 80 3d <alive> 00 74 08 8b 04 95 <table> c
 ## Verifying without Windows tooling
 
 ```powershell
-Get-FileHash out.exe -Algorithm SHA256   # must be 1A10EDD1...
+Get-FileHash out.exe -Algorithm SHA256   # must be 1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E
 ```
 
 Prove that the **installed** engine is exactly this build (byte diff, no

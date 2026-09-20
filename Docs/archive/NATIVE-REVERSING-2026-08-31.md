@@ -158,13 +158,13 @@ This is NOT a port bug (same native, same behavior for MV2 on Chrome 148+).
 the pristine `.bak` (adds the `.acp` PE section + stub + the 5-byte jump
 at 0x40b63b):
 
-| Artifact | SHA-256 | 792 diagnostics |
-|---|---|---|
-| original | `8ae9a669…` | n/a (no stub) |
-| v2 (deployed) | `f6024079…` | none (accName only) |
-| v3 | `90c3b526…` | always on (unconditional send) |
-| v4 `--diag-off` | `53b42096…` | gated, default OFF |
-| v4 `--diag-on` | `da8c03d8…` | gated, ON |
+| Artifact | 792 diagnostics |
+|---|---|
+| original | n/a (no stub) |
+| v2 (deployed) | none (accName only) |
+| v3 | always on (unconditional send) |
+| v4 `--diag-off` | gated, default OFF |
+| v4 `--diag-on` | gated, ON |
 
 > ⚠ The v2/v3/v4 **builds** are not in the repo any more (deleted 2026-09-12
 > together with the other superseded engine binaries); rebuild with
@@ -249,17 +249,17 @@ MSAA client; the engine's own AOP/cache path never gets a tab element.
 
 | Build | Script | What it did | Live result |
 |---|---|---|---|
-| v5b 7814065e… | patch_zone12_stub.js | gate NOP + FUN_00415570 = always 1 (in-place) | ✅ zone 12 fires EVERYWHERE (750+reload) — proves the chain works |
-| v7 e3e6e63… | patch_zone12_v7.js | gate NOP + .acp stub, roles {37,41,60,16} | ❌ **build bug: section math used undefined last.rsize → .acp raw=0, jmp into zeros** — hash identical to v8diag |
-| v8diag e3e6e63… | patch_zone12_v8diag.js | gate NOP + .acp stub + 792 send from FUN_00415570 | ❌ same build bug (empty .acp) |
-| v9 63be26d… | patch_zone12_v9.js | fixed section math; roles {37,41,60,16} → else original parent path | ❌ no 750 over tabs (roles the ENGINE sees are not in the set) |
-| v10 905444f… | patch_zone12_v10.js | jmp→.acp stub, ALWAYS 1 (isolation test) | ✅ works like v5b ("everywhere") — .acp jmp itself is fine |
-| v11diag 963a9f84… | patch_zone12_v11diag.js | always-1 + 792 send from FUN_0040b610 | ❌ no 792 (cache never refreshes over tabs) + 792-in-hot-path corrupts classification |
-| v12 11cd00f… | patch_zone12_v12.js | gate NOP + geometric stub (GetWindowRect, y-top<70) | ❌ stub bugs: POINT* read from wrong pushad slot; result in AL wiped by popad |
-| v13 57541e76… | patch_zone12_v13.js | geometric stub fixed | ❌ **forgot the gate NOP** — FUN_00414760 gate still kills zone 12; also config had not reached the engine |
-| v14 658c1a48… | patch_zone12_v14.js | v13 + gate NOP | ❌ "nothing anywhere" — the CONFIG (type 60) had NOT reached the engine after restart (see 10.4) |
-| v15diag 963a9f84… | patch_zone12_v15diag.js | always-1 + 792 from FUN_0040b610 | ❌ 792 corrupts classification (RE §9); no 750 |
-| **v16 94f0984…** | patch_zone12_v16.js | gate NOP + always-1 (== v5b) | ✅ **FINAL WORKING BASELINE**: Alt+wheel on omnibox ✓, Shift+wheel on page ✓, plain wheel fires everywhere (expected for always-1) |
+| v5b | patch_zone12_stub.js | gate NOP + FUN_00415570 = always 1 (in-place) | ✅ zone 12 fires EVERYWHERE (750+reload) — proves the chain works |
+| v7 | patch_zone12_v7.js | gate NOP + .acp stub, roles {37,41,60,16} | ❌ **build bug: section math used undefined last.rsize → .acp raw=0, jmp into zeros** — hash identical to v8diag |
+| v8diag | patch_zone12_v8diag.js | gate NOP + .acp stub + 792 send from FUN_00415570 | ❌ same build bug (empty .acp) |
+| v9 | patch_zone12_v9.js | fixed section math; roles {37,41,60,16} → else original parent path | ❌ no 750 over tabs (roles the ENGINE sees are not in the set) |
+| v10 | patch_zone12_v10.js | jmp→.acp stub, ALWAYS 1 (isolation test) | ✅ works like v5b ("everywhere") — .acp jmp itself is fine |
+| v11diag | patch_zone12_v11diag.js | always-1 + 792 send from FUN_0040b610 | ❌ no 792 (cache never refreshes over tabs) + 792-in-hot-path corrupts classification |
+| v12 | patch_zone12_v12.js | gate NOP + geometric stub (GetWindowRect, y-top<70) | ❌ stub bugs: POINT* read from wrong pushad slot; result in AL wiped by popad |
+| v13 | patch_zone12_v13.js | geometric stub fixed | ❌ **forgot the gate NOP** — FUN_00414760 gate still kills zone 12; also config had not reached the engine |
+| v14 | patch_zone12_v14.js | v13 + gate NOP | ❌ "nothing anywhere" — the CONFIG (type 60) had NOT reached the engine after restart (see 10.4) |
+| v15diag | patch_zone12_v15diag.js | always-1 + 792 from FUN_0040b610 | ❌ 792 corrupts classification (RE §9); no 750 |
+| **v16** | patch_zone12_v16.js | gate NOP + always-1 (== v5b) | ✅ **FINAL WORKING BASELINE**: Alt+wheel on omnibox ✓, Shift+wheel on page ✓, plain wheel fires everywhere (expected for always-1) |
 
 v16 == v5b semantics (hash b94f0984 == earlier v5b build) and is the
 **currently deployed engine**.
@@ -381,7 +381,7 @@ of the engine into the extension SW + a tiny external helper:
   note below was only half of the story — with v16 the engine still DROPPED
   the 750 for regions it cannot classify (measured: a real wheel over the
   close button produced a 750 for the zone-12 trigger only), so the gate had
-  nothing to judge. `Test/patch_zones_v18.js` (deployed hash F96BF544…)
+  had nothing to judge. `Test/patch_zones_v18.js` (obsolete, superseded by v19)
   therefore makes every precond region BELOW 60 match in the engine (code
   cave + `jmp` trampoline at FUN_004156f0) and leaves regions ≥ 60 (the
   AutoControl menu) to the engine's own classification. Selectivity now

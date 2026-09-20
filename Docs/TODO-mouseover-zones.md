@@ -1,20 +1,38 @@
 # TODO — Mouse-over zones: make ALL zones work (Chrome 148+/150)
 
 **Created:** 2026-09-03 · **Status:** ✅ **CORE GOAL ACHIEVED (2026-09-12)** — all
-12 action-editor areas verified live; ⬜ 3 follow-ups remain (below)
+12 action-editor areas verified live; ⬜ 2 follow-ups remain (below)
 **Goal:** every mouse-over zone condition works on Chrome 150 (SxS Canary)
 with the zone-helper architecture. Zone 12 (tab strip) and 16 (new-tab
 button) were the first proofs; **all 12 areas are now verified** (§1 summary).
 
 **Open items — the ONLY ones left in this file:**
-1. **§2c — multi-browser support: UNTESTED.** The helper has never been run by
-   two browsers at once (needs a second browser registered + the extension
-   loaded from the same folder).
-2. **§3 item 4 — menu-item types 41-51 are not individually verified.** They
+1. **§3 item 4 — menu-item types 41-51 are not individually verified.** They
    ride the same engine-classified route as type 40, which WAS verified live;
    per-kind accuracy is unproven.
-3. **§6 — auto-heal for a HUNG helper.** Deferred by the user 2026-09-12
+2. **§6 — auto-heal for a HUNG helper.** Deferred by the user 2026-09-12
    (Emergency Repair already heals it manually).
+
+**Known limitations (2026-09-15, live-tested):** in Opera 8 of 11 zones work,
+in Vivaldi 7 of 11 (helper `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`).
+Missing in Opera: tab's close button, speaker icon. Missing in Vivaldi: new-tab
+"+", tab's close button, speaker icon. The **speaker icon cannot be
+implemented** in either (the sound is drawn over the favicon in a single
+element present on every tab — a playing tab is indistinguishable from a
+silent one, see README §5a). Vivaldi additionally needs
+`--force-renderer-accessibility` and its UI lives inside the page document
+(docDepth fix in the helper). Chrome / Canary / Brave: all 11 zones work.
+
+**Known quirks of the fork handling (see §7 "How to check"):**
+- **Opera — the new-tab "+" is reported as the Browser tab (12), not as the
+  new-tab button (16)** — its parent is the `22 'Tab Bar'` element, not the
+  PAGETABLIST (60), so the `43+60 → 16` rule does not fire and the tab rule
+  claims it. Cosmetic for a 16-trigger (a wheel over "+" runs the zone-12
+  action); the 16-trigger itself never fires.
+- **Vivaldi — the "Workspaces" button (left, role 57, no "menu" in the
+  name, nor a localized variant) is reported as the Omnibox (21)** — it is not excluded from the
+  site-info-lock rule (`57+20 → 21`), so a wheel over it runs the zone-21
+  action instead of nothing (or the menu action).
 
 ---
 
@@ -39,7 +57,7 @@ engine v19 (the mouseOver region check is a TABLE LOOKUP the helper fills in;
 ```
 
 - Engine: **v19 patched** (`AutoControl_native/patches/patch_zones_v19.js`,
-  SHA-256 `1A10EDD1…`; built copy + deploy target:
+  SHA-256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`; built copy + deploy target:
   `AutoControl_native/patched/`) — the mouseOver region check now reads a
   **table the helper writes into the engine's memory** (`alive` flag + 64
   region slots), so a region matches ONLY when the cursor really is over it.
@@ -47,7 +65,7 @@ engine v19 (the mouseOver region check is a TABLE LOOKUP the helper fills in;
   the earlier always-match v18 made every wheel trigger swallow the wheel.
   Menu regions ≥ 40 keep the engine's own classification; with no helper
   running (`alive == 0`) the engine falls back to the v18 behaviour. v18
-  (`Test/patch_zones_v18.js`, `F96BF544…`) is kept only as history — see §2e
+  (`Test/patch_zones_v18.js`, `F96BF5442B8660AC93FCAFC0FFFAC87630DDD3A65DFCDCE1FDDDC6F26359286F`) is kept only as history — see §2e
   and §2g. The engine can never classify UI zones itself (hover cache + MSAA
   deadlock — `Docs/archive/NATIVE-REVERSING-2026-08-31.md` §12).
 - Helper: `Test/ac_zone_helper.cs` → `AutoControl_native/ac_zone_helper.exe`
@@ -150,7 +168,7 @@ no toolbar buttons on the right.
 | Bookmark star | **43 PUSHBUTTON** 'Bookmark this tab' → 16 → 20 GROUPING → 22 | 33 + 20 |
 | Toolbar buttons (Back/Forward/Reload) | 43 → **22 TOOLBAR** → 16 | 20 |
 | Extension icons / profile ('You') | 57 / 43 → 16 → 22 | 20 |
-| Browser menu (kebab) | NOT EXPOSED as an element in Chrome 150 — identified by POSITION | 30 |
+| Browser menu (kebab) | EXPOSED in the a11y tree (role 57 BUTTONMENU, name "Chrome") — identified by POSITION; the earlier "missing" report was made on an outdated Chrome 150 and could not be re-checked then | 30 |
 | Window frame / caption (above the tabs, window controls) | 16 PANE (unnamed) → 16 → 16 (60 only at d2 when above the strip) | 4 |
 | Web page | **15 DOCUMENT** → 9 → 16 | 3 |
 | Any point inside the window | — | 1 |
@@ -306,8 +324,8 @@ the same time).
    hive. Currently registered only:
    `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.autocontrol.zonehelper`
    (SxS appears to read the same key — VERIFY; for Edge/Brave add their own):
-   - Chrome SxS (Canary): `HKCU\Software\Google\Chrome SxS\NativeMessagingHosts\...`
-   - Edge: `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\...`
+   - Chrome SxS (Canary): `HKCU\Software\Google\Chrome SxS\NativeMessagingHosts\com.autocontrol.zonehelper`
+   - Edge: `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.autocontrol.zonehelper`
    - Chromium/Brave: their own vendor path
 2. **Same extension ID** — `allowed_origins` pins the helper to
    `lkaihdpfpifdlgoapbfocpmekbokmcfd`. For unpacked builds the ID derives from
@@ -748,8 +766,9 @@ with the table version within ~1 s of the first classification.
 `Classify()` extended and verified live (§2d), the helper rebuilt and
 redeployed. What the plan got wrong: the button role is **43** (PUSHBUTTON)
 in Chrome 150, not 44; the strip detector needs `60 at d0/d1` (a 60 at d2
-is the frame ABOVE the strip); the kebab is not exposed at all (position rule
-instead); "else → 1 or 0" became "1 ALWAYS plus the specific zones" (the
+is the frame ABOVE the strip); the kebab is exposed in the a11y tree (the
+earlier "missing" report was made on an outdated Chrome 150 and could not
+be re-checked then); "else → 1 or 0" became "1 ALWAYS plus the specific zones" (the
 engine evaluated each region independently — see the multi-zone gate in §2d).
 
 **4. Menu items (40-51) — ✅ RESOLVED (2026-09-12); the SW-side gating was NOT
@@ -789,7 +808,7 @@ physically over it.
 1. Chrome SxS with CDP + a11y:
      `Start-Process "$env:LOCALAPPDATA\Google\Chrome SxS\Application\chrome.exe" -ArgumentList '--remote-debugging-port=9223', "--user-data-dir=`"$env:LOCALAPPDATA\Google\Chrome SxS\User Data CDP`"", '--force-renderer-accessibility', '--lang=en-US'`
 2. Engine **v19** deployed (`powershell -File Test/deploy_patched_engine.ps1`
-   → it copies `AutoControl_native/patched/`, SHA-256 `1A10EDD1…`), config
+   → it copies `AutoControl_native/patched/`, SHA-256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`), config
    sent (`_Gf` via cdp_eval, verify `type 60`
    in the boot log — see AGENTS.md). ⚠ A browser restart re-imports
    `settings.dat` into storage (test triggers get replaced).
@@ -860,11 +879,11 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | File | Role | state (2026-09-13) |
 |---|---|---|
 | `Test/ac_zone_helper.cs` | helper source (`Classify()`, `WriteZoneTable`) | ✅ 11 zones + DPI + `zones[]` + pill→30 rule + a11y heartbeat + own-browser gate |
-| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `091627630D…` (deterministic Roslyn build, 2026-09-13) |
+| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC` (deterministic Roslyn build, 2026-09-15) |
 | `%LOCALAPPDATA%\AutoControl\ac_zone_helper.exe` | **the deployed binary Chrome runs** | ✅ same hash (Chrome picks it up without an extension reload) |
 | `AutoControl_native/patches/patch_zones_v19.js` | engine patch builder (zone table) | ✅ **CURRENT** — see `patches/README.md` |
-| `AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe` | repo copy of the built engine | ✅ `1A10EDD1…` |
-| `%LOCALAPPDATA%\AutoControl\AutoCtrl_2025.4.22.0.exe` | **the deployed engine** | ✅ v19 (`1A10EDD1…`) |
+| `AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe` | repo copy of the built engine | ✅ `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
+| `%LOCALAPPDATA%\AutoControl\AutoCtrl_2025.4.22.0.exe` | **the deployed engine** | ✅ v19 (`1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`) |
 | `Test/patch_zones_v18.js` | previous patch (always match below 60) | ⚠️ history only — it also broke wheel consumption |
 | `Test/patch_zones_v19diag.js` | diagnostic variant (records the asked-for regions) | needs the accName build; not for zone work |
 | `AutoControl_native/com.autocontrol.zonehelper.json` | host manifest (`path` = the LOCALAPPDATA exe) | unchanged |
@@ -938,3 +957,76 @@ option 2 in the README.
 implemented later ("put it in the TODO, for later"). Not blocking anything:
 Emergency Repair heals a hung helper, and a DEAD helper self-heals via
 `onDisconnect`.
+
+---
+
+## 7. How to check the fork quirks (2026-09-15)
+
+Quick checks for the two known quirks (§ Known limitations). All read-only
+(no cursor movement): `Test/msaa_chain.ps1` and `Test/zone_probe.ps1` are
+safe to run at any time; the wheel tests need a browser window + a helper.
+
+**A. Opera — new-tab "+" reports as the Browser tab (12) instead of 16**
+
+```powershell
+# 1. chain: the "+" must be role 43 whose parent is 22 'Tab Bar' (NOT 60)
+powershell -ExecutionPolicy Bypass -File Test\msaa_chain.ps1 -Point "<x-of-plus>,<y-tabstrip>" -Depth 3 -Kids 0
+#    expected: d0=43 'New Tab' -> d1=22 'Tab Bar' (or 20) -> d2=22 'Tabs'
+# 2. helper verdict on the same point
+powershell -ExecutionPolicy Bypass -File Test\zone_probe.ps1 -Points "plus,<x>,<y>"
+#    expected: {zones:[12,4,1]}  (the bug: 16 is absent)
+```
+
+**B. Vivaldi — "Workspaces" button reports as the Omnibox (21) instead of
+nothing/menu**
+
+```powershell
+# 1. chain: the leftmost button must be role 57 with a name that does NOT
+#    contain "menu" (or a localized variant)
+powershell -ExecutionPolicy Bypass -File Test\msaa_chain.ps1 -Point "<x-of-workspaces>,<y-tabstrip>" -Depth 3 -Kids 0
+#    expected: d0=57 'Workspaces' -> d1=20 ...
+# 2. helper verdict
+powershell -ExecutionPolicy Bypass -File Test\zone_probe.ps1 -Points "ws,<x>,<y>"
+#    expected: {zones:[21,1]}  (the bug: 21 is present although it is not the omnibox)
+```
+
+**C. Sanity: the same checks on Chrome (should NOT reproduce)**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Test\msaa_chain.ps1 -Point "300,31" -Depth 3 -Kids 0    # Chrome SxS tab strip
+powershell -ExecutionPolicy Bypass -File Test\zone_probe.ps1 -Points "tab,300,31;addr,700,94"
+#    expected: tab -> [12,4,1], omnibox -> [21,20,4,1]
+```
+
+The exact points depend on the window position — read them from
+`Test/window_at_point.ps1` first (the browser window rect).
+
+**D. Per-browser end-to-end (the real test)**
+
+One browser at a time, physical mouse (the engine ignores synthesized
+input for its hover cache — see §4). For each browser:
+
+1. **Register the native hosts** for that browser (only Chrome/Canary/Brave
+   are covered by the Chrome registration; Opera/Vivaldi need their own
+   `reg add` — README §4.1 step 6), then load the extension from the same
+   `mv3-build\` folder (unpacked; the ID must match `allowed_origins`).
+2. **Start the browser** (Vivaldi additionally with
+   `--force-renderer-accessibility`), open two tabs, play sound in one.
+3. **Verify the helper is live**: `node Test/zone_helper_smoke.js` → prints
+   `zone` + `zones`; `%TEMP%\ac_zone_helper.log` shows
+   `init for pid N of my browser M (engines: K)`.
+4. **For each zone under test**: put the cursor over the element, scroll the
+   wheel 2-3 notches, read the SW log with
+   `node Test/ac_swlog_act.js 9223 "<command>"` and expect
+   `[AC-MV3-ZONE] trig N: zones=[…] ∩ [<region>] → executing`; over a
+   wrong element expect `→ skipped` and normal page scroll.
+5. **Record the result** in the compatibility matrix (README §5a) — for
+   Opera/Vivaldi the expected values are: page/omnibox/toolbar/title/tab
+   OK; close button + speaker missing; Opera "+" → 12 (quirk A); Vivaldi
+   "Workspaces" → 21 (quirk B).
+6. **Close the browser** before switching to the next one (each browser runs
+   its own engine + helper; running several at once is a separate test — §2c).
+
+The browser matrix to verify: Chrome (reference), Brave (should be 11/11),
+Opera (8/11 + quirk A), Vivaldi (7/11 + quirk B).
+

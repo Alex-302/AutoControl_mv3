@@ -131,8 +131,8 @@ The extension ships its two native payloads as **obfuscated blobs**, not as
 
 | file | size | decodes to |
 |---|---|---|
-| `mv3-build/file76.dat` | 695296 | `AutoCtrl_2025.4.22.0.exe` — sha256 `8ae9a669…` == `AutoControl_native/original/` (the UNPATCHED engine) |
-| `mv3-build/file69.dat` | 332800 | `AutoControlZero.exe` — sha256 `994e14d2…`; the same binary doubles as the installer (`Native-Component.exe`, `/noConfirm`) |
+| `mv3-build/file76.dat` | 695296 | `AutoCtrl_2025.4.22.0.exe` — sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09` == `AutoControl_native/original/` (the UNPATCHED engine) |
+| `mv3-build/file69.dat` | 332800 | `AutoControlZero.exe` — sha256 `994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38`; the same binary doubles as the installer (`Native-Component.exe`, `/noConfirm`) |
 
 `_7g(a, binary=false)` (file13.js) is a **byte-wise reversible transform**:
 reverse the array and subtract a 5-byte key plus the destination index:
@@ -141,7 +141,7 @@ reverse the array and subtract a 5-byte key plus the destination index:
 - encode: `dat[len-1-i] = (exe[i] + KEY[i%5] + i) mod 256`
 
 **Verified bit-for-bit in both directions** (2026-09-13): decoding
-`file76.dat` yields sha256 `8ae9a669…` (= the pristine engine) and encoding
+`file76.dat` yields sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09` (= the pristine engine) and encoding
 that engine reproduces `file76.dat` byte-for-byte. Consequence: the bundled
 payload can be replaced by ANY build of the same size — e.g. the patched v19
 engine — and the extension's own `unpackBundledEngine()` (type 250 write)

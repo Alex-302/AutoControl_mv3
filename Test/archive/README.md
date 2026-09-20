@@ -32,10 +32,10 @@ by the session they came from:
 | `zone-probes/` | 26 | live zone experiments (2026-09-01 … 09-12) |
 | `sw-log/` | 19 | superseded console readers + early CDP plumbing (2026-08-30) |
 
-Also removed in the same pass: **`Test/ac_zone_helper.exe`** (8192 bytes,
-sha `8772CDED…`) — a stale prototype copy left over from a stash restore.
-Nothing referenced it; the real helper binary ships in
-`AutoControl_native/ac_zone_helper.exe` (see `Docs/BUILD-NATIVE.md` §A).
+Also removed in the same pass: **`Test/ac_zone_helper.exe`** (8192 bytes) — a
+stale prototype copy left over from a stash restore. Nothing referenced it;
+the real helper binary ships in `AutoControl_native/ac_zone_helper.exe`
+(see `Docs/BUILD-NATIVE.md` §A).
 
 > ℹ️ Current tool inventory: `Test/` root holds only tools that are
 > referenced from `AGENTS.md`/`Docs/` — if you add a one-off probe, put it
