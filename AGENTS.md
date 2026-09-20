@@ -129,7 +129,7 @@ This includes comments, log strings, and error messages in `sw.js`,
      (`--orig <pristine.exe>` for another original, `--no-diff` only if you
      deliberately accept `PROOF HOLDS (PARTIAL)`).
   2. `powershell -File Test/build_native.ps1` → both hashes OK
-     (engine `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`).
+     (engine `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`).
   3. `node Test/mh_test.js` → B53b–B53g `[PASS]`: CLI + determinism,
      docs == bytes, the decoder proof, its mutation (teeth) test, the helper
      writer == the verifier's simulation, the Ghidra listing == the build.
@@ -728,7 +728,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   is used by the MRU triggers. The earlier "18 never fires" result was measured
   with `keybd_event`/`mouse_event`, which the engine does not treat like real
   input. Bundle's name table: `[[18,"Alt"],[164,"Left Alt"],[165,"Right Alt"]]`.
-- **Zone classification in Chromium FORKS (2026-09-15, helper `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`)**:
+- **Zone classification in Chromium FORKS (2026-09-15, helper `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`)**:
   Chrome/Canary/Brave expose the same a11y tree — all zones work. Opera and
   Vivaldi differ, and the helper now handles them:
   * **Vivaldi**: (a) its whole UI lives INSIDE the page DOCUMENT in the a11y
@@ -853,9 +853,14 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   `{__id}` → `{__id, zone, zones:[...]}` — the answer is the full matching
   SET (2026-09-12); the SCALAR `zone` stays for older SW builds/logging.
   Supported zones: **1** window (always in the set), **3** page (role 15),
-  **4** title area (frame PANE outside the toolbar/strip; the strip area
-  outside tabs also counts — modern Chrome has no separate title bar),
-  **12** tab (role 37 at d0/d1, or the strip gap role 60 at d0/d1),
+  **4** title area = the title bar / tab strip row ONLY (37/60 or a tab button
+  in the chain; the UI description: "When the mouse is over the title bar or
+  tab strip") + the frame PANE outside the toolbar — narrowed 2026-09-20: the
+  toolbar and the omnibox are NOT part of it,
+  **12** tab (a PAGETAB, role 37, anywhere in d0..d3; the empty strip area —
+  role 60 alone — does NOT answer 12, and neither do the tab's own buttons:
+  the engine's own region-12 check `FUN_00415570` matched only a PAGETAB or
+  its direct child; user correction 2026-09-20),
   **15** close (43 under a PAGETAB, right half of the tab), **17** speaker
   (43 under a PAGETAB, left half), **16** new-tab "+" (43 whose parent is
   the PAGETABLIST 60), **20** toolbar (role 22 in the ancestry), **21**
@@ -866,7 +871,13 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   made on an outdated Chrome 150 and could not be re-checked then; the
   "New Chrome available" update pill occupies its slot in some builds and
   counts as the menu button (user request 2026-09-12), **33**
-  bookmark star (43 inside the GROUPING 20 which sits in the toolbar).
+  bookmark star (43 inside the GROUPING 20 which sits BELOW the toolbar 22 —
+  the group must sit BETWEEN the button and the toolbar; Opera's
+  window-contents container 20 sits ABOVE the toolbar and must NOT count,
+  fixed 2026-09-20: every Opera omnibox button used to answer 33), plus
+  Opera's own bookmark button (the heart) matched BY NAME — 'Add to
+  bookmarks' / 'Edit bookmark' (the Russian UI name via a unicode escape) —
+  because it is structurally identical to the other toolbar buttons.
   NOT implemented in the helper: menu items 40-51 — those are passed
   through to the engine (see the gate note below).
   ⚠ **ENGINE v19 `AutoControl_native/patches/patch_zones_v19.js` (2026-09-12,
@@ -882,7 +893,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   the engine's own logic (menu regions). The build itself ships the
   "always match" prefix (variant A) so an engine started without the helper
   behaves like v18; the helper rewrites bytes `0x00..0x1B` within ~1 s of the
-  first classification. Deployed engine hash `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`
+  first classification. Deployed engine hash `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`
   (deterministic build; the previous non-reproducible legacy build is kept as
   `ac_zone_helper.exe.bak-493A7276` in the data dir).
   (rebuild: `powershell -File Test/build_native.ps1 -UpdatePatched`, deploy with
@@ -916,7 +927,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   extension its engine LOCKS the file: kill the engines and copy in the same
   loop (the deploy script stops only Chrome SxS by design).
   ⚠ **SEVERAL BROWSERS RUNNING = SEVERAL ENGINES — the helper MUST bind to
-  ITS OWN (FIXED 2026-09-13, helper `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2`, now `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`).** Every browser spawns its
+  ITS OWN (FIXED 2026-09-13, helper `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2`, now `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`).** Every browser spawns its
   own `AutoControlZero`→engine pair and each engine keeps its OWN zone table.
   The helper used to take `FindEnginePids()[0]` ("the first engine"), so with
   two browsers open BOTH helpers wrote into the SAME engine while the other one
@@ -1000,9 +1011,11 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   CHILDREN for a `role 43` rect containing the cursor; the close button is the
   RIGHTMOST sibling → 15, the other → 17 (a non-audible tab's mute button has
   a `0x0` rect → never hit). Points that hit a tab button do NOT get zone 12.
-  ⚠ **HELPER: title area (4) = the whole top band** (caption + tabs + omnibox
-  + toolbar, down to the page) — `inToolbar || stripNear || isTabBtn`; the
-  page (`DOCUMENT` in the chain) is excluded, and a page's ARIA roles
+  ⚠ **HELPER: title area (4) = the title bar / tab strip row ONLY**
+  (`stripNear || isTabBtn`; narrowed 2026-09-20 per the UI description
+  "When the mouse is over the title bar or tab strip" — the toolbar and the
+  omnibox are NOT included; the frame PANE outside the toolbar still counts);
+  the page (`DOCUMENT` in the chain) is excluded, and a page's ARIA roles
   (tablist 60, input 42, toolbar 22) must NOT be read as browser chrome
   (`bool ui = !inPage` gate).
   ⚠ **HELPER: zones only for its OWN browser** — the hovered window's root

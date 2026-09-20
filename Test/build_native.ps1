@@ -32,7 +32,20 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # 2026-09-15: Opera/Vivaldi support - docDepth fix (Vivaldi keeps its whole UI
 # inside the page DOCUMENT), tabs found deeper (d0..d3), browser-menu button
 # found BY NAME (Opera's "Menu" / Vivaldi's "Menu", left side).
-$EXPECT_HELPER = 'E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC'
+# 2026-09-20: TITLE AREA (4) narrowed to the title bar / tab strip row only
+# (the UI description "When the mouse is over the title bar or tab strip") -
+# the toolbar and the omnibox are no longer part of it (user correction),
+# and the Opera-style title row (a role-20 container WITHOUT a toolbar, which
+# holds the tab-search button and the window controls) is included too.
+# Same day: "Browser tab" (12) requires a real PAGETAB (role 37) - the empty
+# strip area (60 alone) and the "+" no longer answer 12 (the engine's own
+# region-12 check FUN_00415570 matched only a PAGETAB or its direct child),
+# and the BOOKMARK zone (33) requires the omnibox GROUPING to sit BETWEEN the
+# button and the toolbar - Opera's window-contents container (20) sits ABOVE
+# the toolbar, so every Opera toolbar button used to answer 33; Opera's own
+# bookmark button (the heart) is matched BY NAME ('Add to bookmarks' /
+# 'Edit bookmark', Russian via a unicode escape).
+$EXPECT_HELPER = 'BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F'
 $PRISTINE_SHA  = '8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09'
 # Pristine input: the repo copy first (clean checkout works), the deployed
 # backup as fallback (that is where the recipe used to read from).

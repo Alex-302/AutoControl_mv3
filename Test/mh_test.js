@@ -2203,14 +2203,50 @@ vm.runInContext(`
   // applications), and a background heartbeat keeps Chrome's a11y tree awake
   // (it sleeps after ~30 s and then EVERY point reports zone 4).
   const hTabButtons = helper.includes('TabButtonZone') && /hitLeft >= maxLeft/.test(helper);
-  const hTitleBand = /inToolbar \|\| stripNear \|\| isTabBtn/.test(helper);
+  // 2026-09-20 (user correction): TITLE AREA (4) = the title bar / tab strip
+  // row ONLY, per the action editor's own description ("When the mouse is over
+  // the title bar or tab strip"). The toolbar and the omnibox are NOT part of
+  // it (the 2026-09-12 "whole top band" reading of the illustration was wrong).
+  const hTitleBand = /if \(stripNear \|\| isTabBtn\) zs\[n\+\+\] = Z_TITLE;/.test(helper) &&
+    /!inToolbar && roles\[0\] == 16/.test(helper) &&
+    !/inToolbar \|\| stripNear \|\| isTabBtn/.test(helper);
+  // 2026-09-20 (second fix, user report): Opera's title row is a role-20
+  // container ('Top bar container') that holds the tab bar, the TAB-SEARCH
+  // BUTTON and the WINDOW CONTROLS — with NO toolbar (22) in its chain (and
+  // no 37/60 either for the controls), so without this rule they get no zone
+  // at all. The rule must require the container to be a BAND (half the window
+  // height) and the point to be inside it.
+  const hTopBarRow = /roles\[d\] != 20\) continue;/.test(helper) &&
+    /\(rr\.B - rr\.T\) \* 2 < \(wr\.B - wr\.T\)/.test(helper) &&
+    /WindowRectAt/.test(helper);
+  // 2026-09-20 (third fix, user report): the omnibox GROUPING (20) must sit
+  // BETWEEN the element and the toolbar (22) — Opera's toolbar buttons carry
+  // the window-contents container ('Browser contents', 20) ABOVE the toolbar
+  // ('Navigation', 22), and the old "any 20 above" test made EVERY toolbar
+  // button answer the BOOKMARK zone (Snapshot/Translate/Reader/Profile all
+  // reported 33). Opera's own bookmark button (the heart) is outside any
+  // such group and needs the BY-NAME rule below.
+  const hGroupBelowToolbar = /groupDepth < toolbarDepth/.test(helper) &&
+    /roles\[d\] == 22 && toolbarDepth < 0/.test(helper);
+  // 2026-09-20 (fourth fix, same session): Opera's real bookmark button
+  // ('Add to bookmarks' / 'Edit bookmark') is structurally identical to the
+  // other toolbar buttons — the group rule misses it, so it is matched BY
+  // NAME (the same approach as the menu button; Russian via a unicode
+  // escape). Without it the bookmark zone would not work in Opera at all.
+  const hBookmarkByName = /bookmarkByName/.test(helper) &&
+    /else if \(bookmarkByName && inToolbar\)/.test(helper) &&
+    helper.includes('\\u0437\\u0430\\u043a\\u043b\\u0430\\u0434\\u043a');
   const hPageSafe = /bool ui = !inPage/.test(helper);
   const hOwnWindow = helper.includes('browserPid') && helper.includes('IsBrowserName');
   const hHeartbeat = helper.includes('Heartbeat') && helper.includes('CacheStore');
-  // the tab-zone rule must exclude a point that hit one of the tab's BUTTONS
-  // (Close/Speaker) - "giving them 12 would run a zone-12 AND a zone-15/17
-  // action at once". Pattern updated 2026-09-15 (tabDepth, Opera/Vivaldi).
-  const hSpeakerNoTab = /tbZone == 0 && tabDepth >= 0 && !\(tabDepth == 0 && roles\[0\] == 43\)/.test(helper);
+  // the tab-zone rule must require a PAGETAB (37) and exclude the tab's own
+  // BUTTONS (a 43-button under a PAGETAB is not "the tab"). The engine's own
+  // region-12 check (FUN_00415570) matched ONLY a PAGETAB or an element whose
+  // direct parent is a PAGETAB — so the EMPTY strip area (60 alone) must NOT
+  // answer 12 (user report 2026-09-20: the empty strip right of the "+"
+  // answered "Browser tab"); the old "60 at d0/d1 -> 12" clause is gone.
+  const hSpeakerNoTab = /tbZone == 0 && tabDepth >= 0 && roles\[0\] != 43/.test(helper) &&
+    !/roles\[0\] == 60 \|\| roles\[1\] == 60/.test(helper);
 
   const patchFile = path.join(__dirname, '..', 'AutoControl_native', 'patches', 'patch_zones_v19.js');
   const patchExists = fs.existsSync(patchFile);
@@ -2247,7 +2283,10 @@ vm.runInContext(`
   if (!hRightEdge) bad.push('helper: right-edge (menu pill) rule');
   if (!hDpi) bad.push('helper: DPI awareness');
   if (!hTabButtons) bad.push('helper: tab-button (speaker/close) rule');
-  if (!hTitleBand) bad.push('helper: title-area band rule');
+  if (!hTitleBand) bad.push('helper: title-area = tab strip only (not the toolbar)');
+  if (!hTopBarRow) bad.push('helper: Opera title row (20-band without toolbar)');
+  if (!hGroupBelowToolbar) bad.push('helper: omnibox group must sit below the toolbar (33 rule)');
+  if (!hBookmarkByName) bad.push('helper: Opera bookmark button by name (33 fallback)');
   if (!hPageSafe) bad.push('helper: page-safety gate');
   if (!hOwnWindow) bad.push('helper: own-browser gate');
   if (!hHeartbeat) bad.push('helper: a11y heartbeat');

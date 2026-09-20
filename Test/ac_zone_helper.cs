@@ -22,11 +22,11 @@
 // Test/zone_chain.ps1, Test/zone_probe.ps1.
 //
 // 2026-09-12 fixes (user report):
-//  * TITLE AREA (4) is the WHOLE top band of the window - the caption, the
-//    tabs, the omnibox and the toolbar - down to the page (the app's own
-//    illustration in file80.js "titA" + the user's definition: "the
-//    rectangle bounded by the window's left/right/top borders, its bottom
-//    edge is where the panel meets the page"). Implemented chain-based.
+//  * TITLE AREA (4) = the title bar / tab strip row ONLY (the UI description
+//    in the action editor: "When the mouse is over the title bar or tab
+//    strip"). The toolbar and the omnibox are NOT part of it - user
+//    correction 2026-09-20 (the earlier "whole top band" reading of the
+//    illustration was wrong). Implemented chain-based.
 //  * SPEAKER (17): Chrome 150 does NOT expose the tab's speaker icon to
 //    hit-testing (AOP over it returns the PAGETAB itself), so the tab's
 //    a11y CHILDREN are scanned for the button whose rect contains the
@@ -176,6 +176,17 @@ public static class ZoneHelper {
     return gap >= 0 && gap < 60;
   }
 
+  // The window rectangle under a point (physical pixels - the helper is
+  // DPI-aware). Used by the title-row band check below.
+  private static bool WindowRectAt(POINT pt, out RECT wr) {
+    wr = new RECT();
+    IntPtr hwnd = WindowFromPoint(pt);
+    if (hwnd == IntPtr.Zero) return false;
+    IntPtr root = GetAncestor(hwnd, 2 /* GA_ROOT */);
+    if (root == IntPtr.Zero) return false;
+    return GetWindowRect(root, out wr);
+  }
+
   // A tab's buttons: the speaker (left) and the close button (right).
   // Chrome 150 does NOT expose the speaker icon to hit-testing (AOP over it
   // returns the PAGETAB), so the caller passes the tab element and the cursor
@@ -263,25 +274,46 @@ public static class ZoneHelper {
     // role=tablist = 60, pagetab = 37 - so only depths ABOVE the DOCUMENT (or
     // every depth when no DOCUMENT is in the chain, i.e. real chrome) may
     // drive the browser-UI rules.
-    bool inToolbar = false, inGroup = false;
+    int toolbarDepth = -1, groupDepth = -1;
     for (int d = 0; d < MAXDEPTH; d++) {
       if (inPage && d <= docDepth) continue;        // inside the page
-      if (roles[d] == 22) inToolbar = true;         // TOOLBAR
-      if (d > 0 && roles[d] == 20) inGroup = true;  // GROUPING (the omnibox container)
+      if (roles[d] == 22 && toolbarDepth < 0) toolbarDepth = d;   // TOOLBAR
+      if (d > 0 && roles[d] == 20 && groupDepth < 0) groupDepth = d;  // GROUPING
     }
+    bool inToolbar = toolbarDepth >= 0;
+    // The omnibox GROUPING must sit BETWEEN the element and the toolbar
+    // (Chrome: 43 -> 16 -> 20 GROUPING -> 22 TOOLBAR). Opera's toolbar
+    // buttons have the window-contents container (20 'Browser contents')
+    // ABOVE the toolbar (22 'Navigation') - the old "any 20 above" test made
+    // EVERY toolbar button look like a button inside the omnibox group, so
+    // Snapshot/Translate/Reader/Profile all answered the bookmark zone
+    // (user report 2026-09-20). Opera's OWN bookmark button (the heart) sits
+    // outside any such group and is matched BY NAME below - it is
+    // structurally identical to its neighbours.
+    bool inGroup = groupDepth >= 0 && (toolbarDepth < 0 || groupDepth < toolbarDepth);
     // Inside a DOCUMENT = inside the page: no browser-chrome rule may fire.
     bool ui = !inPage;
 
     bool isTabBtn = ui && roles[0] == 43 && roles[1] == 37;   // the hovered element IS a tab button
     bool isNewTabBtn = ui && roles[0] == 43 && roles[1] == 60;
-    // The TAB itself: Opera/Vivaldi put the PAGETAB deeper (41 -> 16 -> 37,
-    // Chrome has 37 at d1). Accept 37/60 anywhere in d0..d3; the d1 check
-    // stays valid for Chrome (41/37 there).
+    // The TAB itself: a PAGETAB (role 37) anywhere in d0..d3 (Chrome: 37 at
+    // d1; Opera/Vivaldi: deeper - 41 -> 16 -> 37). The engine's OWN region-12
+    // check (FUN_00415570) matched ONLY a PAGETAB or an element whose DIRECT
+    // parent is a PAGETAB - the EMPTY strip area (the PAGETABLIST itself,
+    // role 60) and the "+" button never matched region 12 (user report
+    // 2026-09-20: the empty strip right of the "+" answered "Browser tab").
     int tabDepth = -1;
     for (int d = 0; d <= 3; d++) {
-      if (ui && (roles[d] == 37 || roles[d] == 60)) { tabDepth = d; break; }
+      if (ui && roles[d] == 37) { tabDepth = d; break; }
     }
+    // The strip ROW for the TITLE-AREA zone (4) covers the whole band,
+    // including its empty area (the PAGETABLIST 60 itself).
     bool stripNear = tabDepth >= 0;
+    if (!stripNear) {
+      for (int d = 0; d <= 3; d++) {
+        if (ui && roles[d] == 60) { stripNear = true; break; }
+      }
+    }
     // The browser-menu button has a NAME in Opera/Vivaldi (the localized
     // "Menu"; the Russian UI name is matched via the unicode escape below)
     // and sits on the LEFT - the kebab rule (right edge) is Chrome only.
@@ -289,8 +321,18 @@ public static class ZoneHelper {
     bool menuByName = ui && (roles[0] == 43 || roles[0] == 57) &&
       (Name(chain[0]).IndexOf("menu", StringComparison.OrdinalIgnoreCase) >= 0 ||
        Name(chain[0]).IndexOf("\u043c\u0435\u043d\u044e", StringComparison.OrdinalIgnoreCase) >= 0);
+    // Opera's bookmark button ('Add to bookmarks' / 'Edit bookmark'; the
+    // Russian UI name is matched via the unicode escape below) is
+    // STRUCTURALLY IDENTICAL to the other toolbar buttons (43 under the
+    // toolbar 22, no omnibox group below, no keyboard shortcut exposed), so
+    // it is matched BY NAME - the same approach as the menu button above.
+    // Chrome's star ('Bookmark this tab') also matches the name, but it is
+    // already covered by the group rule below (the else-if avoids a double).
+    bool bookmarkByName = ui && (roles[0] == 43 || roles[0] == 57) &&
+      (Name(chain[0]).IndexOf("bookmark", StringComparison.OrdinalIgnoreCase) >= 0 ||
+       Name(chain[0]).IndexOf("\u0437\u0430\u043a\u043b\u0430\u0434\u043a", StringComparison.OrdinalIgnoreCase) >= 0);
 
-    int[] zs = new int[8];
+    int[] zs = new int[16];
     int n = 0;
     // 1. Browser window: the cursor is inside a Chrome window by definition.
     zs[n++] = Z_WINDOW;
@@ -318,6 +360,11 @@ public static class ZoneHelper {
       // 6. Bookmark (star) button: a PUSHBUTTON inside the omnibox group,
       //    which itself sits inside the toolbar band.
       if (roles[0] == 43 && inGroup && inToolbar) zs[n++] = Z_BOOKMARK;
+      // 6c. Opera's bookmark button BY NAME (see bookmarkByName above): its
+      //     chain has NO omnibox group (Opera's window-contents container 20
+      //     sits ABOVE the toolbar), so the group rule misses it - without
+      //     this the bookmark zone would not work in Opera at all.
+      else if (bookmarkByName && inToolbar) zs[n++] = Z_BOOKMARK;
       // 6b. Browser menu button BY NAME - Opera (role 57) and Vivaldi
       //     ("Menu", role 43) put it on the LEFT, NOT inside the
       //     toolbar (the kebab rule below is Chrome-only geometry). The name
@@ -331,24 +378,45 @@ public static class ZoneHelper {
         if ((roles[0] == 43 || roles[0] == 57) && IsRightEdgeButton(chain[0], pt))
           zs[n++] = Z_MENUBTN;
       }
-      // 8. Browser tab: a PAGETAB / PAGETABLIST anywhere in d0..d3 (Chrome:
-      //    d0/d1; Opera/Vivaldi: deeper - see tabDepth above). EXCLUSIONS:
-      //    the "+" button's parent IS the PAGETABLIST (handled above), and a
-      //    point that hit one of the tab's BUTTONS (Close/Speaker) is not
-      //    "the tab" - giving them 12 would run a zone-12 AND a zone-15/17
-      //    action at once.
-      if (tbZone == 0 && tabDepth >= 0 && !(tabDepth == 0 && roles[0] == 43)) zs[n++] = Z_TAB;
-      else if ((roles[0] == 60 || roles[1] == 60) && !isNewTabBtn) zs[n++] = Z_TAB;
-      // 9. TITLE AREA = the WHOLE top band of the window: the caption, the
-      //    tab strip, the omnibox and the toolbar - everything above the page
-      //    (user definition 2026-09-12; the app's own illustration in
-      //    file80.js "titA" is a full-width rect from the window's top edge
-      //    down to the page). Chain-based: anything belonging to the tab
-      //    strip (TAB / PAGETABLIST / a tab button) or to the toolbar.
-      if (inToolbar || stripNear || isTabBtn) zs[n++] = Z_TITLE;
-      // 10. The rest of the window frame (the border band, the strip's empty
-      //     area) - an unnamed PANE that is not part of the page.
-      else if (roles[0] == 16) zs[n++] = Z_TITLE;
+      // 8. Browser tab: a PAGETAB (37) anywhere in d0..d3 (Chrome: d0/d1;
+      //    Opera/Vivaldi: deeper - see tabDepth above). EXCLUSIONS: the "+"
+      //    button (no PAGETAB in its chain), the tab's own BUTTONS (Close /
+      //    Speaker - tbZone handles those; a 43-button under a PAGETAB is
+      //    not "the tab"), and the EMPTY strip area (60 without a 37) - the
+      //    engine's own region-12 check never matched it (see tabDepth).
+      if (tbZone == 0 && tabDepth >= 0 && roles[0] != 43) zs[n++] = Z_TAB;
+      // 9. TITLE AREA = the title bar / tab strip row ONLY (the UI
+      //    description: "When the mouse is over the title bar or tab
+      //    strip"; user correction 2026-09-20). Chain-based: anything
+      //    belonging to the tab strip (TAB / PAGETABLIST / a tab button).
+      //    The toolbar and the omnibox are NOT part of it.
+      if (stripNear || isTabBtn) zs[n++] = Z_TITLE;
+      // 9b. Opera-style title row ('Top bar container', role 20): the band
+      //     that holds the tab bar, the tab-search button AND the window
+      //     controls. Unlike Chrome's GROUPING (always inside the TOOLBAR
+      //     22), this band has NO 22 in its chain - and the window controls
+      //     have no 37/60 either, so without this rule they get no zone at
+      //     all (user report 2026-09-20: the minimize/maximize/close buttons
+      //     and the tab-search button are part of the title area).
+      //     Guard: the container must be a BAND (much shorter than the
+      //     window) and the point must be inside it, so the content-area
+      //     containers of other UIs cannot claim the title row.
+      else if (!inToolbar) {
+        for (int d = 1; d < MAXDEPTH; d++) {
+          if (inPage && d <= docDepth) break;
+          if (roles[d] != 20) continue;
+          RECT rr, wr;
+          if (Rect(chain[d], out rr) && WindowRectAt(pt, out wr) &&
+              (rr.B - rr.T) * 2 < (wr.B - wr.T) && pt.Y >= rr.T && pt.Y <= rr.B) {
+            zs[n++] = Z_TITLE;
+          }
+          break;
+        }
+      }
+      // 10. The rest of the window frame (the border band, the caption area
+      //     outside the strip) - an unnamed PANE that is not part of the page
+      //     and not inside the toolbar.
+      if (!inToolbar && roles[0] == 16) zs[n++] = Z_TITLE;
     }
 
     outZones = zs;
@@ -389,7 +457,7 @@ public static class ZoneHelper {
     if (acc != null) { try { Marshal.ReleaseComObject(acc); } catch {} }
     hr = AccessibleObjectFromPoint(pt, out acc, out child);
     if (hr != 0 || acc == null) return null;
-    int[] zs = new int[8];
+    int[] zs = new int[16];
     int n = 0;
     try { Classify(acc, pt, ref zs, ref n); }
     catch { n = 0; }

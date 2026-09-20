@@ -5,7 +5,7 @@ components** of this port from their inputs:
 
 | Component | Input | Output (deployed) |
 |---|---|---|
-| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **17408**, sha256 `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC` (deterministic build, 2026-09-15) |
+| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **17920**, sha256 `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F` (deterministic build, 2026-09-20) |
 | **Patched engine** (`AutoCtrl_2025.4.22.0.v19.exe`) | `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` (untouched upstream) | size **695296**, sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
 
 Everything below was verified on 2026-09-12 by rebuilding and comparing hashes
@@ -61,7 +61,7 @@ dotnet $csc /nologo /optimize+ /deterministic+ /nostdlib+ `
   /r:"$fw\mscorlib.dll" /r:"$fw\System.dll" /r:"$fw\Accessibility.dll" `
   /out:"$out" Test\ac_zone_helper.cs
 
-Get-FileHash $out -Algorithm SHA256      # must print E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC (see the table above)
+Get-FileHash $out -Algorithm SHA256      # must print BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F (see the table above)
 ```
 
 Notes:
@@ -99,11 +99,20 @@ multi-browser engine binding of §A.6 — `pids[0]` was replaced by
 the two helpers no longer write into the same engine. The `6988B49BCBEC162CE03EFDC94F789F17AFC28C98EC890E7B26FCF0E464F262E6` build
 was the previous deterministic one (same recipe, no binding fix).
 
-**Status 2026-09-15:** rebuilt again as `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC` (same size, 17408
-bytes) — adds Opera/Vivaldi support: docDepth fix (Vivaldi keeps its whole UI
-inside the page DOCUMENT), tabs found deeper (d0..d3), browser-menu button
-found BY NAME (Opera's "Menu" / Vivaldi's "Menu", left side). The `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2` build
-was the previous one (own-engine binding only).
+**Status 2026-09-20:** rebuilt again as `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F` (17920 bytes) —
+the TITLE-AREA work: the title area (4) is now the title bar / tab strip row
+ONLY (the toolbar and the omnibox are excluded — the action editor's own
+description, user correction), the Opera-style title row (a role-20 container
+WITHOUT a toolbar in its chain — it holds the tab-search button and the window
+controls) is included, "Browser tab" (12) now requires a real PAGETAB (role
+37) — the empty strip area (60 alone) and the "+" no longer answer 12 — and
+the BOOKMARK zone (33) requires the omnibox GROUPING to sit BETWEEN the button
+and the toolbar (Opera's window-contents container 20 sits ABOVE the toolbar,
+so every Opera toolbar button used to answer 33), with Opera's own bookmark
+button (the heart) matched BY NAME ('Add to bookmarks' / 'Edit bookmark',
+Russian via a unicode escape) as the fallback. The
+`393DA8791D441934F3912BF3AC50CC5D778ED3611E9509C5C780077801761AF0` build was the
+first bookmark fix (same day, before the by-name fallback).
 
 ### A.4 Verify the build before installing
 

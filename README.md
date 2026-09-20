@@ -147,7 +147,7 @@ AutoControl-Keyboard-shortcuts-Mouse-gestures-Chrome/
 │   ├── README.md           #   ← structure explained (original / patched / patches)
 │   ├── AutoControl.manifest                  # engine host manifest (path = Zero)
 │   ├── com.autocontrol.zonehelper.json       # zone-helper host manifest
-│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC)
+│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F)
 │   ├── original/           #   untouched upstream files — NEVER edited
 │   │   ├── AutoControlZero.exe        # proxy/launcher (= installer)  994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38
 │   │   └── AutoCtrl_2025.4.22.0.exe   # engine (global hooks)         8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09
@@ -443,8 +443,8 @@ of ONE input burst share a single helper answer (120 ms cache) — Chrome can
 scroll the tab strip between them.
 
 **Supported zones — ALL 12 areas verified by the user on a live browser,
-2026-09-12:** 1 Browser window · 3 Web page · 4 Title area (the whole top
-band: caption + tabs + omnibox + toolbar) · 12 Browser tab · 15 Tab's close
+2026-09-12:** 1 Browser window · 3 Web page · 4 Title area (the title bar /
+tab strip row — the toolbar and the omnibox are NOT part of it) · 12 Browser tab · 15 Tab's close
 button · 16 New tab button · 17 Tab's speaker icon (the tab must be playing
 sound) · 20 Toolbar · 21 Omnibox · 30 Browser menu button (the "New Chrome
 available" update pill counts as the kebab — it occupies its slot) ·
@@ -521,7 +521,7 @@ stops working.
 ```
 powershell -ExecutionPolicy Bypass -File Test/build_native.ps1
 # === 1/2  ENGINE (original + byte patch)  ... 695296 bytes  1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E  OK
-# === 2/2  HELPER (our C# source)         ...  17408 bytes  E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC  OK
+# === 2/2  HELPER (our C# source)         ...  17920 bytes  BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F  OK
 # (add -UpdatePatched to also refresh AutoControl_native/patched/ with the build)
 ```
 
@@ -575,7 +575,7 @@ trees; the helper was adapted for them on 2026-09-15.
 |---|---|---|---|---|
 | Browser window | ✅ | ✅ | ✅ | ✅ |
 | Web page | ✅ | ✅ | ✅ | ✅ |
-| Title area (top band) | ✅ | ✅ | ✅ | ✅ |
+| Title area (title bar / tab strip) | ✅ | ✅ | ✅ | ✅ |
 | Browser tab | ✅ | ✅ | ✅ | ✅ |
 | New tab "+" | ✅ | ✅ | ✅ | ❌ |
 | Toolbar | ✅ | ✅ | ✅ | ✅ |
@@ -597,6 +597,13 @@ Additional notes:
   classifies as the page.
 * Vivaldi keeps its entire UI *inside* the page document in the a11y tree —
   the helper detects this and treats it as browser chrome (fixed 2026-09-15).
+* **Opera's bookmark button (the heart) is matched by its accessible name**
+  ('Add to bookmarks' / 'Edit bookmark') — it is structurally identical to its
+  neighbours (Snapshot, Send to My Flow…), so the tree alone cannot tell them
+  apart (fixed 2026-09-20). The same day the title area (4) was narrowed to the
+  title bar / tab strip row only (the toolbar and the omnibox are excluded) and
+  the browser tab (12) now requires a real tab (the empty strip area no longer
+  matches).
 
 ---
 

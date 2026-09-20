@@ -10,11 +10,12 @@ button) were the first proofs; **all 12 areas are now verified** (§1 summary).
 1. **§3 item 4 — menu-item types 41-51 are not individually verified.** They
    ride the same engine-classified route as type 40, which WAS verified live;
    per-kind accuracy is unproven.
-2. **§6 — auto-heal for a HUNG helper.** Deferred by the user 2026-09-12
-   (Emergency Repair already heals it manually).
+2. **Auto-heal for a HUNG helper** — moved to its own TODO:
+   `Docs/TODO-helper-autoheal.md` (deferred by the user 2026-09-12;
+   Emergency Repair already heals it manually).
 
 **Known limitations (2026-09-15, live-tested):** in Opera 8 of 11 zones work,
-in Vivaldi 7 of 11 (helper `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC`).
+in Vivaldi 7 of 11 (helper `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`).
 Missing in Opera: tab's close button, speaker icon. Missing in Vivaldi: new-tab
 "+", tab's close button, speaker icon. The **speaker icon cannot be
 implemented** in either (the sound is drawn over the favicon in a single
@@ -82,14 +83,14 @@ UI names from the settings list):
 |---|---|---|---|---|
 | 1 | Browser window | 1 | `_Ef` | ✅ works (always in the set — the point is inside the window) |
 | 2 | Web page | 3 | `_Si` | ✅ works (role 15 DOCUMENT) |
-| 3 | Title area | 4 | `_Ce` | ✅ works (window frame PANE outside the toolbar; the strip area outside tabs also counts — modern Chrome has no separate title bar) |
-| 4 | Browser tab | 12 | `_9t` | ✅ works (role 37 at d0/d1, or the strip gap role 60) |
+| 3 | Title area | 4 | `_Ce` | ✅ works — the title bar / tab strip row ONLY (chain-based: `stripNear || isTabBtn`); the toolbar and the omnibox are NOT part of it (user correction 2026-09-20, see §2f(a)) |
+| 4 | Browser tab | 12 | `_9t` | ✅ works — a PAGETAB (role 37) anywhere in d0..d3. The EMPTY strip area (role 60 alone) does NOT count: the engine's own region-12 check (`FUN_00415570`) matched only a PAGETAB or its direct child (user correction 2026-09-20) |
 | 5 | Tab's close button | 15 | `_Go` | ✅ **VERIFIED 2026-09-12** (43 under a PAGETAB, right half; set `[15,4,1]`, no 12) |
 | 6 | Tab's speaker icon | 17 | `_2` | ✅ **VERIFIED 2026-09-12** (43 under a PAGETAB, left half; set `[17,4,1]` — the tab must be AUDIBLE) |
 | 7 | New tab button | 16 | `_xw` | ✅ **VERIFIED 2026-09-12** (43 whose parent is the PAGETABLIST; set `[16,4,1]`) — §2a closed |
 | 8 | Toolbar | 20 | `_uu` | ✅ works (role 22 TOOLBAR in the ancestry) |
 | 9 | Omnibox | 21 | `_5e` | ✅ works (role 42 at d0/d1, or the lock button 57 under the omnibox group 20) |
-| 10 | Bookmark button | 33 | `_Aa` | ✅ works (43 inside the omnibox GROUPING 20 which sits in the toolbar) |
+| 10 | Bookmark button | 33 | `_Aa` | ✅ works — Chrome: a 43 inside the omnibox GROUPING 20 which sits in the toolbar; Opera: the heart matched BY NAME (§2f(h)) |
 | 11 | Browser menu button | 30 | `_nj` | ✅ **VERIFIED 2026-09-12** — the update pill counts as the kebab (user request) |
 | 12 | Any menu item | 40 | `_9r` | ✅ **VERIFIED 2026-09-12** (engine-classified via `jae ORIG`; fires over the OPEN menu only) |
 | 13 | Menu item: tab | 41 | `_ju` | ⚠️ same engine-classified route as #12 — NOT individually verified (§3 item 4; only 40 was tested live) |
@@ -112,7 +113,7 @@ was used as the evidence (`zones=[...] ∩ [...] → executing`). Verified sets:
 |---|---|---|---|---|
 | 1 | Browser window | 1 | `[1]` (and `[…,1]` everywhere inside) | ✅ |
 | 2 | Web page | 3 | `[3,1]` | ✅ (silent over the UI) |
-| 3 | Title area | 4 | `[4,1]` / `[12,4,1]` / `[21,20,4,1]` / `[30,20,4,1]` | ✅ (whole top band, silent over the page) |
+| 3 | Title area | 4 | `[12,4,1]` / `[4,1]` (strip / frame) | ✅ — narrowed 2026-09-20: silent over the page, the toolbar AND the omnibox (the 2026-09-12 runs used the then-broad rule, see §2f(a)) |
 | 4 | Browser tab | 12 | `[12,4,1]` | ✅ (silent over the close button) |
 | 5 | Tab's close button | 15 | `[15,4,1]` | ✅ (no 12 in the set) |
 | 6 | Tab's speaker icon | 17 | `[17,4,1]` | ✅ (no 12/15 in the set) |
@@ -131,13 +132,18 @@ from a stale (120 ms) burst snapshot — it re-asks the helper and cancels.
 The helper answers the whole SET of matching zones per point
 (`{zones:[...]}`); the SW gate fires a trigger when the sets INTERSECT.
 
-Helper rules as of 2026-09-12 (`Test/ac_zone_helper.cs` -> `Classify()`):
+Helper rules as of 2026-09-20 (`Test/ac_zone_helper.cs` -> `Classify()`):
 `43 under 37 (right half) → 15`, `43 under 37 (left half) → 17`,
 `43 under 60 → 16`, `42 at d0/d1 → 21`, `57 under 20 → 21`,
-`43 inside GROUPING 20 inside TOOLBAR 22 → 33`, `TOOLBAR 22 in ancestry → 20`,
-`square 43/57 hugging the window's right edge → 30`, `37 at d0/d1 → 12`,
-`60 at d0/d1 (not the "+") → 12 + 4`, `PANE 16 outside toolbar/page/strip → 4`,
-plus zone 1 always.
+`43 inside GROUPING 20 inside TOOLBAR 22 → 33` (the GROUPING must sit
+BETWEEN the button and the toolbar — Opera's window-contents container 20
+sits ABOVE the toolbar, see §2f(h)), `TOOLBAR 22 in ancestry → 20`,
+`square 43/57 hugging the window's right edge → 30`,
+`37 in d0..d3 → 12` (a PAGETAB; the empty strip 60 and the tab's own
+buttons do NOT answer 12 — see §2f(a) and the engine's `FUN_00415570`),
+`stripNear || isTabBtn → 4` (title bar /
+tab strip only — narrowed 2026-09-20),
+`PANE 16 outside toolbar/page/strip → 4`, plus zone 1 always.
 
 ---
 
@@ -158,7 +164,7 @@ no toolbar buttons on the right.
 | Element | MSAA walk (d0 → d1 → d2…) | zone |
 |---|---|---|
 | A tab (body/title) | 41 CELL (title) / 16 PANE (favicon) → **37 PAGETAB** → 16 | 12 |
-| Tab-strip gap / empty strip | **60 PAGETABLIST** at d0 or d1 → 16 | 12 + 4 |
+| Tab-strip gap / empty strip | **60 PAGETABLIST** at d0 or d1 → 16 | 4 (title area only — the engine never matched region 12 there, corrected 2026-09-20) |
 | Tab's close button | **43 PUSHBUTTON** 'Close' → 37 PAGETAB (right half of the tab) | 15 |
 | Tab's speaker/audio icon | 43 PUSHBUTTON under 37 PAGETAB (left half) — appears over the favicon slot | 17 |
 | New-tab button (`+`) | **43 PUSHBUTTON** 'New Tab' → **60 PAGETABLIST** → 16 | 16 |
@@ -166,6 +172,7 @@ no toolbar buttons on the right.
 | Omnibox text field | **42 EDIT** 'Address and search bar' → 20 GROUPING → 22 TOOLBAR | 21 + 20 |
 | Site-info (lock) | 57 BUTTONMENU 'View site information' → 20 → 22 | 21 + 20 |
 | Bookmark star | **43 PUSHBUTTON** 'Bookmark this tab' → 16 → 20 GROUPING → 22 | 33 + 20 |
+| Opera bookmark heart | **43 PUSHBUTTON** 'Add to bookmarks' / 'Edit bookmark' → 22 'Navigation' → 20 'Browser contents' — no grouping below the toolbar, so it is matched BY NAME (§2f(h)) | 33 + 20 |
 | Toolbar buttons (Back/Forward/Reload) | 43 → **22 TOOLBAR** → 16 | 20 |
 | Extension icons / profile ('You') | 57 / 43 → 16 → 22 | 20 |
 | Browser menu (kebab) | EXPOSED in the a11y tree (role 57 BUTTONMENU, name "Chrome") — identified by POSITION; the earlier "missing" report was made on an outdated Chrome 150 and could not be re-checked then | 30 |
@@ -542,15 +549,24 @@ page"; "closing a tab worked, the speaker icon did not"; "new tab, toolbar,
 bookmark, browser menu are detected"; **"I cannot scroll pages when an action
 is bound to wheel rotation without a modifier key"**.
 
-### (a) Title area (4) = the WHOLE top band — FIXED + verified
-The app's own illustration (`file80.js`, region `titA`) is a full-width rect
-from the window's top edge down to the page, and the user's definition matches
-it. Implemented **chain-based** in the helper: `inToolbar || stripNear ||
-isTabBtn` → zone 4, plus the existing unnamed-PANE rule for the frame. Points
+### (a) Title area (4) — FIXED 2026-09-12, NARROWED 2026-09-20
+> **CORRECTION 2026-09-20 (user):** the action editor's own description is
+> "When the mouse is over the **title bar or tab strip**", and its illustration
+> highlights the tab-strip row only — NOT the toolbar/omnibox. The original
+> 2026-09-12 reading ("the WHOLE top band", from the user's own earlier
+> definition) was wrong. The helper now answers 4 for the tab strip
+> (chain-based: `stripNear || isTabBtn`) plus the window-frame PANE outside
+> the toolbar (`roles[0]==16 && !inToolbar`); the toolbar and the omnibox are
+> excluded. Helper `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`.
+
+The 2026-09-12 implementation was chain-based: `inToolbar || stripNear ||
+isTabBtn` → zone 4, plus the unnamed-PANE rule for the frame. Points
 BELOW the page's top edge never get 4 (the page's chain has no toolbar, and
 `roles[0]==16` is excluded for DOCUMENT points).
 
-Verified live (Chrome 150, floating window, physical px):
+Verified live on 2026-09-12 (Chrome 150, floating window, physical px) — with
+the then-broad rule (the omnibox/toolbar rows are superseded by the 2026-09-20
+correction above):
 
 | Point | Answer | |
 |---|---|---|
@@ -659,6 +675,70 @@ into the engine, `VirtualProtectEx` the cave page RWX first).
   target — needed for the settings page, which `scripting` cannot touch),
   `zone_fg_wheel.ps1`, `zone_fg_scroll.ps1`, `zone_scroll_test.ps1`,
   `engine_abi_dump.js` (PE sections, call sites, padding).
+
+### (g) Browser tab (12) — the EMPTY strip area does not count (2026-09-20)
+
+**User report:** the empty strip area right of the "+" button answers
+"Browser tab". **Authority:** the engine's own region-12 check
+(`Test/native-disasm/decomp/00415570_FUN_00415570.c`, called from
+`FUN_004156f0` case 0xc) matched ONLY a PAGETAB (role 37) or an element whose
+DIRECT parent is a PAGETAB; the old-Chrome fallback for a PANE under the
+PAGETABLIST is version-gated to Chrome < 100 (`DAT_004a23a4 - 0x55 < 0x0f`)
+and never applied to modern builds. The helper used to answer 12 for the
+strip's own PAGETABLIST (60) via the `tabDepth` scan — that clause is gone:
+`tabDepth` now requires role 37, `stripNear` (for the TITLE-AREA zone 4) still
+accepts 60 so the empty strip keeps its title-area coverage. The tab's own
+buttons were already excluded (a 43-button under a PAGETAB is handled by
+`TabButtonZone` → 15/17). Same day as the title-area narrowing (§2f(a)) and
+the "+"-exclusion fix; helper
+`BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`.
+
+### (h) Bookmark zone (33) — a button inside the omnibox GROUP, or the heart BY NAME (2026-09-20)
+
+**User report (Opera):** the action bound to "Bookmark button" fired over
+EVERY omnibox button (Snapshot, Translate, Reader, Profile).
+
+**Root cause:** the rule was `43 inside GROUPING 20 inside TOOLBAR 22 → 33`,
+where `inGroup` was "any role-20 element anywhere above" — the ORDER was never
+checked. Opera's toolbar buttons carry the window-contents container
+(`20 'Browser contents'`) ABOVE the toolbar (`22 'Navigation'`), so every
+toolbar button satisfied both halves and looked like a button inside the
+omnibox group.
+
+**Fix 1 — the order matters.** `inGroup` now requires the GROUPING to sit
+BETWEEN the element and the toolbar (`groupDepth < toolbarDepth`). Chrome's
+star chain `43 → 16 → 20 GROUPING → 22 TOOLBAR` still matches; Opera's
+`43 → 16 → 16 → 22 → 20` does not — the five non-bookmark buttons now answer
+`[20,1]`.
+
+**Fix 2 — Opera's own bookmark button, by NAME.** The same narrowing also
+dropped 33 from the heart (right of the address bar). It is STRUCTURALLY
+IDENTICAL to its neighbours: `43 'Add to bookmarks'` (or `'Edit bookmark'`
+while the page is bookmarked) → 22 'Navigation' → 20 'Browser contents', no
+grouping below the toolbar, and `accKeyboardShortcut` is EMPTY for all six
+omnibox buttons — so the NAME is the only discriminator. The heart is now
+matched as an `else if` fallback ('Add to bookmarks' / 'Edit bookmark', the
+Russian UI name via a unicode escape; the same approach as the Opera/Vivaldi
+menu button, §2f(d)) and only for a button inside the toolbar 22 — a page
+element whose name merely contains "bookmark" cannot match. Chrome's star
+('Bookmark this tab') carries the name too but is already covered by the group
+rule; the `else if` prevents a double entry.
+
+⚠ **Why the first report looked like "Opera has no bookmark button":** the
+heart is shown on regular pages only — on internal and extension pages the
+address bar has no bookmark button at all (that page is what was inspected
+first; user correction the same day). The heart itself was always there.
+
+**Verified (probe against the deployed helper):** heart `[33,20,1]`, the five
+neighbour buttons `[20,1]`, address field `[21,20,1]`, tabs `[12,4,1]`
+(no regression). Helper
+`BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`.
+
+⚠ **Known edge (unchanged by this fix):** the rule cannot tell one
+omnibox-group button from another by structure, so in Chrome every `43` inside
+the group answers 33 — the group also holds the page-action buttons (Zoom /
+Ask AI …), which are normally hidden. In Opera the reverse case applies: the
+bookmark button is OUTSIDE such a group, hence the name fallback.
 
 ## 2g. SOLUTION (2026-09-12, night) — engine v19: the ZONE TABLE
 
@@ -879,7 +959,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | File | Role | state (2026-09-13) |
 |---|---|---|
 | `Test/ac_zone_helper.cs` | helper source (`Classify()`, `WriteZoneTable`) | ✅ 11 zones + DPI + `zones[]` + pill→30 rule + a11y heartbeat + own-browser gate |
-| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC` (deterministic Roslyn build, 2026-09-15) |
+| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F` (deterministic Roslyn build, 2026-09-20) |
 | `%LOCALAPPDATA%\AutoControl\ac_zone_helper.exe` | **the deployed binary Chrome runs** | ✅ same hash (Chrome picks it up without an extension reload) |
 | `AutoControl_native/patches/patch_zones_v19.js` | engine patch builder (zone table) | ✅ **CURRENT** — see `patches/README.md` |
 | `AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe` | repo copy of the built engine | ✅ `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
@@ -910,53 +990,10 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 
 ---
 
-## 6. Helper failure recovery — TODO (2026-09-05)
+## 6. Helper failure recovery — moved to `Docs/TODO-helper-autoheal.md`
 
-**Problem:** if `ac_zone_helper.exe` hangs (process alive but not answering
-stdin), every zone request times out (250 ms) → `zone=-2` → ALL zone-gated
-actions silently skip until the SW restarts. If the helper process DIES,
-`onDisconnect` already resets the port → the next request spawns a fresh
-process (self-healing works). Only the HANG case is unhealed.
-
-**Manual Emergency Repair DOES work** for the hang case: it reloads the SW →
-fresh SW → new `connectNative` → Chrome spawns a NEW helper process (it does
-not reuse the hung one) → everything recovers. The hung process stays as a
-zombie until reboot (cosmetic).
-
-**TODO — two options (user asked to track both):**
-
-1. **Automatic helper self-heal (preferred, ~10 lines in `sw.js`):** in
-   `__acZoneAsk`, count CONSECUTIVE timeouts — after 3 in a row do
-   `__acZonePort.disconnect(); __acZonePort = null;` → the next request
-   creates a fresh process. Mirrors the capture-watchdog pattern. No bundle
-   rebuild needed (sw.js is not in the bundle). Also log
-   `[AC-MV3-ZONE] helper unresponsive — respawning` for diagnosability.
-   ⚠ **MULTI-BROWSER SAFETY (user requirement, 2026-09-05):** several
-   browsers may each run their OWN `ac_zone_helper.exe` (one per browser's
-   connectNative). ANY process kill must target ONLY OUR helper process —
-   never a blanket `taskkill /IM ac_zone_helper.exe` (would kill the other
-   browsers' live helpers). Implementation: the helper replies with its own
-   PID (`{__id, zone, pid}` — `Process.GetCurrentProcess().Id` in
-   `ac_zone_helper.cs`); the SW stores it on the first reply and, when
-   respawning, either just `port.disconnect()` (Chrome terminates the
-   process it spawned — the SAFE default, no taskkill needed) or, if a
-   hard kill is ever required, `taskkill /PID <stored pid>` only.
-   Note: Chrome kills the native host when its port disconnects, so
-   `port.disconnect()` alone should suffice for the hang case.
-2. **Emergency Repair integration (already works, document only):** the
-   manual repair path heals the helper via the SW reload; add a doc note
-   (README §4.3 or AGENTS.md) that a hung helper is fixed by Emergency
-   Repair. Optionally: kill ONLY OUR stale helper zombie during the repair
-   (via the stored PID — see above; NEVER by image name).
-
-**Status:** ⬜ open (defers — see the note below) — implement option 1 (auto-heal
-with PID tracking), optionally option 2's PID-scoped zombie kill; document
-option 2 in the README.
-
-**⏸ DEFERRED (2026-09-12, user request):** tracked in the backlog, to be
-implemented later ("put it in the TODO, for later"). Not blocking anything:
-Emergency Repair heals a hung helper, and a DEAD helper self-heals via
-`onDisconnect`.
+Auto-heal for a HUNG `ac_zone_helper.exe` (consecutive-timeout respawn with
+PID tracking + Emergency Repair doc note). Deferred by the user 2026-09-12.
 
 ---
 

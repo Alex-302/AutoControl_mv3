@@ -30,7 +30,7 @@ zone.
      v18 behaviour (helper-down) while you run it. For zone work use the v19
      build above.
    - original pristine: `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` = sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09`.
-1b. **Helper build**: deployed since 2026-09-15 is `E78DB22133BCC05F9F434A2315437387A7DCB078171D1CB282C8D0C40D9773DC` (17408 bytes,
+1b. **Helper build**: deployed since 2026-09-20 is `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F` (17920 bytes,
     deterministic Roslyn build). Two things about it matter for testing:
     * with **several browsers** running there are several engines, and the
       helper writes only into the engine that tracks **its own** browser's
@@ -175,8 +175,10 @@ A screenshot may help: CDP `Page.captureScreenshot` → view in an editor.
   with the tree OFF every point answers as an unnamed PANE (zone 4), so the
   helper's answer is INVALID — do not record such runs (the helper's heartbeat
   keeps the tree awake while it lives).
-- **Zone 4 (Title area)** IS implemented (the whole top band: caption + tabs +
-  omnibox + toolbar, page excluded) and verified live — the old "the engine maps
+- **Zone 4 (Title area)** IS implemented (the title bar / tab strip row only —
+  `stripNear || isTabBtn`, narrowed 2026-09-20 per the UI description; the
+  toolbar and the omnibox are NOT part of it; the frame PANE outside the
+  toolbar still counts) and verified live — the old "the engine maps
   it to the whole window" note described the UNPATCHED engine, which is no
   longer used for zone work.
 - **RMB strip interaction:** the pinTabs marker toggles pin; a FIRED click
