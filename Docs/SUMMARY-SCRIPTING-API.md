@@ -166,5 +166,5 @@ All previously failing items are closed:
 - Open port items (not API regressions): `runInFrames` subframes (§7-5),
   playAudio (§7-1), Save URL notif/copy (§7-2), toasts (§7-10) and others —
   see FEATURES-MV3.md §7.
-- Documentation: ../AGENTS.md (per-round gotchas), FEATURES-MV3.md,
+- Documentation: `GOTCHAS.md` (per-round gotchas), `FEATURES-MV3.md`,
   SCRIPTING-API-SUMMARY.md (§7 CSP, §9 degradations), FEATURES-MV3.md §7, session memory.

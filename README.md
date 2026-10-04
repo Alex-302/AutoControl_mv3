@@ -147,7 +147,7 @@ AutoControl-Keyboard-shortcuts-Mouse-gestures-Chrome/
 │   ├── README.md           #   ← structure explained (original / patched / patches)
 │   ├── AutoControl.manifest                  # engine host manifest (path = Zero)
 │   ├── com.autocontrol.zonehelper.json       # zone-helper host manifest
-│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F)
+│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF)
 │   ├── original/           #   untouched upstream files — NEVER edited
 │   │   ├── AutoControlZero.exe        # proxy/launcher (= installer)  994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38
 │   │   └── AutoCtrl_2025.4.22.0.exe   # engine (global hooks)         8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09
@@ -521,7 +521,7 @@ stops working.
 ```
 powershell -ExecutionPolicy Bypass -File Test/build_native.ps1
 # === 1/2  ENGINE (original + byte patch)  ... 695296 bytes  1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E  OK
-# === 2/2  HELPER (our C# source)         ...  17920 bytes  BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F  OK
+# === 2/2  HELPER (our C# source)         ...  22528 bytes  C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF  OK
 # (add -UpdatePatched to also refresh AutoControl_native/patched/ with the build)
 ```
 
@@ -557,7 +557,7 @@ keep the `AutoControlZero.exe` proxy chain — do not run it standalone.
    lines — the script ran.
 
 Full in-browser self-test: `Test/SCRIPTING-API-TEST.js` (23 checks, run via the
-RUN SCRIPT action; see `AGENTS.md`).
+RUN SCRIPT action; the harness is described in `Test/README.md`).
 
 ---
 
@@ -577,18 +577,35 @@ trees; the helper was adapted for them on 2026-09-15.
 | Web page | ✅ | ✅ | ✅ | ✅ |
 | Title area (title bar / tab strip) | ✅ | ✅ | ✅ | ✅ |
 | Browser tab | ✅ | ✅ | ✅ | ✅ |
-| New tab "+" | ✅ | ✅ | ✅ | ❌ |
+| New tab "+" | ✅ | ✅ | ⚠️ † | ❌ |
 | Toolbar | ✅ | ✅ | ✅ | ✅ |
 | Omnibox / address bar | ✅ | ✅ | ✅ | ✅ |
 | Bookmark button | ✅ | ✅ | ✅ | ❌ |
 | Browser menu button | ✅ | ✅ | ✅ | ✅ |
-| Tab's close button | ✅ | ✅ | ❌ | ❌ |
+| Tab's close button | ✅ | ✅ | ✅ | ⚠️ ‡ |
 | Tab's **speaker** icon | ✅ | ✅ | ❌ * | ❌ * |
 
 \* **The tab's speaker icon cannot work in Opera/Vivaldi** — the sound is drawn
 over the favicon in a single element (role 40 in Opera, an unnamed role-20
 box in Vivaldi) present on **every** tab, so a playing tab is
 indistinguishable from a silent one. This is not implementable via MSAA.
+
+† **In Opera the "+" is reported as the Browser tab (12)** — its parent is the
+`Tab Bar` element, not the tab list, so a trigger bound to this zone does not
+fire there; a wheel over the "+" runs the zone-12 action instead. Cosmetic for
+most setups, but worth knowing when a "new tab" trigger seems dead in Opera.
+
+‡ **In Vivaldi the close button is reported working but was not probed
+separately** (2026-10-05). The recognition follows the tab's actual structure
+instead of a fixed layout, and the same code handles Chrome, so the earlier
+"missing in Vivaldi" note is likely obsolete — a dedicated probe is still
+pending (see `Docs/TODO-mouseover-zones.md`, the Vivaldi quirks).
+
+* **Opera exposes a tab's close button as a plain pane, not a button** — the
+  helper finds it by shape (a square element in the right part of the tab), so
+  the zone works there too (fixed 2026-09-20; in some Opera builds the button is
+  a real button nested one level deeper instead — both shapes are handled since
+  2026-10-04).
 
 Additional notes:
 
@@ -604,6 +621,40 @@ Additional notes:
   title bar / tab strip row only (the toolbar and the omnibox are excluded) and
   the browser tab (12) now requires a real tab (the empty strip area no longer
   matches).
+* **The tab's close button is recognized in every layout seen so far** — it is
+  a real button inside the tab in Chrome and in Opera, but Opera may nest it one
+  level deeper (inside the tab's body), and some builds expose it as a plain
+  square element on the right of the tab. All three shapes are handled, and the
+  close button is told from the tab's speaker icon by their order inside the tab
+  (fixed 2026-09-21).
+* **In Opera/Vivaldi the rightmost toolbar button is the extensions-panel
+  toggle** ('Extensions'), not a browser menu — the menu is on the LEFT in
+  those forks. The Chrome-style "right edge" rule therefore no longer runs
+  there (the menu is found by name), and a button named 'Extensions' never
+  counts as the menu button (fixed 2026-09-20).
+* **An open browser menu is not browser chrome** — while a browser menu or
+  dropdown covers the tab strip, the zones report only "Browser window" (the
+  cursor is over the menu, not over the chrome), so a zone trigger cannot fire
+  through it (fixed 2026-09-20).
+* **Zones react instantly to a moved cursor** — the helper refreshes the zone
+  data as soon as the cursor settles (a 30 ms poll), because the native engine
+  caches the region verdict for a few hundred milliseconds; a late update made
+  the first wheel notch after a move miss (fixed 2026-09-20).
+* **Actions that target the “hovered tab” follow the cursor again** — Chrome
+  148+ removed the native information about which tab the mouse is over, so
+  such actions used to hit the first hovered tab (usually the active one). The
+  zone helper supplies that information now (fixed 2026-09-20).
+* **Actions that target the “event tab” work again** — the same removed native
+  information made this target resolve to *nothing* on Chrome 148+: the action
+  ran over an empty tab list and silently did nothing (for example “reload the
+  tab the event happened on”). For mouse events the event tab is the tab under
+  the cursor, and that tab is used now (fixed 2026-09-20).
+* ⚠ **Ignore the red “This feature is not supported in Opera/Vivaldi” banner
+  in the tooltips** — it is a hard-coded browser-NAME check from the original
+  author, not a capability test, and it is outdated: the tab-strip features it
+  warns about (Hovered tab, Mouse over) work with the zone helper. It is still
+  shown for “Copy hovered URL” / “Open hovered URL” / the omnibox placeholder,
+  which were not verified in those browsers.
 
 ---
 

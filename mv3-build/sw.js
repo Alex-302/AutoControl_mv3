@@ -3585,7 +3585,25 @@
   let __acZoneMapBuilt = false;
   let __acZonePort = null;             // warm connectNative port
   let __acZonePend = {};               // {seq: resolver}
+  let __acZoneTabPend = {};            // {seq: resolver} - native type 485 answers
+  // The tab under the cursor as the ZONE HELPER sees it. Kept here (not only in
+  // the bundle's _kg) because the bundle CLEARS _kg whenever the tab list
+  // changes: _rf runs `yield _Rf()` at the start of every action and that calls
+  // _wd() → `_kg = null`. So a pre-dispatch refresh alone was undone by the
+  // action itself (verified 2026-09-20: the filter saw kg=null although the
+  // refresh had just set it).
+  let __acHoveredTabId = null;
   let __acZoneSeq = 0;
+  // Triggers whose ACTIONS can ask for the tab under the cursor, and whether the
+  // map has been built yet. The pre-dispatch refresh (__acSetHoveredTab) costs an
+  // accessibility walk (79-219 ms, measured) whenever the cursor is on a point
+  // the helper has not classified yet - which is exactly the case for a wheel
+  // over the tab strip. Running it for an action that never asks for the hovered
+  // tab is pure latency: switching tabs with a wheel became noticeably delayed
+  // while Alt+wheel (an action with no zone check) stayed instant (user report
+  // 2026-10-05). Only the triggers that need it pay for it now.
+  let __acHoverNeeded = {};
+  let __acHoverNeededReady = false;
 
   function __acBuildZoneMap() {
     __acZoneMapBuilt = true;
@@ -3593,11 +3611,25 @@
       chrome.storage.local.get('trigActList', r => {
         const m = {};
         const free = {};
+        const needHover = {};
         for (const [id, t] of (r.trigActList || [])) {
           // `disabled` groups are NOT compiled into the type-60 payload (see
           // _mh: `m.disabled || K(m.triggers …)`), so they must not gate
           // anything either.
           if (!t || t.disabled) continue;
+          // Does any action of this trigger target the tab under the cursor?
+          // `hoveredTabs` is the UI's "Hovered tab" (the STORAGE name - the
+          // bundle's own field for the filter is `anyHvrd`, do not confuse
+          // them); `eventTabs` is resolved from the hovered tab too when the
+          // engine supplies no event tab (see the _pp patch below); any other
+          // target ("currentTab", "tse:N", "allTabs", …) never reads the hover
+          // position. Match loosely so a renamed target still counts.
+          let hv = false;
+          for (const a of (t.actions || [])) {
+            const tg = a && a.targets;
+            if (typeof tg === 'string' && (/hovered/i.test(tg) || tg === 'eventTabs')) hv = true;
+          }
+          if (hv) needHover[String(id)] = true;
           const zones = [];
           let unscoped = false;
           for (const tr of (t.triggers || [])) {
@@ -3616,8 +3648,11 @@
         }
         __acZoneMap = m;
         __acZoneFree = free;
+        __acHoverNeeded = needHover;
+        __acHoverNeededReady = true;
         console.warn('[AC-MV3-ZONE] zone map:', JSON.stringify(m),
-          'unscoped (no zone check):', JSON.stringify(Object.keys(free)));
+          'unscoped (no zone check):', JSON.stringify(Object.keys(free)),
+          'need hovered tab:', JSON.stringify(Object.keys(needHover)));
       });
     } catch (e) {
       console.warn('[AC-MV3-ZONE] map build failed:', e.message);
@@ -3657,6 +3692,12 @@
         if (!__acZonePort) {
           __acZonePort = chrome.runtime.connectNative(ZONE_HOST);
           __acZonePort.onMessage.addListener(m => {
+            if (m && m.__id != null && __acZoneTabPend[m.__id]) {
+              const r = __acZoneTabPend[m.__id];
+              delete __acZoneTabPend[m.__id];
+              r({ hWnd: m.hWnd, index: m.index, title: m.title, x: m.x, y: m.y });
+              return;
+            }
             if (m && m.__id != null && __acZonePend[m.__id]) {
               const r = __acZonePend[m.__id];
               delete __acZonePend[m.__id];
@@ -3674,6 +3715,9 @@
             const pend = __acZonePend;
             __acZonePend = {};
             for (const k in pend) pend[k]([-1]);
+            const tpend = __acZoneTabPend;
+            __acZoneTabPend = {};
+            for (const k in tpend) tpend[k](null);
           });
         }
         __acZonePort.postMessage({ __id: id });
@@ -3693,6 +3737,184 @@
     return __acZoneCachePend;
   }
 
+  // --- native type 485: "which tab is under the mouse" ---------------------
+  // The ORIGINAL engine answered this with the tab's identity (index or title)
+  // because its a11y hit-test could see the tabs. On Chrome 148+ that
+  // hit-test finds nothing, so the reply is only {hWnd,x,y} - and the bundle's
+  // _ys() (file50) then resolves NO tab, caches an empty list and every
+  // "hoveredTabs" action silently falls back to the ACTIVE tab:
+  //   file59 _Mg:  c = _ys(); if (!c.length) c = [activeTab]
+  // Measured 2026-09-20 with the wheel benchmark (_bench_watch.js): 12 wheel
+  // notches over 4 different tabs -> every reload went to the ACTIVE tab
+  // (user report: "on another tab it no longer reacts").
+  // The zone helper CAN see the tab under the cursor (role 37 PAGETAB + its
+  // position in the strip), so 485 is answered from there. If the helper is
+  // down or the cursor is not over a tab, the original native call is used.
+  function __acZoneTabAsk(timeoutMs) {
+    return new Promise(res => {
+      const id = ++__acZoneSeq;
+      const t = setTimeout(() => { delete __acZoneTabPend[id]; res(null); }, timeoutMs || 400);
+      try {
+        if (!__acZonePort) __acZoneAsk(1);      // opens the port (and the helper)
+        if (!__acZonePort) { clearTimeout(t); return res(null); }
+        __acZoneTabPend[id] = v => { clearTimeout(t); res(v); };
+        __acZonePort.postMessage({ __id: id, tab: 1 });
+      } catch (e) {
+        clearTimeout(t);
+        delete __acZoneTabPend[id];
+        res(null);
+      }
+    });
+  }
+
+  try {
+    if (typeof window._Vy === 'function' && !window.__acVyWrapped) {
+      const __acOrigVy = window._Vy;
+      window._Vy = function (a, b, c) {
+        const orig = __acOrigVy(a, b, c);        // returns (cb) => _Lk(a,b,cb,c)
+        if (a !== 485 || typeof orig !== 'function') return orig;
+        return function (cb) {
+          __acZoneTabAsk(400).then(info => {
+            if (info && info.hWnd && typeof info.index === 'number' && info.index >= 0) {
+              try { cb(info); } catch (e) {}
+            } else {
+              try { orig(cb); } catch (e) {}
+            }
+          }).catch(() => { try { orig(cb); } catch (e) {} });
+        };
+      };
+      window.__acVyWrapped = true;
+    }
+  } catch (e) {}
+
+  // --- the tab under the cursor: the SINGLE resolution point ------------------
+  // `_ys()` (file50) is THE function that answers "which tab is under the
+  // cursor": both the "Hovered tab" target (`_Mg` → `a.anyHvrd` → `_ys()`) and
+  // the `hovered` tab-filter property (file59) go through it.
+  // It returns the bundle's own cache `_kg` when set - and `_kg` is ONLY
+  // dropped by `_wd()` (a tab-list change), so it is routinely STALE: user
+  // report 2026-09-21 "on a fast cursor move the PREVIOUS tab reloads" (the
+  // first wheel fills `_kg` with tab N, the next wheel over tab N+1 still sees
+  // tab N). The pre-dispatch refresh (__acSetHoveredTab) cannot fix that alone:
+  // `_rf` runs `yield _Rf()` FIRST in every action and that may call `_wd()` →
+  // `_kg = null` → `_ys()` then starts its async resolution and returns `[]` →
+  // `_Mg` falls back to the ACTIVE tab (the other half of the same report).
+  // The helper (see __acSetHoveredTab) knows the tab under the cursor NOW, so:
+  // when it does, that answer wins; otherwise the bundle resolves it as before
+  // (cursor NOT over a tab → the documented active-tab fallback stays).
+  try {
+    if (typeof _ys === 'function' && !window.__acYsWrapped) {
+      const __acOrigYs = _ys;
+      _ys = function () {
+        if (__acHoveredTabId != null) {
+          // Do NOT call the original here: it would start the bundle's own
+          // resolution, which asks the native 485 (answered from the helper by
+          // the _Vy wrapper) - a SECOND accessibility walk per event. The helper
+          // is single-threaded, so the two walks queue up and the answers arrive
+          // 180-360 ms late (measured 2026-09-21: `TAB-REQ` twice per wheel,
+          // the second answer 344 ms after the first), which made the tab
+          // identity lag behind a fast cursor. `_kg` is only read by `_ys`
+          // itself (`_wd()` clears it), so skipping the call is safe.
+          try { __acOrigYs.apply(this, arguments); } catch (e) {}
+          return [__acHoveredTabId];
+        }
+        return __acOrigYs.apply(this, arguments);
+      };
+      window.__acYsWrapped = true;
+    }
+  } catch (e) {}
+
+  // --- "Event tab" target fallback ------------------------------------------
+  // The "Event tab" target (file59 `eventTabs` → filter `evtTabs`) resolves to
+  // `_Eh(_zw)` — the tab ids the ENGINE attached to the event. On Chrome 148+
+  // the engine can no longer identify the tab under the mouse, so for a wheel /
+  // click over the tab strip the event carries NO tab at all: the filter
+  // returns an empty group and an action like "Reload tabs" does NOTHING
+  // (user report 2026-09-20: "something does not work" — the trigger fired, the
+  // action reported OK, and no tab reloaded).
+  // The documented semantics for a tab-strip event IS that tab ("A tab in the
+  // tab strip" → that tab; "any other part of the browser window gives the
+  // active tab"), and the tab under the cursor is known (the zone helper, see
+  // __acSetHoveredTab). So: when the engine supplied no event tab AND the
+  // cursor really is over a tab, use that tab; otherwise keep the original
+  // result (active-tab fallback stays for non-tab areas).
+  try {
+    // NOTE: wrapping window._Mg does NOT work — `_pp` (the filter table in
+    // file59) captured the function object at load time, so the table itself
+    // must be patched. `_pp` is a `const` OBJECT, but its properties are
+    // writable; both `filter` and `posFilter` point at the same function.
+    if (typeof _pp === 'object' && _pp && !window.__acMgWrapped) {
+      const __acOrigFilter = _pp.filter;
+      const __acFilter = function (b, a) {
+        const r = __acOrigFilter(b, a);
+        try {
+          if (!a) return r;
+          const empty = !r || !r.length || !r[0] || !r[0].length;
+          if (!empty) return r;
+          // "Event tab": the engine supplied no tab for the event.
+          // "Hovered tab": the bundle's own resolution came back empty (its
+          // _kg may have been cleared by _wd, see __acHoveredTabId).
+          if (!(a.evtTabs || a.anyHvrd)) return r;
+          const hv = (__acHoveredTabId != null) ? [__acHoveredTabId]
+                   : (_kg && _kg.length ? _kg : null);
+          if (hv) {
+            const hit = b.filter(id => hv.indexOf(id) !== -1);
+            if (hit.length) return [hit];
+          }
+        } catch (e) {}
+        return r;
+      };
+      _pp.filter = __acFilter;
+      _pp.posFilter = __acFilter;
+      window.__acMgWrapped = true;
+    }
+  } catch (e) {}
+
+  // --- hoveredTabs freshness -----------------------------------------------
+  // The bundle resolves "the tab under the cursor" ONCE and caches it in the
+  // global _kg (file50 `_ys`), and the cache is only dropped by _wd() — which
+  // runs when the TAB LIST changed (file37 `_Rf` → `_Fk`). So an action kept
+  // targeting the FIRST hovered tab: user report 2026-09-20 "it sticks on the
+  // tabs where I scrolled — it works on them, but on another tab it no longer
+  // reacts", and the wheel benchmark showed the cursor moving over 4 different
+  // tabs while every single reload hit one and the same tab.
+  // Before dispatching, refresh the cache from the zone helper, which sees the
+  // tab under the cursor (the native 485 no longer identifies it, see above).
+  // The helper answers from its own cache in a few ms; the timeout is short so
+  // a dead helper cannot stall the action queue (the cache is then cleared and
+  // the bundle resolves it on its own).
+  function __acSetHoveredTab() {
+    // 900 ms: the helper answers from its own cache in ~1 ms when its heartbeat
+    // has already classified the point, but a FRESH accessibility walk takes
+    // 60-300 ms and it COMPETES with the heartbeat's own zone walk (measured
+    // 2026-10-04 in Chrome 148: the tab answer arrived in the same millisecond
+    // the old 300 ms timeout fired, so the action fell back to the ACTIVE tab -
+    // "reloads the active tab" on a burst of wheels). A missed answer means "no
+    // hovered tab known", which is exactly that fallback, so waiting longer is
+    // strictly better than giving up: the action runs a few hundred ms late
+    // instead of on the wrong tab.
+    return __acZoneTabAsk(900).then(info => {
+      try {
+        if (!info || typeof info.index !== 'number' || info.index < 0) { _kg = null; __acHoveredTabId = null; return; }
+        let winId = null;
+        try { winId = _Or && _Or[info.hWnd]; } catch (e) {}
+        return new Promise(res => {
+          try {
+            chrome.tabs.query(winId != null ? { windowId: winId } : {}, tabs => {
+              try {
+                const list = (tabs || []).slice().sort((a, b) => a.index - b.index);
+                const t = list[info.index];
+                _kg = t ? [t.id] : null;
+                __acHoveredTabId = t ? t.id : null;
+              } catch (e) { _kg = null; __acHoveredTabId = null; }
+              res();
+            });
+          } catch (e) { _kg = null; __acHoveredTabId = null; res(); }
+        });
+      } catch (e) { try { _kg = null; __acHoveredTabId = null; } catch (e2) {} }
+    }).catch(() => { try { _kg = null; __acHoveredTabId = null; } catch (e) {} });
+  }
+
   function __acDispatchTrigger750(data, ts) {
     // AC-MV3 FIX (2026-09-04): re-sync the bundle _Sk right before each
     // dispatch — mv3_native_shim.js re-stamps _Sk on every nativeConfigReady
@@ -3704,7 +3926,15 @@
     const decoded = data && data.id ? (16777215 & (data.id - handshakeSk)) : '?';
     const zid = String(decoded);
     const zones = __acZoneMap && __acZoneMap[zid];
-    const doDispatch = () => __acDispatch({ type: "nativeMsg", nativeType: 750, _live: true, data, _ts: ts });
+    // The hovered-tab cache is refreshed right before the action runs (see
+    // __acSetHoveredTab) — but ONLY for the triggers whose actions can ask for
+    // the tab under the cursor (see __acHoverNeeded): the refresh costs an
+    // accessibility walk on a new point, and paying it for "switch to the next
+    // tab" only made the wheel slow. Until the map has been built the refresh
+    // runs unconditionally (the safe, pre-2026-10-05 behaviour).
+    const needHover = !__acHoverNeededReady || __acHoverNeeded[zid] === true;
+    const doDispatch = () => (needHover ? __acSetHoveredTab() : Promise.resolve()).then(
+      () => __acDispatch({ type: "nativeMsg", nativeType: 750, _live: true, data, _ts: ts }));
     if (!zones) { doDispatch(); return; }          // not zone-gated → as before
     // ONE ACTION, SEVERAL COMBOS (2026-09-13, user report): the native's 750
     // names the ACTION, not the combo that matched, so the regions collected
@@ -3730,7 +3960,13 @@
     // ("wheel over a menu item" never fired — regression found 2026-09-12).
     const check = zones.filter(z => __AC_ZONE_KNOWN.indexOf(z) !== -1);
     if (!check.length) { doDispatch(); return; }   // engine-classified regions only
-    __acZoneAsk(250).then(zoneSet => {
+    // 500 ms: a FRESH helper classification (the cursor just moved) walks the
+    // accessibility tree and can take 100-300 ms when Chrome's tree is waking.
+    // With the old 250 ms the answer timed out (`zones=[-2]`), the gate SKIPPED
+    // the trigger and the first wheel notch after a fast move did nothing
+    // (user report 2026-09-21). The action runs a few hundred ms late instead of
+    // not at all - the engine has already applied the same region decision.
+    __acZoneAsk(500).then(zoneSet => {
       // Helper answers an ARRAY of all zones under the cursor; the trigger
       // fires when ANY of its verifiable regions is in that set.
       const zs = Array.isArray(zoneSet) ? zoneSet : [zoneSet];
@@ -3756,6 +3992,25 @@
   // A periodic request solves both: it starts the helper after an SW restart,
   // keeps its background heartbeat alive and re-spawns it if it dies.
   setInterval(() => { try { __acZoneAsk(300); } catch (e) {} }, 2500);
+
+  // TEST HOOK (2026-09-20): the SW internals are IIFE-local, so the zone gate
+  // and the hovered-tab refresh cannot be driven from the console — and the
+  // engine DROPS synthetic input, so a real 750 needs a physical wheel.
+  // These let the CDP scripts exercise the exact production path:
+  //   __acTest.dispatch750(_Sk + trigId)   - full gate + cache refresh + run
+  //   __acTest.setHoveredTab()             - just the hovered-tab refresh
+  //   __acTest.zoneAsk(t) / tabAsk(t)      - raw helper requests
+  try {
+    window.__acTest = {
+      dispatch750: (id) => __acDispatchTrigger750({ id: id }, Date.now()),
+      setHoveredTab: () => __acSetHoveredTab(),
+      zoneAsk: (t) => __acZoneAsk(t),
+      tabAsk: (t) => __acZoneTabAsk(t),
+      // The tab the helper reported at the last refresh (SW-local: _kg is
+      // wiped by the bundle's own _wd() during an action, this one is not).
+      hoveredId: () => __acHoveredTabId
+    };
+  } catch (e) {}
 
   // Self-waker: calling an extension API every 20s resets the SW idle timer
   // (Chrome 110+: "calling an extension API resets this timer"). Together with

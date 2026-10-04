@@ -8,8 +8,12 @@
 // process context (no hooks) — proven safe by Test/zone_proto.ps1.
 //
 // Protocol (Chrome native messaging): 4-byte LE length + UTF-8 JSON.
-//   request:  { "__id": 1 }
+//   request:  { "__id": 1 }                 - zones only
+//             { "__id": 1, "tab": 1 }      - + the tab under the cursor
 //   response: { "__id": 1, "zone": 12, "zones": [12, 1] }
+//             { "__id": 1, "zone": 12, "zones": [12,1], "hWnd": N, "index": I, "title": "..." }
+// "tab":1 exists because native type 485 (the tab under the mouse) lost its
+// tab identity on Chrome 148+; the SW answers 485 from here (see TabIndexOf).
 // "zones" = every zone matching the cursor (the original engine evaluated
 // each trigger's region independently - several zones can be true at once:
 // the omnibox is inside the toolbar band, the page is inside the browser
@@ -39,6 +43,22 @@
 //    (the hovered window's root process == the helper's parent process):
 //    the original engine never fired over foreign applications.
 //
+// 2026-09-20 fixes (Opera end-to-end run, user reports):
+//  * TAB (12) requires a real PAGETAB (37) - the empty strip area (60 alone)
+//    and the "+" do not answer 12 (the engine's own FUN_00415570 did the
+//    same).
+//  * BOOKMARK (33): the omnibox GROUPING must sit BETWEEN the button and the
+//    toolbar, plus Opera's heart matched BY NAME.
+//  * MENU BUTTON (30): the right-edge rule is Chromium-only (Opera/Vivaldi
+//    keep the menu on the LEFT, matched by name) and a button named
+//    'Extensions' never answers 30.
+//  * CLOSE BUTTON (15) in Opera/Vivaldi: not a PUSHBUTTON there but a square
+//    PANE in the RIGHT part of the tab, hit-testable directly - see
+//    IsPaneCloseButton.
+//  * SPEAKER (17) is NOT implementable in Opera/Vivaldi: the only element in
+//    the favicon slot is a role-40 'Tab favicon' present on EVERY tab, so an
+//    audible tab cannot be told from a silent one (documented limitation).
+//
 // Build (no .NET SDK needed, .NET Framework csc):
 //   csc /nologo /optimize+ /r:Accessibility.dll /out:ac_zone_helper.exe ac_zone_helper.cs
 // (Accessibility.dll is in the GAC; csc lives in
@@ -54,6 +74,7 @@ public static class ZoneHelper {
   [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(POINT pt);
   [DllImport("user32.dll")] private static extern IntPtr GetAncestor(IntPtr h, uint flags);
   [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr h, int index);
   [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
   [DllImport("oleacc.dll")] private static extern int AccessibleObjectFromPoint(POINT pt, out IAccessible acc, out object child);
   [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint pid);
@@ -102,6 +123,10 @@ public static class ZoneHelper {
   // the parent really is a browser (the standalone smoke test / zone probes
   // spawn this exe from node, where the gate must not apply).
   private static uint browserPid = 0;
+  // The browser's exe name (lowercased; empty for a standalone run). Needed by
+  // the menu-button rules: Opera and Vivaldi put their menu on the LEFT, so
+  // the right-edge geometry below must not run there.
+  private static string browserName = "";
 
   private static bool IsBrowserName(string n) {
     if (string.IsNullOrEmpty(n)) return false;
@@ -166,6 +191,14 @@ public static class ZoneHelper {
     int w = er.R - er.L, h = er.B - er.T;
     if (w <= 0 || h <= 0) return false;
     if (h > 90) return false;                     // not a toolbar-row element (defensive)
+    // The extensions-panel toggle is a RIGHTMOST button in several builds
+    // (Opera 135: role 57 'Extensions' 36x37, its right edge 38 px from the
+    // window edge) - it is never the browser menu (user report 2026-09-20:
+    // the zone-30 action fired on the blue extensions-collapse button).
+    string nm = Name(a);
+    if (nm.IndexOf("extension", StringComparison.OrdinalIgnoreCase) >= 0 ||
+        nm.IndexOf("\u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043d", StringComparison.OrdinalIgnoreCase) >= 0)
+      return false;
     IntPtr hwnd = WindowFromPoint(pt);
     if (hwnd == IntPtr.Zero) return false;
     IntPtr root = GetAncestor(hwnd, 2 /* GA_ROOT */);
@@ -174,6 +207,38 @@ public static class ZoneHelper {
     if (!GetWindowRect(root, out wr)) return false;
     int gap = wr.R - er.R;
     return gap >= 0 && gap < 60;
+  }
+
+  // The right-edge rule mirrors Chrome's kebab / the "New Chrome available"
+  // update pill. Opera and Vivaldi render their own UI with the menu on the
+  // LEFT (matched BY NAME above), and there the RIGHTMOST toolbar button is
+  // usually the extensions-panel toggle - so the geometry rule is skipped for
+  // them entirely (user report 2026-09-20: the zone-30 action fired on the
+  // blue extensions-collapse button). A standalone run (empty name) keeps the
+  // Chrome behaviour so the zone probes stay representative.
+  private static bool MenuAtRightEdge() {
+    return !(browserName.StartsWith("opera") || browserName.StartsWith("vivaldi"));
+  }
+
+  // A browser UI POPUP covers the chrome (a menu, a dropdown, an extension
+  // popup). Measured 2026-09-20: Opera's main menu is a layered WS_POPUP +
+  // WS_EX_TOOLWINDOW window 419x1083 anchored at the content-area origin, so
+  // it covers the whole tab strip; while it is open, every tab-strip point
+  // resolved to an unnamed PANE and the frame rule below answered "title
+  // area" (4) - a zone-4 trigger would fire while the user is inside the
+  // browser menu, and a zone-15 trigger was silently skipped with a confusing
+  // [4,1] in the log. The cursor is over the POPUP then, not over the browser
+  // chrome, so only the browser-window zone (1) is reported.
+  private static bool OverBrowserPopup(POINT pt) {
+    IntPtr h = WindowFromPoint(pt);
+    if (h == IntPtr.Zero) return false;
+    IntPtr root = GetAncestor(h, 2 /* GA_ROOT */);
+    if (root == IntPtr.Zero) return false;
+    int style = GetWindowLong(root, -16 /* GWL_STYLE */);
+    int ex = GetWindowLong(root, -20 /* GWL_EXSTYLE */);
+    const int WS_POPUP = unchecked((int)0x80000000);
+    const int WS_EX_TOOLWINDOW = 0x00000080;
+    return (style & WS_POPUP) != 0 && (ex & WS_EX_TOOLWINDOW) != 0;
   }
 
   // The window rectangle under a point (physical pixels - the helper is
@@ -198,6 +263,12 @@ public static class ZoneHelper {
   // the speaker icon report zone 15, user report 2026-09-12.) A tab that is
   // neither audible nor muted has its mute button present but with a 0x0
   // rect, so it is simply never hit. Returns 0, Z_CLOSE or Z_SPEAKER.
+  // The scan goes TWO levels deep: Chrome exposes the buttons as DIRECT
+  // children of the PAGETAB, while Opera 135 (Chromium 151) nests the close
+  // button inside the tab's body PANE — PAGETAB(37) → body PANE(16, 253x42) →
+  // 'Close tab'(43, 25x24), which the flat scan never found (measured
+  // 2026-09-21: hovering it answered "Title area" because the 43-based rule
+  // needs the PAGETAB and the PANE-based rule needs a SQUARE pane).
   private static int TabButtonZone(IAccessible tab, POINT pt) {
     int cc = 0;
     try { cc = tab.accChildCount; } catch { cc = 0; }
@@ -207,20 +278,181 @@ public static class ZoneHelper {
       IAccessible c = null;
       try { c = (IAccessible)tab.get_accChild(i); } catch { c = null; }
       if (c == null) continue;
-      try {
-        if (Role(c) == 43) {                       // PUSHBUTTON
-          RECT r;
-          if (Rect(c, out r)) {
-            if (r.L > maxLeft) maxLeft = r.L;
-            if (pt.X >= r.L && pt.X <= r.R && pt.Y >= r.T && pt.Y <= r.B) {
-              if (r.L > hitLeft) hitLeft = r.L;
-            }
-          }
-        }
-      } finally { try { Marshal.ReleaseComObject(c); } catch { } }
+      try { ScanTabButtons(c, pt, ref hitLeft, ref maxLeft, 2); }
+      finally { try { Marshal.ReleaseComObject(c); } catch { } }
     }
     if (hitLeft == int.MinValue) return 0;         // the cursor is on the tab body
     return (hitLeft >= maxLeft) ? Z_CLOSE : Z_SPEAKER;
+  }
+
+  // Collects the tab's PUSHBUTTONS (role 43) at `depth` levels below `el`,
+  // remembering the leftmost hit and the rightmost button overall (see
+  // TabButtonZone for why the ordering, not geometry, decides).
+  private static void ScanTabButtons(IAccessible el, POINT pt, ref int hitLeft, ref int maxLeft, int depth) {
+    if (el == null || depth < 0) return;
+    if (Role(el) == 43) {
+      RECT r;
+      if (Rect(el, out r)) {
+        if (r.L > maxLeft) maxLeft = r.L;
+        if (pt.X >= r.L && pt.X <= r.R && pt.Y >= r.T && pt.Y <= r.B) {
+          if (r.L > hitLeft) hitLeft = r.L;
+        }
+      }
+    }
+    if (depth == 0) return;
+    int cc = 0;
+    try { cc = el.accChildCount; } catch { cc = 0; }
+    for (int i = 1; i <= cc; i++) {
+      IAccessible c = null;
+      try { c = (IAccessible)el.get_accChild(i); } catch { c = null; }
+      if (c == null) continue;
+      try { ScanTabButtons(c, pt, ref hitLeft, ref maxLeft, depth - 1); }
+      finally { try { Marshal.ReleaseComObject(c); } catch { } }
+    }
+  }
+
+  // Opera/Vivaldi do NOT expose a tab's close button as a PUSHBUTTON - it is
+  // a plain PANE (role 16) and it IS hit-testable DIRECTLY (the hovered
+  // element is the button itself, whose parent is the PAGETAB). Signature
+  // (Opera 135, all three tabs): the PAGETAB children are
+  //   body PANE (253x42) · separator PANE (2x28) · close PANE (37x37, right)
+  // The square shape + the RIGHT-half position separate it from the tab body
+  // (too wide), the separator (too narrow) and Chrome's favicon PANE (square
+  // but on the LEFT - and in Chrome/Brave the close button is a real 43
+  // button, handled by TabButtonZone). Returns true when the element IS the
+  // close button of the given tab.
+  private static bool IsPaneCloseButton(IAccessible el, IAccessible tab, POINT pt) {
+    RECT er, tr;
+    if (!Rect(el, out er) || !Rect(tab, out tr)) return false;
+    int w = er.R - er.L, h = er.B - er.T;
+    if (w < 20 || w > 60 || h < 20 || h > 60) return false;   // square-ish icon slot
+    if (Math.Abs(w - h) > 12) return false;
+    if (pt.X < er.L || pt.X > er.R || pt.Y < er.T || pt.Y > er.B) return false;
+    int tabW = tr.R - tr.L;
+    if (tabW <= 0) return false;
+    return (er.L + er.R) / 2 - tr.L > tabW * 6 / 10;          // the right 40% of the tab
+  }
+
+  // 0-based position of a PAGETAB among the tabs of its strip: the number of
+  // PAGETAB siblings whose centre lies to the LEFT of this one (tabs are laid
+  // out left to right, so that is the index). Returns -1 when the strip cannot
+  // be found.
+  //
+  // WHY THIS EXISTS: native type 485 ("which tab is under the mouse") answers
+  // only {hWnd,x,y} on Chrome 148+ - it no longer identifies the tab (the a11y
+  // hit-test that produced index/title is gone), so the bundle's _ys()
+  // resolved NOTHING and every "hoveredTabs" action silently fell back to the
+  // ACTIVE tab (benchmark 2026-09-20: 10 wheel notches over 4 different tabs
+  // reloaded the active one 10 times). The SW answers 485 from here instead.
+  //
+  // WHERE THE SIBLINGS ARE (2026-10-04): the strip is the nearest ancestor that
+  // has at least TWO PAGETAB children - i.e. the level where the tabs really
+  // are siblings. Chrome 148 WRAPS them: PAGETAB(37) -> PANE(16, all 48 tabs)
+  // -> PANE(16) -> PAGETABLIST(60), while Chrome 156 and Opera hang the tabs
+  // directly off the 60. The old rule ("walk up to the first role-60 ancestor,
+  // then count ITS direct children") therefore answered **index 0 for every
+  // tab** on Chrome 148 - measured over the strip: 8 points, every title
+  // correct, every index 0 - because that 60 holds container children, not
+  // tabs. The SW then took list[0], the FIRST tab of the window, so every
+  // hovered-tab action ignored the hover (user report 2026-10-04).
+  private static int TabIndexOf(IAccessible tab) {
+    RECT tr;
+    if (!Rect(tab, out tr)) return -1;
+    int cx = (tr.L + tr.R) / 2;
+    // ONE pass per ancestor level: find the level where the tabs really ARE
+    // siblings (>= 2 PAGETAB children) and count the tabs left of this one at
+    // the same time. The children walk is the expensive part (one COM round
+    // trip per child - 21 tabs in a full strip), so it must not be done twice:
+    // the two-pass version (count, then re-walk to count the left ones) was one
+    // of the reasons a tab answer took ~300 ms and the SW gave up (2026-10-04).
+    IAccessible cur = tab;
+    for (int d = 0; d < 6 && cur != null; d++) {
+      IAccessible p = null; try { p = (IAccessible)cur.accParent; } catch { p = null; }
+      if (p == null) break;
+      int cc = 0; try { cc = p.accChildCount; } catch { cc = 0; }
+      int n37 = 0, left = 0;
+      for (int i = 1; i <= cc; i++) {
+        IAccessible c = null; try { c = (IAccessible)p.get_accChild(i); } catch { c = null; }
+        if (c == null) continue;
+        try {
+          if (Role(c) == 37) {
+            n37++;
+            RECT r;
+            if (Rect(c, out r) && (r.L + r.R) / 2 < cx) left++;
+          }
+        } finally { try { Marshal.ReleaseComObject(c); } catch { } }
+      }
+      if (n37 >= 2) return left;
+      cur = p;
+    }
+    // Fallback: a single-tab window (index 0 there) or a layout whose tabs hang
+    // directly under the PAGETABLIST - walk up to the role-60 ancestor.
+    cur = tab;
+    for (int d = 0; d < 6 && cur != null; d++) {
+      IAccessible p = null; try { p = (IAccessible)cur.accParent; } catch { p = null; }
+      if (p == null) break;
+      if (Role(p) == 60) {
+        int cc = 0; try { cc = p.accChildCount; } catch { cc = 0; }
+        int idx = 0;
+        for (int i = 1; i <= cc; i++) {
+          IAccessible c = null; try { c = (IAccessible)p.get_accChild(i); } catch { c = null; }
+          if (c == null) continue;
+          try {
+            if (Role(c) == 37) { RECT r; if (Rect(c, out r) && (r.L + r.R) / 2 < cx) idx++; }
+          } finally { try { Marshal.ReleaseComObject(c); } catch { } }
+        }
+        return idx;
+      }
+      cur = p;
+    }
+    return -1;
+  }
+
+  // "which tab is under the cursor" for native type 485 (see TabIndexOf).
+  // Returns "" when the point is not over a tab, else a JSON fragment
+  //   ,"hWnd":N,"index":I,"title":"..."
+  // The caller must have woken the a11y tree already (the heartbeat does).
+  // Diagnostic: why the last TabUnderCursorJson() call returned nothing (logged
+  // by the request path). "hit-role/name" is the element that WAS under the
+  // cursor - that tells "the cursor was not over a tab" (the empty strip area,
+  // the "+", the page) from "the accessibility tree did not answer".
+  private static string lastTabReason = "";
+
+  private static string TabUnderCursorJson(POINT pt) {
+    lastTabReason = "";
+    IAccessible acc = null; object child = null;
+    if (AccessibleObjectFromPoint(pt, out acc, out child) != 0 || acc == null) { lastTabReason = "aop-failed"; return ""; }
+    try { object nm = acc.get_accName(0); } catch { }        // wake a sleeping tree
+    try { Marshal.ReleaseComObject(acc); } catch { }
+    acc = null;
+    if (AccessibleObjectFromPoint(pt, out acc, out child) != 0 || acc == null) { lastTabReason = "aop-failed-2"; return ""; }
+    IAccessible tab = null, cur = acc;
+    for (int d = 0; d <= 3 && cur != null; d++) {
+      if (Role(cur) == 37) { tab = cur; break; }
+      IAccessible p = null; try { p = (IAccessible)cur.accParent; } catch { p = null; }
+      cur = p;
+    }
+    if (tab == null) {
+      // What WAS under the cursor matters: over the empty strip area or the "+"
+      // the answer is legitimately empty (the documented "any other part of the
+      // browser window gives the ACTIVE tab"), while a role-37 chain that is
+      // simply not there means the tree did not answer.
+      lastTabReason = "no-PAGETAB hit-role=" + Role(acc) + " hit-name='" + Name(acc) + "'";
+      try { Marshal.ReleaseComObject(acc); } catch { }
+      return "";
+    }
+    int idx = TabIndexOf(tab);
+    string title = Name(tab);
+    IntPtr hwnd = WindowFromPoint(pt);
+    IntPtr root = hwnd != IntPtr.Zero ? GetAncestor(hwnd, 2 /* GA_ROOT */) : IntPtr.Zero;
+    try { Marshal.ReleaseComObject(acc); } catch { }
+    if (root == IntPtr.Zero || idx < 0) {
+      lastTabReason = (root == IntPtr.Zero ? "no-root" : "no-strip(idx=" + idx + ")") +
+        " tab-name='" + title + "'";
+      return "";
+    }
+    title = title.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    return ",\"hWnd\":" + root.ToInt64() + ",\"index\":" + idx + ",\"title\":\"" + title + "\"";
   }
 
   // Classify the point into the SET of matching zones (the original engine
@@ -254,6 +486,15 @@ public static class ZoneHelper {
     int docDepth = -1;
     for (int d = 0; d < MAXDEPTH; d++) if (roles[d] == 15) { docDepth = d; break; }
     bool inPage = docDepth >= 0;
+    // Over a browser UI POPUP (menu / dropdown / extension popup) the cursor
+    // is over the POPUP, not over the browser chrome - report only the
+    // browser-window zone (see OverBrowserPopup; the Opera main menu covering
+    // the tab strip used to answer "title area").
+    if (OverBrowserPopup(pt)) {
+      outZones[0] = Z_WINDOW;
+      count = 1;
+      return;
+    }
     // Vivaldi (2026-09-15): its whole UI lives INSIDE the page document - the
     // omnibox's chain is 42 -> 20 -> 22 (Address) -> ... -> 15 (the page
     // DOCUMENT), so the naive "a DOCUMENT in the chain = the page" rule made
@@ -294,8 +535,6 @@ public static class ZoneHelper {
     // Inside a DOCUMENT = inside the page: no browser-chrome rule may fire.
     bool ui = !inPage;
 
-    bool isTabBtn = ui && roles[0] == 43 && roles[1] == 37;   // the hovered element IS a tab button
-    bool isNewTabBtn = ui && roles[0] == 43 && roles[1] == 60;
     // The TAB itself: a PAGETAB (role 37) anywhere in d0..d3 (Chrome: 37 at
     // d1; Opera/Vivaldi: deeper - 41 -> 16 -> 37). The engine's OWN region-12
     // check (FUN_00415570) matched ONLY a PAGETAB or an element whose DIRECT
@@ -306,6 +545,13 @@ public static class ZoneHelper {
     for (int d = 0; d <= 3; d++) {
       if (ui && roles[d] == 37) { tabDepth = d; break; }
     }
+    // The hovered element IS a tab button (a PUSHBUTTON inside a tab): in
+    // Chrome it is a DIRECT child of the PAGETAB (43 -> 37), in Opera 135
+    // (Chromium 151) it is nested one level deeper - PAGETAB -> body PANE ->
+    // 'Close tab' (43 -> 16 -> 37), so ANY PAGETAB ancestor counts. It must
+    // not catch the "+" (a 43 under the PAGETABLIST 60, no PAGETAB above).
+    bool isTabBtn = ui && roles[0] == 43 && tabDepth >= 1;
+    bool isNewTabBtn = ui && roles[0] == 43 && roles[1] == 60;
     // The strip ROW for the TITLE-AREA zone (4) covers the whole band,
     // including its empty area (the PAGETABLIST 60 itself).
     bool stripNear = tabDepth >= 0;
@@ -344,10 +590,16 @@ public static class ZoneHelper {
       //    button itself (Close IS hit-testable) or the tab (the speaker icon
       //    is NOT) - both go through the tab's children (see TabButtonZone).
       int tbZone = 0;
-      if (isTabBtn) tbZone = TabButtonZone(chain[1], pt);
+      if (isTabBtn) tbZone = TabButtonZone(chain[tabDepth], pt);
       else if (roles[0] == 37) tbZone = TabButtonZone(chain[0], pt);
       else if (roles[1] == 37) tbZone = TabButtonZone(chain[1], pt);
       else if (tabDepth >= 2 && roles[tabDepth] == 37) tbZone = TabButtonZone(chain[tabDepth], pt);
+      // 3b. Opera/Vivaldi tab close button: a square PANE (16) whose parent
+      //     is the PAGETAB and which sits in the RIGHT part of the tab - see
+      //     IsPaneCloseButton. Without this the zone-15 trigger never fires
+      //     in those forks (the 43-based TabButtonZone finds nothing there).
+      if (tbZone == 0 && roles[0] == 16 && roles[1] == 37 &&
+          IsPaneCloseButton(chain[0], chain[1], pt)) tbZone = Z_CLOSE;
       if (tbZone != 0) zs[n++] = tbZone;
       // 4. New tab button: a PUSHBUTTON whose parent is the PAGETABLIST.
       if (isNewTabBtn) zs[n++] = Z_NEWTAB;
@@ -375,7 +627,8 @@ public static class ZoneHelper {
       //    and Vivaldi's menu buttons on the LEFT, found by name).
       if (inToolbar) {
         zs[n++] = Z_TOOLBAR;
-        if ((roles[0] == 43 || roles[0] == 57) && IsRightEdgeButton(chain[0], pt))
+        if (MenuAtRightEdge() && (roles[0] == 43 || roles[0] == 57) &&
+            IsRightEdgeButton(chain[0], pt))
           zs[n++] = Z_MENUBTN;
       }
       // 8. Browser tab: a PAGETAB (37) anywhere in d0..d3 (Chrome: d0/d1;
@@ -483,15 +736,24 @@ public static class ZoneHelper {
     return "{\"zone\":" + z[0] + ",\"zones\":[" + s + "]}";
   }
 
-  // Returns the JSON body: {"zone":P,"zones":[...]} - P is the most specific
-  // zone (logging / older SW builds), zones is the full matching set.
+  // Classify ONE point and cache the COMPLETE answer for it: the zone set, the
+  // engine's zone table and the tab under the cursor. Everything is sampled at
+  // the SAME moment - that is the whole point of this method (see CacheStore).
+  // The zone body is {"zone":P,"zones":[...]} - P is the most specific zone
+  // (logging / older SW builds), zones is the full matching set.
   // {"zone":-1,...} = cursor/AOP error (the SW treats it as "no match").
   // {"zone":0,"zones":[]} = the cursor is not over this browser's window.
-  private static string ComputeZoneJson() {
-    POINT pt;
-    if (!GetCursorPos(out pt)) return "{\"zone\":-1,\"zones\":[-1]}";
-    if (!OverOwnBrowser(pt)) return "{\"zone\":0,\"zones\":[]}";
-    return JsonOfZones(ZonesForPoint(pt));
+  // ⚠ NO tab walk here: `TabUnderCursorJson` costs 60-104 ms (measured) and this
+  // runs on the 30 ms heartbeat - adding it made the helper unable to answer the
+  // SW's zone query in time (250 ms), so the first wheel notch after a fast move
+  // was SKIPPED (`zones=[-2]`, user report 2026-09-21). The tab is walked on
+  // demand by the request path, which stores it for the very point it was
+  // computed for (cacheTabOk).
+  private static int[] ClassifyAndCache(POINT pt) {
+    int[] z = OverOwnBrowser(pt) ? ZonesForPoint(pt) : new int[0];
+    WriteZoneTable(z == null ? new int[0] : z);
+    CacheStore(pt, JsonOfZones(z));
+    return z;
   }
 
   // ---- engine zone table (patch v19, see Test/patch_zones_v19.js) --------
@@ -721,9 +983,20 @@ public static class ZoneHelper {
   // a few ms after the last heartbeat can be served from the cache.
   private static readonly object zoneLock = new object();
   private static string cacheBody = "{\"zone\":0,\"zones\":[]}";
+  private static string cacheTabBody = "";      // tab-under-cursor fragment for cachePt
+  private static bool cacheTabOk = false;       // ... and it was computed WITH the zone set of cachePt
   private static POINT cachePt = new POINT();
   private static int cacheAt = 0;
   private static bool cacheOk = false;
+  private static POINT lastPollPt = new POINT();   // cursor position at the previous poll
+  private static int lastClassifyAt = 0;           // throttle for classifications during a move
+  private static int lastTabWarmAt = 0;            // throttle for the tab-cache warm-up (see Heartbeat)
+  // Set while a request is being served. The heartbeat SKIPS its own
+  // classification then: two accessibility walks (the heartbeat's zone walk and
+  // the request's tab walk) compete for the same tree and both get slower -
+  // measured 2026-10-04 in Chrome 148, where a tab answer took ~300 ms and the
+  // SW gave up, reloading the ACTIVE tab instead of the hovered one.
+  private static volatile bool servingRequest = false;
 
   private static bool CacheFresh(POINT pt) {
     lock (zoneLock) {
@@ -732,22 +1005,60 @@ public static class ZoneHelper {
       return (Environment.TickCount - cacheAt) < 400;
     }
   }
+  // A ZONE-ONLY answer carries no tab information: the point changed, so the
+  // tab computed for the previous point must NOT be served for this one. That
+  // is exactly what produced "the PREVIOUS tab reloads" when the cursor moved
+  // fast (user report 2026-09-21): the fresh zone classification updated
+  // cachePt while cacheTabBody still held the tab of the previous wheel, and
+  // GetCachedTab - matching on the point alone - returned it.
   private static void CacheStore(POINT pt, string body) {
-    lock (zoneLock) { cacheBody = body; cachePt = pt; cacheAt = Environment.TickCount; cacheOk = true; }
+    lock (zoneLock) {
+      cacheBody = body;
+      cacheTabBody = "";
+      cacheTabOk = false;
+      cachePt = pt; cacheAt = Environment.TickCount; cacheOk = true;
+    }
   }
-  private static string GetZoneJson() {
+  // The tab-under-cursor answer for the SAME point the zone cache was built for
+  // (null = no valid cached answer). Served instantly, so the SW's 485 bridge
+  // never has to wait for an accessibility walk (measured 59-104 ms - right at
+  // the SW's timeout, which made the hovered-tab refresh fail intermittently).
+  // Valid ONLY when it was computed together with the zone set of this very
+  // point (cacheTabOk).
+  private static string GetCachedTab(POINT pt) {
+    lock (zoneLock) {
+      if (!cacheOk || !cacheTabOk) return null;
+      if (cachePt.X != pt.X || cachePt.Y != pt.Y) return null;
+      return cacheTabBody;
+    }
+  }
+  // Zone JSON for a point (null = read the cursor now). A FRESH classification
+  // caches the zone set AND the tab under the cursor for that point.
+  private static string GetZoneJson(POINT? at) {
     POINT pt;
-    if (!GetCursorPos(out pt)) return "{\"zone\":-1,\"zones\":[-1]}";
+    if (at.HasValue) pt = at.Value;
+    else if (!GetCursorPos(out pt)) return "{\"zone\":-1,\"zones\":[-1]}";
     if (CacheFresh(pt)) { lock (zoneLock) { return cacheBody; } }
-    string body = ComputeZoneJson();
-    CacheStore(pt, body);
-    return body;
+    ClassifyAndCache(pt);
+    lock (zoneLock) { return cacheBody; }
   }
   // Keeps Chrome's accessibility tree awake (the tree is what makes the
   // classification possible), refreshes the cache whenever the cursor moved
   // or the cache got old, and keeps the ENGINE's zone table (patch v19) in
   // sync. Runs on a background thread; the answers the SW gets are at most one
   // heartbeat apart.
+  //
+  // POLL RATE (2026-09-20): the engine CACHES the region verdict and only
+  // recomputes it when >300 ms passed or the cursor moved >3 px since the last
+  // computation (FUN_00415bf0), and it reads the table at that moment. With a
+  // 120 ms poll the table could still hold the PREVIOUS zone when the user
+  // moved onto a zone and scrolled immediately: the first notch then read a
+  // stale 0 for that region, the cache kept it for up to 300 ms and every
+  // following notch was skipped too (user report: "works, but sometimes
+  // stops"). Measured write latency was ~170 ms; the poll is now 30 ms, so
+  // the stale-table window shrinks to one classification (~1-3 ms) plus the
+  // poll. The classification itself runs only when the cursor MOVED, so an
+  // idle helper costs one GetCursorPos per 30 ms and nothing else.
   private static void Heartbeat() {
     while (true) {
       try {
@@ -759,15 +1070,52 @@ public static class ZoneHelper {
                     (Environment.TickCount - cacheAt) > 1200;
           }
           if (stale) {
-            // zones = null -> AOP error (nothing matches); [] -> the cursor is
-            // not over this browser (nothing matches, the input passes through)
-            int[] z = OverOwnBrowser(pt) ? ZonesForPoint(pt) : new int[0];
-            WriteZoneTable(z == null ? new int[0] : z);
-            CacheStore(pt, JsonOfZones(z));
+            // Classifying EVERY intermediate position of a fast move is wasted
+            // work: the engine only reads the table when an input event
+            // arrives, i.e. when the hand has settled. So while the cursor is
+            // moving the classification is throttled, and the moment the
+            // position stops changing it runs at once (settle detection) -
+            // that keeps the measured write latency at ~0 ms for the case that
+            // matters while cutting the CPU cost of a continuous drag.
+            bool settled = (pt.X == lastPollPt.X && pt.Y == lastPollPt.Y);
+            bool movingGate = (Environment.TickCount - lastClassifyAt) > 80;
+            bool keepTreeAwake = (Environment.TickCount - cacheAt) > 1200;
+            if (!servingRequest && (settled || movingGate || keepTreeAwake)) {
+              // zones = null -> AOP error (nothing matches); [] -> the cursor is
+              // not over this browser (nothing matches, the input passes through)
+              int[] z = ClassifyAndCache(pt);
+              lastClassifyAt = Environment.TickCount;
+              // WARM THE TAB CACHE while the cursor RESTS over a tab-related zone.
+              // The SW's hovered-tab request then answers in ~1 ms instead of a
+              // fresh 79-219 ms accessibility walk - which is what makes a wheel
+              // over a tab feel instant for a "hovered tab" action too.
+              // GUARDS (the round-2 failure was a walk on EVERY classification):
+              //   * only when the cursor has SETTLED (never during a fast pass);
+              //   * only over a tab-related zone (12/15/17) - the only case where
+              //     the tab under the cursor can be asked for;
+              //   * NEVER while a request is being served (that contention is what
+              //     made the zone query time out);
+              //   * at most every 150 ms (the walk is expensive).
+              if (settled && !servingRequest && z != null &&
+                  (Array.IndexOf(z, Z_TAB) >= 0 || Array.IndexOf(z, Z_CLOSE) >= 0 ||
+                   Array.IndexOf(z, Z_SPEAKER) >= 0) &&
+                  (Environment.TickCount - lastTabWarmAt) > 150) {
+                string tb = TabUnderCursorJson(pt);
+                // Store it for THIS point only (the cursor may have moved during
+                // the walk; CacheStore keeps point and tab consistent by design).
+                lock (zoneLock) {
+                  if (cacheOk && cachePt.X == pt.X && cachePt.Y == pt.Y) {
+                    cacheTabBody = tb; cacheTabOk = true;
+                  }
+                }
+                lastTabWarmAt = Environment.TickCount;
+              }
+            }
           }
+          lastPollPt = pt;
         }
       } catch { /* never kill the heartbeat */ }
-      System.Threading.Thread.Sleep(120);
+      System.Threading.Thread.Sleep(30);
     }
   }
 
@@ -792,7 +1140,7 @@ public static class ZoneHelper {
         string pname;
         uint ppid = FindParent(cur, out pname);
         if (ppid == 0 || string.IsNullOrEmpty(pname)) break;
-        if (IsBrowserName(pname)) { browserPid = ppid; break; }
+        if (IsBrowserName(pname)) { browserPid = ppid; browserName = pname.ToLowerInvariant(); break; }
         cur = ppid;
       }
     } catch { browserPid = 0; }
@@ -822,8 +1170,10 @@ public static class ZoneHelper {
         if (n <= 0) return 0;
         got += n;
       }
-      // parse the request id (tolerate junk)
+      // parse the request id (tolerate junk) + the optional "tab" flag (the
+      // SW asks for the tab under the cursor to answer native type 485)
       int reqId = 0;
+      bool wantsTab = false;
       try {
         string msg = System.Text.Encoding.UTF8.GetString(body);
         int i = msg.IndexOf("\"__id\"", StringComparison.Ordinal);
@@ -837,13 +1187,58 @@ public static class ZoneHelper {
             if (e > k) int.TryParse(msg.Substring(k, e - k), out reqId);
           }
         }
+        wantsTab = msg.IndexOf("\"tab\":1", StringComparison.Ordinal) >= 0 ||
+                   msg.IndexOf("\"tab\":true", StringComparison.Ordinal) >= 0;
+        // Diagnostic channel (2026-10-04): the SW sends a free-form note that is
+        // written into this log. It is the only way to observe the SERVICE
+        // WORKER in a browser that must not be relaunched with a debug port
+        // (Chrome 148 = the user's main browser). Plain text only - no escapes,
+        // the SW keeps the note free of quotes.
+        int ni = msg.IndexOf("\"note\":\"", StringComparison.Ordinal);
+        if (ni >= 0) {
+          int ns = ni + 8, ne = msg.IndexOf('"', ns);
+          if (ne > ns) Log("SW " + msg.Substring(ns, ne - ns));
+        }
       } catch { reqId = 0; }
-      string resp = "{\"__id\":" + reqId + "," + GetZoneJson().Substring(1);
+      // Sample the cursor ONCE: the zone set and the tab must belong to the
+      // SAME point, otherwise the tab answer is useless (see GetCachedTab).
+      servingRequest = true;
+      POINT cpt;
+      bool havePt = GetCursorPos(out cpt);
+      string zj = GetZoneJson(havePt ? (POINT?)cpt : null);   // {"zone":Z,"zones":[...]}
+      string resp = "{\"__id\":" + reqId + "," + zj.Substring(1, zj.Length - 2);
+      if (wantsTab && havePt) {
+        string cached = GetCachedTab(cpt);          // instant, valid for THIS point
+        bool fromCache = cached != null;
+        int walkMs = 0;
+        if (cached == null) {
+          int t0 = Environment.TickCount;
+          cached = TabUnderCursorJson(cpt);         // 59-104 ms accessibility walk
+          walkMs = Environment.TickCount - t0;
+          // Remember it for this point: the SW sends a SECOND tab request in the
+          // same wheel burst (the bundle's own 485 resolution).
+          lock (zoneLock) {
+            if (cacheOk && cachePt.X == cpt.X && cachePt.Y == cpt.Y) {
+              cacheTabBody = cached; cacheTabOk = true;
+            }
+          }
+        }
+        // Diagnostic (2026-10-04): "works, but not always" needs the exact answer
+        // per wheel - an EMPTY or LATE answer makes the SW fall back to the ACTIVE
+        // tab. walk= is how long the accessibility walk took (the SW gives up
+        // after its own timeout, so a walk longer than that = the wrong tab).
+        Log("tab ask " + cpt.X + "," + cpt.Y + " -> " +
+            (cached.Length == 0 ? "EMPTY (" + lastTabReason + ")" : cached) +
+            (fromCache ? " [cached]" : " walk=" + walkMs + "ms"));
+        resp += cached;
+      }
+      resp += "}";
       byte[] outBytes = System.Text.Encoding.UTF8.GetBytes(resp);
       byte[] outLen = BitConverter.GetBytes(outBytes.Length);
       stdout.Write(outLen, 0, 4);
       stdout.Write(outBytes, 0, outBytes.Length);
       stdout.Flush();
+      servingRequest = false;
     }
   }
 }

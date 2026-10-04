@@ -2189,7 +2189,16 @@ vm.runInContext(`
 
   // helper rules (see Docs/TODO-mouseover-zones.md §2d/§2e)
   const hPlus = helper.includes('PAGETABLIST');
-  const hRightEdge = /right edge within|right edge/.test(helper) && helper.includes('60');
+  // 2026-09-20 (fifth fix, user report): the right-edge geometry rule must NOT
+  // run in Opera/Vivaldi — their menu is on the LEFT (matched by name) and the
+  // RIGHTMOST toolbar button there is the extensions-panel toggle (user report:
+  // "the zone-30 action fires on the blue extensions-collapse button"). A
+  // button named 'Extensions' is never the browser menu either.
+  const hRightEdge = /MenuAtRightEdge\(\) && \(roles\[0\] == 43 \|\| roles\[0\] == 57\)/.test(helper) &&
+    /browserName\.StartsWith\("opera"\)/.test(helper) &&
+    /IndexOf\("extension", StringComparison\.OrdinalIgnoreCase\)/.test(helper) &&
+    helper.includes('\\u0440\\u0430\\u0441\\u0448\\u0438\\u0440\\u0435\\u043d') &&
+    helper.includes('60');
   const hDpi = helper.includes('SetProcessDPIAware');
   // 2026-09-12 (later): the speaker icon is NOT hit-testable (AOP returns the
   // PAGETAB), so the tab's CHILDREN are scanned for a button rect containing
@@ -2239,6 +2248,20 @@ vm.runInContext(`
   const hPageSafe = /bool ui = !inPage/.test(helper);
   const hOwnWindow = helper.includes('browserPid') && helper.includes('IsBrowserName');
   const hHeartbeat = helper.includes('Heartbeat') && helper.includes('CacheStore');
+  // 2026-09-20 (eighth fix, "works but sometimes stops"): the ENGINE caches the
+  // region verdict (FUN_00415bf0) and only recomputes it when >300 ms passed or
+  // the cursor moved >3 px since the last computation — so if the helper's zone
+  // TABLE is still stale when the engine reads it, the first wheel notch after
+  // a move caches a wrong 0 and the next ones (within 300 ms) reuse it. The
+  // write latency used to be ~170 ms (a 120 ms poll + classification); it is
+  // now ~0 ms: the poll is 30 ms, a settled cursor is classified at once and a
+  // CONTINUOUS move is throttled (the classification cost was 22.7% of a core
+  // without the throttle, 11.6% with it).
+  const hFastTable = /Thread\.Sleep\(30\)/.test(helper) &&
+    /lastPollPt/.test(helper) &&
+    /lastClassifyAt/.test(helper) &&
+    /settled \|\| movingGate \|\| keepTreeAwake/.test(helper) &&
+    !/Thread\.Sleep\(120\)/.test(helper);
   // the tab-zone rule must require a PAGETAB (37) and exclude the tab's own
   // BUTTONS (a 43-button under a PAGETAB is not "the tab"). The engine's own
   // region-12 check (FUN_00415570) matched ONLY a PAGETAB or an element whose
@@ -2247,6 +2270,25 @@ vm.runInContext(`
   // answered "Browser tab"); the old "60 at d0/d1 -> 12" clause is gone.
   const hSpeakerNoTab = /tbZone == 0 && tabDepth >= 0 && roles\[0\] != 43/.test(helper) &&
     !/roles\[0\] == 60 \|\| roles\[1\] == 60/.test(helper);
+  // 2026-09-20 (sixth fix, Opera e2e): Opera/Vivaldi expose a tab's close
+  // button as a plain PANE (role 16) in the RIGHT part of the tab - the
+  // 43-based TabButtonZone finds nothing there, so the zone-15 trigger never
+  // fired in those forks. The PANE rule must require the square shape AND the
+  // right-half position (Chrome's favicon PANE is square but on the LEFT).
+  const hPaneClose = /IsPaneCloseButton/.test(helper) &&
+    /roles\[0\] == 16 && roles\[1\] == 37 &&/.test(helper) &&
+    /Math\.Abs\(w - h\) > 12/.test(helper) &&
+    /tabW \* 6 \/ 10/.test(helper);
+  // 2026-09-20 (seventh fix): a browser UI POPUP (the Opera main menu is a
+  // layered WS_POPUP + WS_EX_TOOLWINDOW window covering the tab strip) must
+  // NOT be classified as browser chrome — while it was open the tab-strip
+  // points answered "title area" (4) and a zone-15 trigger was skipped with a
+  // confusing [4,1] in the log. Only the browser-window zone (1) stays.
+  const hPopupGate = /OverBrowserPopup/.test(helper) &&
+    /WS_POPUP/.test(helper) &&
+    /WS_EX_TOOLWINDOW/.test(helper) &&
+    /GetWindowLong\(root, -16/.test(helper) &&
+    /if \(OverBrowserPopup\(pt\)\)/.test(helper);
 
   const patchFile = path.join(__dirname, '..', 'AutoControl_native', 'patches', 'patch_zones_v19.js');
   const patchExists = fs.existsSync(patchFile);
@@ -2280,7 +2322,7 @@ vm.runInContext(`
   if (!intersectOk) bad.push('no set intersection');
   if (!cacheOk) bad.push('cacheMs=' + (cacheMs && cacheMs[1]));
   if (!hPlus) bad.push('helper: + rule');
-  if (!hRightEdge) bad.push('helper: right-edge (menu pill) rule');
+  if (!hRightEdge) bad.push('helper: right-edge (menu pill) rule — Chromium only + never the Extensions button');
   if (!hDpi) bad.push('helper: DPI awareness');
   if (!hTabButtons) bad.push('helper: tab-button (speaker/close) rule');
   if (!hTitleBand) bad.push('helper: title-area = tab strip only (not the toolbar)');
@@ -2290,9 +2332,49 @@ vm.runInContext(`
   if (!hPageSafe) bad.push('helper: page-safety gate');
   if (!hOwnWindow) bad.push('helper: own-browser gate');
   if (!hHeartbeat) bad.push('helper: a11y heartbeat');
+  if (!hFastTable) bad.push('helper: fast zone-table write (30 ms poll + settle detection)');
   if (!hSpeakerNoTab) bad.push('helper: speaker excludes zone 12');
+  if (!hPaneClose) bad.push('helper: Opera/Vivaldi tab close button (square PANE, right part)');
+  if (!hPopupGate) bad.push('helper: browser popup gate (menu/dropdown is not browser chrome)');
   if (!ORIG_OFF) bad.push('v19: ORIG_BLOCK (must be 0x1C)');
   if (!caveSig) bad.push('v19 patch builder (cave trampoline)');
+  // 2026-09-20: native type 485 (the tab under the mouse) lost its tab
+  // identity on Chrome 148+ ({hWnd,x,y} only), so _ys() resolved nothing and
+  // every "hoveredTabs" action fell back to the ACTIVE tab (benchmark: 12
+  // wheels over 4 tabs -> 12 reloads of one tab). The SW answers 485 from the
+  // zone helper and refreshes the bundle's hovered-tab cache (_kg) before
+  // every dispatch - the cache otherwise survives until the tab list changes
+  // ("it sticks on the tab where I scrolled").
+  const hoveredFix = /__acVyWrapped/.test(sw) && /a !== 485/.test(sw) &&
+    /__acZoneTabAsk/.test(sw) && /__acSetHoveredTab/.test(sw) &&
+    /_kg = t \? \[t\.id\] : null/.test(sw) &&
+    // 2026-09-21: the resolution point itself is wrapped — `_ys()` returns the
+    // bundle's own `_kg`, which is only dropped on a tab-list change, so a fast
+    // cursor move made the PREVIOUS tab reload (and when _wd() did clear it
+    // mid-action, _ys() returned [] and the action fell back to the ACTIVE tab).
+    /__acYsWrapped/.test(sw) && /_ys = function/.test(sw) &&
+    // 2026-10-04: the tab answer may take ~200-300 ms (a fresh MSAA walk), and the
+    // old 300 ms wait expired in the same millisecond the helper answered - the
+    // action then fell back to the ACTIVE tab ("reloads the active tab" on a
+    // burst of wheels). 900 ms leaves room for a queued walk.
+    /__acZoneTabAsk\(900\)/.test(sw) &&
+    // 2026-10-05: the refresh is CONDITIONAL — only the triggers whose actions can
+    // ask for the tab under the cursor pay for the accessibility walk; paying it
+    // for "switch to the next tab" made a wheel over the tab strip feel delayed.
+    /__acHoverNeeded/.test(sw) && /needHover \? __acSetHoveredTab\(\) : Promise\.resolve\(\)/.test(sw) &&
+    /doDispatch = \(\) => \(needHover/.test(sw);
+  const helperTabInfo = /TabIndexOf/.test(helper) && /TabUnderCursorJson/.test(helper) &&
+    /wantsTab/.test(helper) && /\\"tab\\":1/.test(helper) &&
+    // 2026-10-04 (Chrome 148): the tab index came out 0 for EVERY tab because the
+    // strip was located as "the first role-60 ancestor" and ITS direct children
+    // counted - in 148 the tabs sit one level deeper (PAGETABLIST -> PANE ->
+    // PAGETAB), so the count found no tabs. The strip is now the level where the
+    // tabs really ARE siblings (>= 2 PAGETAB children), counted in ONE pass, and
+    // the heartbeat pauses while a request is served (two MSAA walks competing
+    // made the answer arrive after the SW's timeout -> the ACTIVE tab was reloaded).
+    /n37 >= 2/.test(helper) && /servingRequest/.test(helper);
+  if (!hoveredFix) bad.push('sw.js native-485 answer + hovered-tab cache refresh');
+  if (!helperTabInfo) bad.push('helper tab-under-cursor (tab:1)');
   if (!helperTable) bad.push('v19 helper table writer layout');
   if (!helperClaims) bad.push('helper claims the cave page');
   if (!keepaliveOk) bad.push('sw.js zone keepalive');
@@ -2585,9 +2667,11 @@ vm.runInContext(`
     const src = i0 < 0 ? '' : swSrc.slice(i0, swSrc.indexOf('\n  }\n', i0) + 5);
     return (list) => new Function('chrome', 'console', `
       let __acZoneMap = null; let __acZoneFree = {};
+      let __acHoverNeeded = {}; let __acHoverNeededReady = false;
       ${src}
       __acBuildZoneMap();
-      return { map: __acZoneMap, free: __acZoneFree };
+      return { map: __acZoneMap, free: __acZoneFree,
+               hover: __acHoverNeeded, hoverReady: __acHoverNeededReady };
     `)({ storage: { local: { get: (k, cb) => cb({ trigActList: list }) } } }, silent);
   })();
   const bad = [];
@@ -2609,8 +2693,27 @@ vm.runInContext(`
     if (r2.free['7']) bad.push('a fully zone-scoped action was marked free');
     if (r2.free['10'] !== true) bad.push('a plain action without any mouse-over was not marked free');
     if (r2.map['9']) bad.push('a disabled group still gates (id 9 is in the map)');
+    // 2026-10-05: only the triggers whose ACTIONS can ask for the tab under the
+    // cursor may pay for the pre-dispatch refresh (an accessibility walk). The
+    // real case: wheel over a tab switches tabs (`currentTab`) and must stay
+    // instant, while "reload the hovered tab" must still refresh.
+    const r3 = build([
+      ['6', { title: 'switch', actions: [{ sequence: [{ action: 'switchLeft', params: {} }], targets: 'currentTab' }],
+              triggers: [{ combins: [{ eventId: 512 }], preconds: { mouseOver: [{ region: 12 }] } }] }],
+      ['12', { title: 'reload hovered', actions: [{ sequence: [{ action: 'reloadTabs', params: {} }], targets: 'hoveredTabs' }],
+               triggers: [{ combins: [{ eventId: 512 }], preconds: { mouseOver: [{ region: 15 }] } }] }],
+      ['13', { title: 'event tab', actions: [{ sequence: [{ action: 'reloadTabs', params: {} }], targets: 'eventTabs' }],
+               triggers: [{ combins: [{ eventId: 512 }], preconds: { mouseOver: [{ region: 15 }] } }] }],
+      ['14', { disabled: true, actions: [{ sequence: [{ action: 'reloadTabs', params: {} }], targets: 'hoveredTabs' }],
+               triggers: [{ combins: [{ eventId: 512 }], preconds: { mouseOver: [{ region: 15 }] } }] }],
+    ]);
+    if (r3.hover['6']) bad.push('a currentTab action was marked as needing the hovered tab (the wheel delay is back)');
+    if (r3.hover['12'] !== true) bad.push('a hoveredTabs action was NOT marked as needing the hovered tab');
+    if (r3.hover['13'] !== true) bad.push('an eventTabs action was NOT marked as needing the hovered tab');
+    if (r3.hover['14']) bad.push('a disabled group was marked as needing the hovered tab');
+    if (r3.hoverReady !== true) bad.push('__acHoverNeededReady was not set after the map was built');
   } catch (e) { bad.push('map builder: ' + e.message); }
-  check('zone map: skips disabled groups, exempts actions with an un-scoped combo (2026-09-13)',
+  check('zone map: skips disabled groups, exempts actions with an un-scoped combo, marks hovered-tab actions (2026-09-13/10-05)',
     bad.length === 0, bad.length ? bad.join('; ') : 'Alt+wheel next to "over Browser tab" → free; scoped stays gated');
 
   // the gate itself: the same three actions, with the helper's real answers
@@ -2620,13 +2723,20 @@ vm.runInContext(`
     if (i0 < 0 || i1 < 0) throw new Error('__acDispatchTrigger750 not found');
     const KNOWN = [1, 3, 4, 12, 15, 16, 17, 20, 21, 30, 33];
     const run = (map, free, zoneSet, id) => {
-      const calls = { dispatched: 0, asked: 0 };
+      const calls = { dispatched: 0, asked: 0, hovered: 0 };
       const gate = new Function('__acDispatch', '__acZoneMap', '__acZoneFree', '__acZoneAsk',
-        '__AC_ZONE_KNOWN', '_Sk', 'handshakeSk', 'console',
+        '__AC_ZONE_KNOWN', '_Sk', 'handshakeSk', 'console', '__acSetHoveredTab',
+        '__acHoverNeeded', '__acHoverNeededReady',
         swSrc.slice(i0, i1) + '\nreturn __acDispatchTrigger750;')(
         () => { calls.dispatched++; }, map, free,
         () => { calls.asked++; return Promise.resolve(zoneSet); },
-        KNOWN, 1000, 1000, silent);
+        KNOWN, 1000, 1000, silent,
+        // the hovered-tab refresh runs before every dispatch (2026-09-20)
+        () => { calls.hovered++; return Promise.resolve(); },
+        // 2026-10-05: the refresh is conditional - see __acHoverNeeded. An EMPTY
+        // map with ready=true means "no trigger needs it", which is the state a
+        // real SW reaches once the config has been read.
+        {}, true);
       gate({ id: 1000 + id }, 0);
       return calls;
     };
@@ -2646,13 +2756,228 @@ vm.runInContext(`
       if (c.dispatched !== 1) bad2.push('a zone-scoped action did NOT fire over its own zone');
       if (d.dispatched !== 1) bad2.push('a plain action was not dispatched');
       if (d.asked !== 0) bad2.push('a plain action asked the helper');
-      check('zone gate: un-scoped combos bypass the check, scoped ones are still verified (2026-09-13)',
-        bad2.length === 0, bad2.length ? bad2.join('; ') : 'Alt+wheel (page) → dispatch; over-tab combo → hit/miss correct');
+      // 2026-10-05: with __acHoverNeededReady = true and an EMPTY needHover map,
+      // NO dispatch may pay for the hovered-tab refresh - that cost is what made
+      // a wheel over the tab strip feel delayed.
+      if (a.hovered || b.hovered || c.hovered || d.hovered) {
+        bad2.push('an action that does not target the hovered tab still paid for the refresh (' +
+          [a.hovered, b.hovered, c.hovered, d.hovered].join(',') + ')');
+      }
+      check('zone gate: un-scoped combos bypass the check, scoped ones are still verified, the hovered-tab refresh is skipped when unneeded (2026-09-13/10-05)',
+        bad2.length === 0, bad2.length ? bad2.join('; ') : 'Alt+wheel (page) → dispatch; over-tab combo → hit/miss correct; refresh only for hovered-tab targets');
     });
   } catch (e) {
     check('zone gate: un-scoped combos bypass the check, scoped ones are still verified (2026-09-13)',
       false, e.message.split('\n')[0]);
   }
+}
+
+// B56. "Event tab" target fallback (2026-09-20, user report "something does
+// not work"). The bundle's _Mg has NO fallback for `evtTabs`: it resolves the
+// target to `_Eh(_zw)` - the tabs the ENGINE attached to the event - which is
+// EMPTY on Chrome 148+ (the engine no longer reports the tab under the mouse),
+// and `if (c)` is TRUE for an empty array, so the group is empty and an action
+// like "Reload tabs" silently did nothing while reporting OK.
+// Two reasons the fix lives in sw.js and not in the bundle call site:
+//   1. wrapping window._Mg is a NO-OP - file59's filter table `_pp` captured
+//      the function object at load time, so the TABLE must be patched;
+//   2. the bundle's hovered-tab cache `_kg` is wiped by its own _wd() while the
+//      action runs (_rf does `yield _Rf()` first), so the tab is remembered in
+//      a SW-local variable that survives the action.
+// This runs the REAL patch source (sliced out of sw.js) against a stub table.
+try {
+  const swSrc = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const i0 = swSrc.indexOf('const __acOrigFilter = _pp.filter;');
+  const i1 = swSrc.indexOf('window.__acMgWrapped = true;', i0);
+  if (i0 < 0 || i1 < 0) throw new Error('the _pp.filter patch was not found in sw.js');
+  const slice = swSrc.slice(i0, i1 + 'window.__acMgWrapped = true;'.length);
+  const origFilter = () => [[]];                       // the bundle's evtTabs result
+  const pp = { filter: origFilter, posFilter: origFilter };
+  const win = {};
+  const mk = new Function('_pp', 'window', `
+    var _kg = null, __acHoveredTabId = null;
+    ${slice}
+    return { set: (k, h) => { _kg = k; __acHoveredTabId = h; }, pp: _pp };
+  `);
+  const h = mk(pp, win);
+  const ids = [11, 22, 33, 44];
+  const bad3 = [];
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  // the hovered tab is known (33) but the bundle wiped its own _kg mid-action
+  h.set(null, 33);
+  let r = h.pp.filter(ids, { evtTabs: true });
+  if (!eq(r, [[33]])) bad3.push('evtTabs did not fall back to the hovered tab: ' + JSON.stringify(r));
+  r = h.pp.filter(ids, { anyHvrd: true });
+  if (!eq(r, [[33]])) bad3.push('anyHvrd did not fall back to the hovered tab: ' + JSON.stringify(r));
+  // the bundle's own _kg is used when the SW-local value is unknown
+  h.set([44], null);
+  r = h.pp.filter(ids, { evtTabs: true });
+  if (!eq(r, [[44]])) bad3.push('evtTabs did not fall back to _kg: ' + JSON.stringify(r));
+  // cursor NOT over a tab (over the page) → the original empty result stays
+  h.set(null, null);
+  r = h.pp.filter(ids, { evtTabs: true });
+  if (!eq(r, [[]])) bad3.push('an unknown hovered tab must keep the original result: ' + JSON.stringify(r));
+  // a target that is neither hovered nor event based must never be touched
+  h.set(null, 33);
+  r = h.pp.filter(ids, { favList: 'x' });
+  if (!eq(r, [[]])) bad3.push('an unrelated filter was modified: ' + JSON.stringify(r));
+  // a NON-empty result must never be overridden (the bundle already resolved it)
+  pp.filter = () => [[11]];
+  const h2 = mk(pp, {});
+  h2.set(null, 33);
+  r = h2.pp.filter(ids, { evtTabs: true });
+  if (!eq(r, [[11]])) bad3.push('a resolved target was overridden: ' + JSON.stringify(r));
+  // the table has TWO entries and both must be patched
+  if (h2.pp.posFilter !== h2.pp.filter) bad3.push('posFilter was not patched');
+  if (!win.__acMgWrapped) bad3.push('the patch did not set its guard flag');
+  check('"Event tab" target: falls back to the tab under the cursor; resolved/unrelated targets untouched (2026-09-20)',
+    bad3.length === 0, bad3.length ? bad3.join('; ') : 'evtTabs/anyHvrd → hovered tab; page → unchanged; other targets untouched');
+} catch (e) {
+  check('"Event tab" target: falls back to the tab under the cursor; resolved/unrelated targets untouched (2026-09-20)',
+    false, e.message.split('\n')[0]);
+}
+
+// B57. DOC <-> BUILD consistency for the helper hash (2026-10-04). The helper is
+// rebuilt often (8 builds in one day on 2026-10-04) and its hash is quoted in many
+// docs; the day ended with FOUR stale hashes in Docs/GOTCHAS.md that only a manual
+// sweep found. The requirement is now formalized: the hash claimed by the known
+// "current build" sites must equal the one `Test/build_native.ps1` verifies, and no
+// RETIRED helper hash may appear without a historical marker (B58).
+// Source of truth: $EXPECT_HELPER in Test/build_native.ps1 (the build script that
+// proves the binary) - not a doc, so the docs can only ever be wrong, never the
+// reference.
+// 2026-10-05 - two holes closed after a review found THREE stale claims that the
+// pins had been one pattern away from catching all day: (1) B57 matched only
+// 64-char hashes, so the abbreviated `XX…YY` form (the §C block) and the short
+// first-16 form (the binary tables) were never checked - `10DA0BAF…13CA` and
+// `169CBBE4169B8CBA | 20 480` both sat next to a `C8466CF7… / 22528` build;
+// (2) B58 searched only for full hashes, so a stale SHORT value passed as current.
+// Both forms are pinned now. Lesson: a consistency check is only as wide as its
+// pattern - when a doc gains a new STYLE of hash quote, extend the pattern in the
+// same change.
+try {
+  const repo = path.join(__dirname, '..');
+  const buildPs1 = fs.readFileSync(path.join(__dirname, 'build_native.ps1'), 'utf8');
+  const curHelper = (buildPs1.match(/\$EXPECT_HELPER\s*=\s*'([0-9A-F]{64})'/) || [])[1];
+  const curEngine = (buildPs1.match(/\$EXPECT_ENGINE\s*=\s*'([0-9A-F]{64})'/) || [])[1];
+  const helperBin = path.join(repo, 'AutoControl_native', 'ac_zone_helper.exe');
+  const helperSize = fs.existsSync(helperBin) ? fs.statSync(helperBin).size : -1;
+  if (!curHelper || !curEngine) throw new Error('cannot read $EXPECT_HELPER/$EXPECT_ENGINE from build_native.ps1');
+
+  const read = (p) => fs.readFileSync(path.join(repo, p), 'utf8');
+  // file, regex, which capture group holds the HASH, what it claims - every site
+  // that states the CURRENT build. The hash is not always the LAST group (the
+  // "N bytes" ones put the size after it), so the group is explicit - getting this
+  // wrong made the check compare a SIZE against a hash on the first run.
+  // A site may quote the hash in FULL (64 chars) or as its first 16 - the tables
+  // use the short form, so the compare is a PREFIX test (2026-10-05).
+  const sites = [
+    ['Docs/BUILD-NATIVE.md', /Zone helper[^\n]*?size \*\*(\d+)\*\*, sha256 `([0-9A-F]{64})`/, 2, 'the build table'],
+    ['Docs/BUILD-NATIVE.md', /must print ([0-9A-F]{64})/, 1, 'the manual build recipe'],
+    ['README.md', /HELPER \(our C# source\)[^\n]*?(\d+) bytes\s+([0-9A-F]{64})/, 2, 'the reproduce block'],
+    ['README.md', /ac_zone_helper\.exe[^\n]*?ours, ([0-9A-F]{64})\)/, 1, 'the repository tree'],
+    ['Test/zone-tests/README.md', /Helper build[^\n]*?is `([0-9A-F]{64})` \((\d+) bytes/, 1, 'the test-suite prerequisites'],
+    ['AutoControl_native/README.md', /current build: ([0-9A-F]{64})/, 1, 'the native folder README'],
+    // the binary table in the same file quotes the SHORT form and a size with a
+    // thousands space ("22 528"); until 2026-10-05 it said 20 480 /
+    // `169CBBE4169B8CBA` for a 22528-byte `C8466CF7…` binary.
+    ['AutoControl_native/README.md', /\| `ac_zone_helper\.exe` \| ([\d\s\u00A0]+) \| `([0-9A-F]{16})`/, 2, 'the native folder binary table'],
+    ['AGENTS.md', /helper `([0-9A-F]{64})`/, 1, 'the AGENTS.md rules'],
+    ['Docs/GOTCHAS.md', /helper `([0-9A-F]{64})`/, 1, 'the gotchas'],
+  ];
+  const bad4 = [];
+  for (const [file, re, hashGroup, what] of sites) {
+    const m = read(file).match(re);
+    if (!m) { bad4.push(`${what} (${file}): the claim was not found - did the wording change?`); continue; }
+    const hex = m[hashGroup];
+    if (!curHelper.startsWith(hex)) bad4.push(`${what} (${file}): says ${hex.slice(0, 16)}…, build is ${curHelper.slice(0, 16)}…`);
+    // size claims, where the pattern captured one (any group that is not the hash)
+    for (let g = 1; g < m.length; g++) {
+      if (g === hashGroup) continue;
+      const digits = String(m[g]).replace(/\s|\u00A0/g, '');
+      if (/^\d+$/.test(digits) && Number(digits) !== helperSize) {
+        bad4.push(`${what} (${file}): claims ${digits} bytes, the binary is ${helperSize}`);
+      }
+    }
+  }
+
+  // Abbreviated claims (`C8466CF7…ABAF`) - the §C "source of truth" block in
+  // Docs/BUILD-NATIVE.md shows the expected values in this form, and the 64-char
+  // patterns above never looked at it: on 2026-10-05 it read `10DA0BAF…13CA` for a
+  // helper that is `C8466CF7…ABAF`. First 8 + last 4, EXACT - a truncated tail is a
+  // FAIL, not a style choice (the engine line was `…C3E` for a hash ending `2C3E`).
+  const abbrevSites = [
+    ['Docs/BUILD-NATIVE.md', /\$EXPECT_ENGINE\s*=\s*'([0-9A-F]{8})…([0-9A-F]{4})'/, 'the §C block (engine)', curEngine],
+    ['Docs/BUILD-NATIVE.md', /\$EXPECT_HELPER\s*=\s*'([0-9A-F]{8})…([0-9A-F]{4})'/, 'the §C block (helper)', curHelper],
+  ];
+  for (const [file, re, what, cur] of abbrevSites) {
+    const m = read(file).match(re);
+    if (!m) { bad4.push(`${what} (${file}): the abbreviated claim was not found - did the wording change?`); continue; }
+    if (m[1] !== cur.slice(0, 8) || m[2] !== cur.slice(-4)) {
+      bad4.push(`${what} (${file}): says ${m[1]}…${m[2]}, build is ${cur.slice(0, 8)}…${cur.slice(-4)}`);
+    }
+  }
+
+  // B58. A RETIRED helper hash may appear only as history (the line, or its
+  // immediate neighbours, must say so). Retired = every hash this file has seen
+  // become obsolete; the list is a test fixture, updated when a build is retired.
+  const RETIRED = [
+    '091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2',
+    '393DA8791D441934F3912BF3AC50CC5D778ED3611E9509C5C780077801761AF0',
+    'B338B6E704B4AB0C8D5D1FC67AF1B08D53DF7D2B1E354FADE1B11B9F4D62667E',
+    '169CBBE4169B8CBA289BC8B8B1BB6896C1726222B150A642D78A452C8E847180',
+    'F5B2A3200975FD7192EBB091A6F2302AD48F5257F7F0C91BFF6A2D9F1BD4D071',
+    '493A7276FA87BEA324E6E25E4BD8E4576CEEE9FC4E1E517692A3597E91612DB7',
+    '6988B49BCBEC162CE03EFDC94F789F17AFC28C98EC890E7B26FCF0E464F262E6',
+  ];
+  const MARKER = /2026-\d\d-\d\d|previous|legacy|was |first build|Status 20|now `|bak-|superseded|retired|non-reproducible/i;
+  const mdFiles = [];
+  (function walk(dir) {
+    for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (d.name === 'node_modules' || d.name === '.git' || d.name === 'archive') continue;
+      const p = path.join(dir, d.name);
+      if (d.isDirectory()) { if (d.name !== 'ext-mv2') walk(p); }
+      else if (/\.md$/i.test(d.name)) mdFiles.push(p);
+    }
+  })(repo);
+  for (const p of mdFiles) {
+    const lines = fs.readFileSync(p, 'utf8').split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      for (const h of RETIRED) {
+        // the FULL hash, or - when only the short form is present - its first 16:
+        // tables quote the short form and a stale row hid behind that until
+        // 2026-10-05 (AutoControl_native/README.md said `169CBBE4169B8CBA` for a
+        // `C8466CF7…` binary). Full form wins when both appear on the line.
+        const form = lines[i].includes(h) ? h : (lines[i].includes(h.slice(0, 16)) ? h.slice(0, 16) : null);
+        if (!form) continue;
+        const ctx = [lines[i - 1] || '', lines[i], lines[i + 1] || ''].join('\n');
+        if (!MARKER.test(ctx)) {
+          bad4.push(`${path.relative(repo, p)}:${i + 1} quotes the RETIRED helper hash ${form.slice(0, 16)}… as if it were current (no historical marker nearby)`);
+        }
+      }
+    }
+  }
+  check('docs vs build: the claimed helper hash/size == build_native.ps1, no retired hash claimed as current (2026-10-04)',
+    bad4.length === 0, bad4.length ? bad4.join('; ') : `helper ${curHelper.slice(0, 16)}… @ ${helperSize} bytes, ${sites.length} claim sites + ${abbrevSites.length} abbreviated + ${mdFiles.length} docs scanned`);
+} catch (e) {
+  check('docs vs build: the claimed helper hash/size == build_native.ps1, no retired hash claimed as current (2026-10-04)',
+    false, e.message.split('\n')[0]);
+}
+
+// B59. The Test/ tool inventory must be fresh. 92 tools live in Test/ and only a
+// handful are described by hand, so a tool could not be found without knowing its
+// name; the inventory block in Test/README.md is GENERATED from the tools' own
+// header comments (`node Test/_tools_index.js`). Adding a tool without refreshing
+// it fails here - that is the formalized requirement, not a convention.
+try {
+  const idx = require('child_process').execFileSync(process.execPath,
+    [path.join(__dirname, '_tools_index.js'), '--check'], { stdio: 'pipe' }).toString();
+  check('Test/ tool inventory is generated and fresh (node Test/_tools_index.js) (2026-10-04)',
+    /up to date/.test(idx), idx.trim().split('\n')[0]);
+} catch (e) {
+  const out = (e.stdout ? e.stdout.toString() : '') + (e.stderr ? e.stderr.toString() : '');
+  check('Test/ tool inventory is generated and fresh (node Test/_tools_index.js) (2026-10-04)',
+    false, (out.trim().split('\n')[0] || e.message.split('\n')[0]) + ' — run: node Test/_tools_index.js');
 }
 
 // ---------- summary ----------

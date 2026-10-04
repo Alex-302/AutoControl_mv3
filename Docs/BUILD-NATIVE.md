@@ -5,7 +5,7 @@ components** of this port from their inputs:
 
 | Component | Input | Output (deployed) |
 |---|---|---|
-| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **17920**, sha256 `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F` (deterministic build, 2026-09-20) |
+| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **22528**, sha256 `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (deterministic build, 2026-09-21) |
 | **Patched engine** (`AutoCtrl_2025.4.22.0.v19.exe`) | `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` (untouched upstream) | size **695296**, sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
 
 Everything below was verified on 2026-09-12 by rebuilding and comparing hashes
@@ -61,7 +61,7 @@ dotnet $csc /nologo /optimize+ /deterministic+ /nostdlib+ `
   /r:"$fw\mscorlib.dll" /r:"$fw\System.dll" /r:"$fw\Accessibility.dll" `
   /out:"$out" Test\ac_zone_helper.cs
 
-Get-FileHash $out -Algorithm SHA256      # must print BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F (see the table above)
+Get-FileHash $out -Algorithm SHA256      # must print C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF (see the table above)
 ```
 
 Notes:
@@ -99,7 +99,7 @@ multi-browser engine binding of §A.6 — `pids[0]` was replaced by
 the two helpers no longer write into the same engine. The `6988B49BCBEC162CE03EFDC94F789F17AFC28C98EC890E7B26FCF0E464F262E6` build
 was the previous deterministic one (same recipe, no binding fix).
 
-**Status 2026-09-20:** rebuilt again as `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F` (17920 bytes) —
+**Status 2026-09-20:** rebuilt again as `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (22528 bytes) —
 the TITLE-AREA work: the title area (4) is now the title bar / tab strip row
 ONLY (the toolbar and the omnibox are excluded — the action editor's own
 description, user correction), the Opera-style title row (a role-20 container
@@ -110,9 +110,57 @@ the BOOKMARK zone (33) requires the omnibox GROUPING to sit BETWEEN the button
 and the toolbar (Opera's window-contents container 20 sits ABOVE the toolbar,
 so every Opera toolbar button used to answer 33), with Opera's own bookmark
 button (the heart) matched BY NAME ('Add to bookmarks' / 'Edit bookmark',
-Russian via a unicode escape) as the fallback. The
+Russian via a unicode escape) as the fallback. The same session added the
+MENU-BUTTON fix: the right-edge geometry rule is Chromium-only now
+(`MenuAtRightEdge()` — false for opera.exe/vivaldi.exe, whose menu is on the
+LEFT and matched by name) and a right-edge button named 'Extensions' /
+'Расширения' never answers 30 (in Opera the rightmost toolbar button IS the
+extensions-panel toggle — user report), plus the CLOSE-BUTTON fix: Opera (and
+Vivaldi) expose a tab's close button as a plain PANE (role 16), not a
+PUSHBUTTON — a square 37x37 element in the RIGHT part of the tab,
+hit-testable directly, matched by `IsPaneCloseButton` (shape + position; the
+position check keeps Chrome's LEFT-side favicon PANE out). The tab's SPEAKER
+icon stays unimplementable in those forks (the favicon slot is one
+`role 40 'Tab favicon'` element present on every tab). The
 `393DA8791D441934F3912BF3AC50CC5D778ED3611E9509C5C780077801761AF0` build was the
 first bookmark fix (same day, before the by-name fallback).
+
+**Status 2026-09-21 (second build of the day, `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`, 22528 bytes):**
+the Opera 135 (Chromium 151) TAB-CLOSE fix. In that build the close button is a
+real `43 'Close tab'` nested ONE LEVEL DEEPER than in Chrome —
+`PAGETAB(37) → body PANE(16, 253x42) → button(43, 25x24)` — so the old
+`roles[1] == 37` tab-button rule (the parent is the PANE) and `IsPaneCloseButton`
+(the hovered element is the button, not a square PANE) both missed it: hovering
+the close button answered "Title area", which made a zone-15 trigger be SKIPPED in
+Opera. Now the tab-button rule accepts a PAGETAB at any depth (`tabDepth >= 1`) and
+`TabButtonZone` scans the tab's children two levels deep (`ScanTabButtons`), keeping
+the sibling-order classification. Verified: Opera close `(390,30)` → `[15,4,1]`,
+tab body → `[12,4,1]`; Canary unchanged.
+
+**Status 2026-09-21 (first build, `169CBBE4169B8CBA289BC8B8B1BB6896C1726222B150A642D78A452C8E847180`, 20480 bytes):** rebuilt for
+the TAB-CACHE fix. The cached "tab under the cursor" is now valid ONLY for the
+point it was computed for: a ZONE-ONLY classification (the SW asks for the zone
+set on every wheel) used to update the cached POINT while leaving the cached TAB
+of the previous point in place, so the request that followed — the hovered-tab
+refresh — got the PREVIOUS tab (user report 2026-09-21: "on a fast cursor move
+the previous tab reloads"; reproduced in the CDP log: a fresh zone
+classification at +21 ms, then the tab request answered in the same millisecond
+with the index of the EARLIER wheel). Now one method (`ClassifyAndCache`) samples
+a point ONCE and stores the zone set, the engine's zone table and the tab
+together, the request path samples the cursor once for both answers, and a
+freshly walked tab is remembered for its own point (the SW sends a second tab
+request in the same wheel burst).
+
+Second half of the same session (still 2026-09-21, same hash — the build was
+rebuilt once more): the tab walk was taken OUT of `ClassifyAndCache`. It cost
+60-104 ms and ran on the 30 ms heartbeat, so the helper could not answer the
+SW's zone query in time (250 ms): the answer came back as the timeout marker
+`zones=[-2]`, the zone gate SKIPPED the trigger and the first wheel notch after
+a fast cursor move did nothing (user report: "if you move across the tabs and
+wheel at once, sometimes the first notch is ignored"). The tab is now walked on
+demand by the request path (and cached for its own point), and the SW's zone
+query waits 500 ms instead of 250 ms, because a fresh accessibility walk can
+take 100-300 ms while Chrome's tree is waking.
 
 ### A.4 Verify the build before installing
 
@@ -410,3 +458,61 @@ the table alone is what makes both scrolling and the zone work). Do not pass
 | `Test/deploy_patched_engine.ps1` | deploy with locks/backup/hash verification |
 | `Test/ac_zone_helper.cs` + `Test/zone_helper_smoke.js` | helper source + its protocol smoke test |
 | `Docs/archive/NATIVE-REVERSING-2026-08-31.md` | the RE analysis behind every address above (§10–§13) |
+
+---
+
+## C. Doc ⇄ build consistency (the hash claims are machine-checked)
+
+Both binaries are rebuilt often (the helper: 8 builds in one day on 2026-10-04),
+and the current hash is quoted in many documents. A hand-kept copy drifts — that
+day ended with **four stale hashes in `Docs/GOTCHAS.md`** that only a manual sweep
+found. The requirement is therefore enforced, not trusted.
+
+**Source of truth: `Test/build_native.ps1`** — the script that PROVES the bytes:
+
+```powershell
+$EXPECT_ENGINE = '1A10EDD1…2C3E'   # engine, 695296 bytes
+$EXPECT_HELPER = 'C8466CF7…ABAF'   # helper, 22528 bytes
+```
+
+Every document that states the *current* build must match those values.
+`mh_test` enforces it:
+
+| Pin | Checks |
+|---|---|
+| **B57** | the 9 known claim sites state the current helper **hash AND size** — `Docs/BUILD-NATIVE.md` (the §A table + the §A.2 recipe line + the §C block below), `README.md` (the reproduce block + the repository tree), `Test/zone-tests/README.md` (prerequisites), `AutoControl_native/README.md` (the folder listing **and the binary table**), `AGENTS.md` (the rules line), `Docs/GOTCHAS.md`. A site whose wording changed so the pattern no longer matches also FAILS — that is deliberate: the claim must stay greppable. |
+| **B58** | no **retired** helper hash may be quoted as if it were current: it needs a historical marker (`2026-…`, `previous`, `legacy`, `was `, `first build`, `Status 20…`, `now \``, `bak-`, `superseded`, `retired`, `non-reproducible`) on that line or the one next to it. Both the **full** hash and its **first-16** form are matched — the short form is what the tables use. The retired list is a fixture in `mh_test` (add the outgoing hash there when you retire one). |
+
+**Two holes closed on 2026-10-05** (both found by a review, not by the pins — the pins
+were one pattern away from catching them):
+
+1. **Abbreviated claims.** B57 only matched 64-char hashes, so the `XX…YY` form used in
+the §C block above (and in the binary tables) was never checked: until 2026-10-05 it
+read `10DA0BAF…13CA` while the build was `C8466CF7…ABAF`. Abbreviated claims are now pinned
+too (first 8 + last 4, exact).
+2. **Short retired hashes.** B58 searched only for the full 64-char form, so a stale
+**first-16** value in a table row (the common style there) passed as current: until
+2026-10-05 `AutoControl_native/README.md` claimed `169CBBE4169B8CBA | 20 480` for a
+`C8466CF7…` 22528-byte binary. The short form is now matched as well.
+
+Lesson: a consistency check is only as wide as its pattern. When a doc gains a NEW
+STYLE of hash quote (abbreviated, short form, a table cell), extend the pattern in the
+same change — the old styles stay checked either way.
+| **B59** | the generated tool inventory in `Test/README.md` is fresh (`node Test/_tools_index.js`). |
+
+**Sweep after a rebuild** (do it in the same change as the rebuild):
+
+```powershell
+Select-String -Path (Get-ChildItem -Recurse -File -Include *.md,*.ps1 -Path . |
+  Where-Object { $_.FullName -notmatch '\\ext-mv2\\' }) -Pattern '<old hash>'
+# must return nothing — every hit is either a claim to update or history to date
+```
+
+**History is explicit.** A retired value belongs in a DATED block
+(`**Status 2026-09-21 (first build, `169CBBE4…`, 20480 bytes):** …`) — never in a
+"current" sentence. `Docs/BUILD-NATIVE.md` §status blocks and `Docs/archive/` are
+the places for it.
+
+⚠ When a claim site's wording changes, update the regex in `mh_test` B57 in the
+SAME change — otherwise the pin fails on the next run (which is the intent, but
+the fix must be the regex, not a weakened check).

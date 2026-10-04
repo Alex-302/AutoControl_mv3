@@ -37,7 +37,7 @@ zombie until reboot (cosmetic).
    `port.disconnect()` alone should suffice for the hang case.
 2. **Emergency Repair integration (already works, document only):** the
    manual repair path heals the helper via the SW reload; add a doc note
-   (README §4.3 or AGENTS.md) that a hung helper is fixed by Emergency
+   (README §4.3, or the helper-recovery note in `Docs/GOTCHAS.md`) that a hung helper is fixed by Emergency
    Repair. Optionally: kill ONLY OUR stale helper zombie during the repair
    (via the stored PID — see above; NEVER by image name).
 

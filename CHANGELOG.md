@@ -171,7 +171,7 @@
   new engine; both are future work. Operational note: after a Chrome
   restart the config (native message 60) is only sent when a settings page
   is opened — without it, no triggers fire anywhere; force it via the CDP
-  eval documented in AGENTS.md.
+  eval documented in `Docs/GOTCHAS.md`.
 
 #### Scripting engine (Run Script / ACtl)
 
@@ -210,6 +210,81 @@
   an in-browser API self-test (23 tests covering the ACtl surface).
 
 ### Fixed
+
+#### Triggers & actions
+
+- **Switching tabs with a mouse wheel is instant again (2026-10-05).** The
+  previous round made the worker ask for the tab under the cursor before EVERY
+  mouse-over action — including actions that never use that tab (switch to the
+  next/previous tab, scroll, media keys). On a wheel over the tab strip every
+  notch paid for a fresh accessibility lookup, so tab switching felt delayed,
+  while "Alt + wheel" — a trigger with no mouse-over condition, which skips the
+  whole check — stayed instant. The lookup is now paid only by the triggers
+  whose actions actually ask for the hovered tab, and the helper keeps a
+  recently computed tab warm, so the first notch after a small move does not
+  wait for a new lookup either.
+- **Actions targeting the "Event tab" now work again (2026-09-20).** An
+  action whose target is the *event tab* — for example "reload the tab the
+  event happened on" — did nothing at all on Chrome 148+ while reporting
+  success: the browser engine no longer tells the extension which tab an
+  event belongs to, and this target had no fallback (unlike the *hovered
+  tab* one), so the action ran over an empty tab list. For mouse events the
+  event tab is the tab under the cursor, so that tab is now used — verified
+  with a wheel over the close button of three different tabs (each reloaded
+  its own tab instead of the active one). Related: the red "This feature is
+  not supported in Opera/Vivaldi" banner in the settings tooltips is a
+  browser-name check rather than a real capability test, and it is outdated
+  for the tab-strip features — see `Docs/TODO-mouseover-zones.md` §2f(n).
+- **Actions targeting the "hovered tab" now work in every Chrome version
+  (2026-10-04).** In the older Chrome builds the tab under the cursor was
+  identified wrong: the tab strip has an extra wrapper there, so every tab
+  reported the same position and an action always hit the FIRST tab of the
+  window. On top of that the identification could arrive a moment too late —
+  the action then fell back to the ACTIVE tab (the "sometimes it reloads the
+  active one" behaviour). The lookup now follows the tab structure wherever it
+  is, runs in a single pass, is not slowed down by the background zone
+  tracking, and the action waits long enough for the answer. Verified with a
+  wheel over the close buttons of different tabs in Chrome, Chrome Canary,
+  Opera, Brave and Vivaldi — each reloaded its own tab. Related: if an action
+  still targets the wrong tab, check its target in the action editor first
+  (*Current tab* vs *Hovered tab*).
+- **"Hovered tab" actions now really target the tab under the cursor
+  (2026-09-20, completed 2026-09-21).** Several causes stacked up, and it took
+  a second round to finish the job. (1) The native "which tab is under the
+  mouse" query lost its tab identity on Chrome 148+ (it answers only the window
+  and coordinates), so the action fell back to the active tab. (2) The tab was
+  resolved once and cached until the tab list changed, so the action kept
+  hitting the tab hovered first. (3) The zone helper could serve a tab that
+  belonged to an *earlier* cursor position, because a fresh zone classification
+  moved the cached point while leaving the cached tab in place. (4) The helper's
+  background work grew heavy enough that the zone query timed out and the first
+  wheel notch after a fast move was dropped. (5) Each wheel produced two
+  separate accessibility walks, which queued up and made the answers arrive
+  late. All five are fixed: the service worker answers the tab query from the
+  zone helper, wraps the single "tab under the cursor" resolution point so a
+  stale cache can no longer win, refreshes the tab right before every action,
+  the helper keeps a tab valid only for the cursor position it was computed
+  for, the tab lookup is no longer part of the background heartbeat, and only
+  one lookup happens per event. Result: on a fast pass over the tab strip the
+  hovered tab reloads every time, and a foreign tab never does.
+- **The tab's close button is now recognized in Opera too (2026-09-21).** Some
+  Opera builds put the tab's close button one level deeper inside the tab than
+  Chrome does, so hovering it was reported as the "title area" and a trigger
+  bound to the tab's close button never fired there — the action was skipped by
+  the zone check. The recognition now follows the tab's actual structure
+  instead of a fixed layout, and the same code still handles Chrome. Verified
+  with a wheel over the close buttons of five different tabs in Opera: each one
+  reloaded its own tab, on the first notch.
+- **Mouse-over zones react immediately to a moved cursor (2026-09-20).** The
+  engine caches the hovered region for a few hundred milliseconds and reads
+  the zone table at that moment; the table was written only every 120 ms, so
+  a wheel turned right after moving onto a zone could be evaluated against
+  the previous position ("works, but sometimes stops"). The helper now
+  refreshes it as soon as the cursor settles (~0 ms instead of ~170 ms) and
+  uses half the CPU during a continuous drag.
+- **A browser menu/dropdown is no longer treated as browser chrome
+  (2026-09-20):** while a menu covers the tab strip, only the "Browser
+  window" zone is reported, so zone triggers cannot fire through it.
 
 #### Site integration
 

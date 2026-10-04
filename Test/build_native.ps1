@@ -45,7 +45,7 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # the toolbar, so every Opera toolbar button used to answer 33; Opera's own
 # bookmark button (the heart) is matched BY NAME ('Add to bookmarks' /
 # 'Edit bookmark', Russian via a unicode escape).
-$EXPECT_HELPER = 'BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F'
+$EXPECT_HELPER = 'C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF'
 $PRISTINE_SHA  = '8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09'
 # Pristine input: the repo copy first (clean checkout works), the deployed
 # backup as fallback (that is where the recipe used to read from).

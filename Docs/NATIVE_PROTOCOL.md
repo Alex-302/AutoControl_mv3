@@ -766,7 +766,7 @@ compiler) then deleted the `negate:true` flag from every menuState precond →
 ALL triggers compiled as "menu 7 IS open" → openMenu (menu-closed trigger)
 never fired, Tab/Ctrl passed through to Chrome's own Ctrl+Tab. Fixed by
 restoring file67's `_Xt` semantics (flatten args one level, strict `===`)
-plus the unboxing. See AGENTS.md "Object.prototype .in" gotcha.
+plus the unboxing. See the "Object.prototype patches" gotcha in `Docs/DECODE.md`.
 
 ## 21. Hover-region (mouseOver) classification — MSAA + Chrome 148+ tree (2026-08-31)
 

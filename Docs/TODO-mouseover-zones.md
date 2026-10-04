@@ -1,28 +1,58 @@
 # TODO — Mouse-over zones: make ALL zones work (Chrome 148+/150)
 
 **Created:** 2026-09-03 · **Status:** ✅ **CORE GOAL ACHIEVED (2026-09-12)** — all
-12 action-editor areas verified live; ⬜ 2 follow-ups remain (below)
-**Goal:** every mouse-over zone condition works on Chrome 150 (SxS Canary)
-with the zone-helper architecture. Zone 12 (tab strip) and 16 (new-tab
-button) were the first proofs; **all 12 areas are now verified** (§1 summary).
+12 action-editor areas verified live. The follow-up rounds of **2026-09-20 … 10-05**
+closed every live defect found since (§2f(g)–(r)); ⬜ **no open items are left in
+this file** — the two follow-ups moved to their own TODOs (below).
+**Goal:** every mouse-over zone condition works on Chrome 148+/150 with the
+zone-helper architecture. Zone 12 (tab strip) and 16 (new-tab button) were the
+first proofs; **all 12 areas are now verified** (§1 summary).
 
-**Open items — the ONLY ones left in this file:**
-1. **§3 item 4 — menu-item types 41-51 are not individually verified.** They
-   ride the same engine-classified route as type 40, which WAS verified live;
-   per-kind accuracy is unproven.
-2. **Auto-heal for a HUNG helper** — moved to its own TODO:
-   `Docs/TODO-helper-autoheal.md` (deferred by the user 2026-09-12;
-   Emergency Repair already heals it manually).
+## Status by browser (updated 2026-10-05)
 
-**Known limitations (2026-09-15, live-tested):** in Opera 8 of 11 zones work,
-in Vivaldi 7 of 11 (helper `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`).
-Missing in Opera: tab's close button, speaker icon. Missing in Vivaldi: new-tab
-"+", tab's close button, speaker icon. The **speaker icon cannot be
-implemented** in either (the sound is drawn over the favicon in a single
-element present on every tab — a playing tab is indistinguishable from a
-silent one, see README §5a). Vivaldi additionally needs
-`--force-renderer-accessibility` and its UI lives inside the page document
-(docDepth fix in the helper). Chrome / Canary / Brave: all 11 zones work.
+| Browser | Zones | What is missing / different |
+|---|---|---|
+| Chrome 148 / Canary / Brave | **11 of 11** | — |
+| Opera 135 (Chromium 151) | **10 of 11** | speaker icon impossible; the "+" is reported as zone 12 (see the quirks list below) |
+| Vivaldi | **8 of 11** | speaker icon impossible; the "+" still missing; the close button (15) is *reported* working (2026-10-05 — the zone-15 trigger fired) but was never probed separately |
+
+The **"hovered tab" action** (rounds 2–3: §2f(m)(o)(q)) is verified with a
+physical wheel in **all five browsers** — the tab under the cursor reloads, on the
+first notch (2026-10-05). The **"event tab"** target is fixed for Chrome 148+ too
+(§2f(n)).
+
+## What was FIXED in the 2026-09-20 … 10-05 rounds
+
+One section per finding in §2f; each was reproduced live before the fix and
+re-tested after it.
+
+| § | Symptom (as reported) | Root cause → fix |
+|---|---|---|
+| (g) | the empty strip area counted as a tab | zone 12 now requires a real PAGETAB |
+| (h) | Opera: bookmark zone fired on every toolbar button | the omnibox GROUPING must sit BETWEEN button and toolbar; Opera's heart matched BY NAME |
+| (i) | Opera: zone 30 fired on the Extensions button | the right-edge rule is Chromium-only; 'Extensions'/'Расширения' is never the menu |
+| (j) | Opera: the close button never matched | it is a square PANE (16) in the right part of the tab → `IsPaneCloseButton` |
+| (k) | a browser menu/dropdown was treated as chrome | a WS_POPUP+TOOLWINDOW popup answers only zone 1 |
+| (l) | "works, but sometimes stops" | the zone TABLE was written up to 170 ms late → 30 ms poll + settle detection |
+| (m) | hovered-tab actions hit the ACTIVE tab | native 485 lost the tab identity → the helper answers 485 |
+| (n) | the "Event tab" target did nothing | `evtTabs` has no fallback and `if(c)` is true for `[]` → `_pp.filter` patch |
+| (o) | the PREVIOUS tab reloaded; the first notch was ignored | stale `_kg`, a tab cached for another point, a timed-out zone query, two walks per event |
+| (p) | Opera 135: hovering the close button said "Title area" | the button is nested one level deeper (`PAGETAB → PANE → 43`) → any-depth tab + a 2-level scan |
+| (q) | Chrome 148: the FIRST tab reloaded / the ACTIVE one | the strip was found one level too high (index always 0) and the answer arrived after the SW gave up |
+| (r) | switching tabs with a wheel was delayed | the hovered-tab refresh ran before EVERY dispatch, even for `currentTab` actions → `__acHoverNeeded` + a warm tab cache |
+
+**Open items — none left here; the two follow-ups live in their own files:**
+1. **Menu-item zones (41-51), per-kind verification** — LOW PRIORITY, split out
+   2026-10-05 → `Docs/TODO-menu-items.md`.
+2. **Auto-heal for a HUNG helper** → `Docs/TODO-helper-autoheal.md`
+   (deferred by the user 2026-09-12; Emergency Repair already heals it manually).
+
+**Known limitations (updated 2026-10-05; helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`):**
+the tab's **speaker icon cannot be implemented** in Opera/Vivaldi — the sound is
+drawn over the favicon in a single element present on every tab, so a playing tab
+is indistinguishable from a silent one (see README §5a). Vivaldi additionally
+needs `--force-renderer-accessibility` and its UI lives inside the page document
+(docDepth fix in the helper).
 
 **Known quirks of the fork handling (see §7 "How to check"):**
 - **Opera — the new-tab "+" is reported as the Browser tab (12), not as the
@@ -30,10 +60,23 @@ silent one, see README §5a). Vivaldi additionally needs
   PAGETABLIST (60), so the `43+60 → 16` rule does not fire and the tab rule
   claims it. Cosmetic for a 16-trigger (a wheel over "+" runs the zone-12
   action); the 16-trigger itself never fires.
+- **Opera — the RIGHTMOST toolbar button is the extensions-panel toggle**
+  (role 57 'Extensions', its right edge 38 px from the window edge), so the
+  Chrome-style right-edge rule used to report the browser-menu button (30)
+  there. The rule is now skipped for Opera/Vivaldi (their menu is on the LEFT
+  and matched BY NAME) and a button named 'Extensions' is never the menu —
+  §2f(i).
 - **Vivaldi — the "Workspaces" button (left, role 57, no "menu" in the
   name, nor a localized variant) is reported as the Omnibox (21)** — it is not excluded from the
   site-info-lock rule (`57+20 → 21`), so a wheel over it runs the zone-21
   action instead of nothing (or the menu action).
+- **Vivaldi — the tab's close button (15) needs a dedicated probe.** The
+  2026-10-04 generalization (§2f(p): any-depth PAGETAB + a 2-level button scan)
+  should cover it, and the user's 2026-10-05 test had the zone-15 trigger fire
+  there, but no `msaa_chain.ps1` dump of a Vivaldi tab has been taken — so the
+  matrix row stays "reported", not "verified". Same for the "+" (16): re-check
+  it, since the Opera "+" quirk is a PARENT-role difference (`22 'Tab Bar'`
+  instead of the PAGETABLIST) that Vivaldi may or may not share.
 
 ---
 
@@ -85,15 +128,15 @@ UI names from the settings list):
 | 2 | Web page | 3 | `_Si` | ✅ works (role 15 DOCUMENT) |
 | 3 | Title area | 4 | `_Ce` | ✅ works — the title bar / tab strip row ONLY (chain-based: `stripNear || isTabBtn`); the toolbar and the omnibox are NOT part of it (user correction 2026-09-20, see §2f(a)) |
 | 4 | Browser tab | 12 | `_9t` | ✅ works — a PAGETAB (role 37) anywhere in d0..d3. The EMPTY strip area (role 60 alone) does NOT count: the engine's own region-12 check (`FUN_00415570`) matched only a PAGETAB or its direct child (user correction 2026-09-20) |
-| 5 | Tab's close button | 15 | `_Go` | ✅ **VERIFIED 2026-09-12** (43 under a PAGETAB, right half; set `[15,4,1]`, no 12) |
+| 5 | Tab's close button | 15 | `_Go` | ✅ **VERIFIED 2026-09-12** (43 under a PAGETAB, right half; set `[15,4,1]`, no 12) · Opera: a square PANE in the right part of the tab (§2f(j)) |
 | 6 | Tab's speaker icon | 17 | `_2` | ✅ **VERIFIED 2026-09-12** (43 under a PAGETAB, left half; set `[17,4,1]` — the tab must be AUDIBLE) |
 | 7 | New tab button | 16 | `_xw` | ✅ **VERIFIED 2026-09-12** (43 whose parent is the PAGETABLIST; set `[16,4,1]`) — §2a closed |
 | 8 | Toolbar | 20 | `_uu` | ✅ works (role 22 TOOLBAR in the ancestry) |
 | 9 | Omnibox | 21 | `_5e` | ✅ works (role 42 at d0/d1, or the lock button 57 under the omnibox group 20) |
 | 10 | Bookmark button | 33 | `_Aa` | ✅ works — Chrome: a 43 inside the omnibox GROUPING 20 which sits in the toolbar; Opera: the heart matched BY NAME (§2f(h)) |
-| 11 | Browser menu button | 30 | `_nj` | ✅ **VERIFIED 2026-09-12** — the update pill counts as the kebab (user request) |
+| 11 | Browser menu button | 30 | `_nj` | ✅ **VERIFIED 2026-09-12** — the update pill counts as the kebab (user request); Chrome-style RIGHT EDGE only — Opera/Vivaldi match their LEFT-side menu BY NAME (§2f(i)) |
 | 12 | Any menu item | 40 | `_9r` | ✅ **VERIFIED 2026-09-12** (engine-classified via `jae ORIG`; fires over the OPEN menu only) |
-| 13 | Menu item: tab | 41 | `_ju` | ⚠️ same engine-classified route as #12 — NOT individually verified (§3 item 4; only 40 was tested live) |
+| 13 | Menu item: tab | 41 | `_ju` | ⚠️ same engine-classified route as #12 — NOT individually verified; LOW PRIORITY, moved to `Docs/TODO-menu-items.md` (2026-10-05) |
 | 14 | Menu item: tab submenu | 42 | `_gk` | ⚠️ same route as #13 |
 | 15 | Menu item: closed tab | 44 | `_et` | ⚠️ same route as #13 |
 | 16 | Menu item: closed window | 45 | `_Pg` | ⚠️ same route as #13 |
@@ -134,11 +177,16 @@ The helper answers the whole SET of matching zones per point
 
 Helper rules as of 2026-09-20 (`Test/ac_zone_helper.cs` -> `Classify()`):
 `43 under 37 (right half) → 15`, `43 under 37 (left half) → 17`,
+`square PANE (16) under 37 in the RIGHT part of the tab → 15` (Opera/Vivaldi
+expose the close button as a plain pane — §2f(j)),
 `43 under 60 → 16`, `42 at d0/d1 → 21`, `57 under 20 → 21`,
 `43 inside GROUPING 20 inside TOOLBAR 22 → 33` (the GROUPING must sit
 BETWEEN the button and the toolbar — Opera's window-contents container 20
 sits ABOVE the toolbar, see §2f(h)), `TOOLBAR 22 in ancestry → 20`,
-`square 43/57 hugging the window's right edge → 30`,
+`square 43/57 hugging the window's right edge → 30` (Chromium layouts ONLY —
+Opera/Vivaldi are excluded: their rightmost toolbar button is the
+EXTENSIONS toggle; a button named 'Extensions' never answers 30 either —
+§2f(i)),
 `37 in d0..d3 → 12` (a PAGETAB; the empty strip 60 and the tab's own
 buttons do NOT answer 12 — see §2f(a) and the engine's `FUN_00415570`),
 `stripNear || isTabBtn → 4` (title bar /
@@ -303,7 +351,7 @@ so the failure is transient, likely AT the moment of the save.
 **Quick log dump command (after a repro):**
 ```js
 // attach to the SW console and filter ZONE lines
-// (see the node snippet in AGENTS.md / the zone session notes)
+// (see `Test/README.md` — `ac_swlog_dump.js` / `ac_swlog_act.js`)
 ```
 
 **Not suspected (ruled out so far):** engine v16 patch (works when the map is
@@ -557,7 +605,7 @@ is bound to wheel rotation without a modifier key"**.
 > definition) was wrong. The helper now answers 4 for the tab strip
 > (chain-based: `stripNear || isTabBtn`) plus the window-frame PANE outside
 > the toolbar (`roles[0]==16 && !inToolbar`); the toolbar and the omnibox are
-> excluded. Helper `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`.
+> excluded. Helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
 
 The 2026-09-12 implementation was chain-based: `inToolbar || stripNear ||
 isTabBtn` → zone 4, plus the unnamed-PANE rule for the frame. Points
@@ -607,7 +655,8 @@ right edge 20 px from the window's edge) → `[30,20,4,1]` ✅; the profile avat
 > **✅ RESOLVED:** menu regions (`edx >= 0x28`) fall through to the ENGINE's own
 > classification again, so the concern below no longer applies. Verified live
 > over the OPEN menu (region 40 fires, silent everywhere else) — §2g, §3 item 6.
-> Regions 41-51 use the same route and remain individually unverified.
+> Regions 41-51 use the same route; their PER-KIND accuracy is tracked separately
+> (low priority) in `Docs/TODO-menu-items.md`.
 
 The compiled type-60 precond carries the **RAW UI region** — verified by
 compiling test triggers through the real `_mh`:
@@ -691,7 +740,7 @@ accepts 60 so the empty strip keeps its title-area coverage. The tab's own
 buttons were already excluded (a 43-button under a PAGETAB is handled by
 `TabButtonZone` → 15/17). Same day as the title-area narrowing (§2f(a)) and
 the "+"-exclusion fix; helper
-`BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`.
+`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
 
 ### (h) Bookmark zone (33) — a button inside the omnibox GROUP, or the heart BY NAME (2026-09-20)
 
@@ -732,13 +781,637 @@ first; user correction the same day). The heart itself was always there.
 **Verified (probe against the deployed helper):** heart `[33,20,1]`, the five
 neighbour buttons `[20,1]`, address field `[21,20,1]`, tabs `[12,4,1]`
 (no regression). Helper
-`BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F`.
+`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
 
 ⚠ **Known edge (unchanged by this fix):** the rule cannot tell one
 omnibox-group button from another by structure, so in Chrome every `43` inside
 the group answers 33 — the group also holds the page-action buttons (Zoom /
 Ask AI …), which are normally hidden. In Opera the reverse case applies: the
 bookmark button is OUTSIDE such a group, hence the name fallback.
+
+### (i) Browser menu button (30) — the right-edge rule is Chromium-only (2026-09-20)
+
+**User report (Opera):** the zone-30 action fired in TWO places — the real
+Opera menu on the left (correct) and the blue button that collapses the
+extensions panel in the toolbar (wrong).
+
+**Element found by the name probe:** `role 57 'Extensions' rect=(1668,599
+36x37)` — the RIGHTMOST toolbar button in Opera 135, its right edge 38 px from
+the window's right edge, i.e. inside the 60 px window of the Chrome-style
+kebab rule. The next button to the left ('AutoControl Configuration',
+`rect=(1620,599 36x37)`, right edge 86 px away) stayed excluded, which is why
+only this one misfired.
+
+**Fix 1 — the geometry rule is Chromium-only.** The helper now remembers its
+browser's exe name (`browserName`, captured in the same ancestor walk that
+finds `browserPid`) and `MenuAtRightEdge()` returns false for opera.exe /
+vivaldi.exe: those forks put their menu on the LEFT and it is already matched
+BY NAME (§2f(d)). The old code contradicted its own comment ("the kebab rule
+is Chrome only"). A standalone helper run (zone probes) keeps the Chrome
+behaviour, so the probes stay representative.
+
+**Fix 2 — 'Extensions' is never the menu.** `IsRightEdgeButton` rejects a
+button whose accessible name contains "extension" / "расширен" — the
+extensions-panel toggle is a rightmost button in several builds and in none of
+them is it the browser menu.
+
+**Verified (probe against the deployed helper):** the extensions button
+`[20,1]` (was `[30,20,1]`), the Opera menu (110/130,553) `[30,4,1]` ✅, the
+heart `[33,20,1]` ✅, the extension icons `[20,1]` ✅. Helper
+`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+
+### (j) Tab's close button (15) in Opera — a square PANE, not a button (2026-09-20)
+
+**Why it was broken:** Chrome exposes a tab's close button as a PUSHBUTTON
+(role 43) and `TabButtonZone` scans the tab's 43-children. Opera does NOT:
+the button is a plain PANE (role 16) there, so nothing matched and the point
+fell through to the tab rule → the zone-15 trigger never fired.
+
+**The signature** (Opera 135, identical on all three tabs; found with
+`Test/msaa_chain.ps1 -TabKids`):
+
+```
+d2 role=37 'Rammstein…' [404,534 253x42] cc=3      <- the PAGETAB
+  child1: role=16 '' [404,534 253x42] cc=6         <- tab body (wide)
+  child2: role=16 '' [654,542 2x28]   cc=0         <- separator (2 px)
+  child3: role=16 '' [605,554 37x37]  cc=1         <- CLOSE (square, right)
+```
+
+The close button is hit-testable DIRECTLY (AOP over it returns the button, its
+parent is the PAGETAB), so the rule is: `roles[0] == 16 && roles[1] == 37`,
+the rect is square-ish (20..60 px, |w−h| ≤ 12) and its centre lies in the
+RIGHT 40% of the tab (`IsPaneCloseButton`). The position check keeps Chrome
+safe: its favicon is ALSO a square PANE, but on the LEFT — and in
+Chrome/Brave the close button is a real 43 handled by `TabButtonZone` anyway.
+
+**Verified (probe):** close buttons of all three tabs `[15,4,1]` ✅; tab body,
+favicon and the separator `[12,4,1]` (no false 15) ✅.
+
+**Speaker (17) — confirmed NOT implementable in Opera:** the favicon slot is a
+single `role=40 'Tab favicon' [410,543 25x24]` element present on EVERY tab,
+its name does not change when the tab plays sound, and the tab has exactly
+three children (body / separator / close) — there is no audio element to
+match. This is the documented limitation (README §5a).
+
+### (k) A browser UI popup is not browser chrome (2026-09-20)
+
+**User report:** the zone-15 action "works, but sometimes stops". The SW log
+showed 9 × `zones=[15,4,1] ∩ [15] → executing` and then one
+`zones=[4,1] ∉ [15] → skipped`.
+
+**Root cause found by reproducing it:** every SECOND wheel notch flipped the
+answer for the SAME point. The point was then resolved to an unnamed PANE
+`[111,536 365x43]` inside a role-11 window — and that window is the **Opera
+main menu**: a layered popup owned by the browser window
+(`WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN`,
+`WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST`,
+419x1083 anchored at the content-area origin), whose children are
+`New tab Ctrl+T`, `New window Ctrl+N`, `History`, `Bookmarks`,
+`Extensions`, `Settings Alt+P`, `Exit` … — it COVERS the whole tab strip.
+
+**Why it alternated:** the test tool `zone_fg_wheel.ps1` foregrounds the
+window by HOLDING **Alt**, and Alt toggles the Opera menu — a pure test
+artifact (each wheel press = one Alt = the menu flips). The user's single
+skip has the same signature: the menu was open at that moment, so the cursor
+really was over the menu, not over the tab strip.
+
+**The real defect this exposed:** over an open browser menu the helper
+answered **Title area (4)** — the hit is an unnamed PANE, so the window-frame
+rule fired. A zone-4 trigger would then run while the user is inside the
+browser menu, and a zone-15 trigger was skipped with a confusing `[4,1]` in
+the log.
+
+**Fix:** `OverBrowserPopup(pt)` — when the root window under the cursor is
+`WS_POPUP` + `WS_EX_TOOLWINDOW` (a browser menu / dropdown / extension
+popup), only the **Browser window (1)** zone is reported: the cursor is over
+the popup, not over the browser chrome. `Classify()` returns early in that
+case, so no chrome rule can fire.
+
+**Verified (probe):** with the menu open — the close button and the tab
+`[1]` (no false 4), the page outside the menu still `[3,1]`; menu closed —
+close `[15,4,1]`, tab `[12,4,1]` ✅. Helper
+`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+
+⚠ **Testing note:** do NOT use `zone_fg_wheel.ps1`'s Alt foreground trick
+when a stray Opera menu would confuse the measurement — close it with Esc
+(`Test/ac_keys.ps1 -Combo esc`) and re-check the known-good point.
+
+### (l) "Works, but sometimes stops" — the zone TABLE was written too late (2026-09-20)
+
+**User report:** the zone-15 action worked, then stopped working after a while
+of clicking/scrolling; hovering the close button (no click) and scrolling did
+nothing.
+
+**How it was traced.** The helper's own answer and the engine's TABLE were
+checked side by side with `Test/_probe_tablecheck.ps1` (reads the cave at VA
+`0x47F7A3` → the alive + table addresses → the 64-dword table, and verifies in
+the same instant that the cursor is where the probe put it — the user's hand
+otherwise moves the mouse and fakes a mismatch). Result: helper `[15,4,1]`,
+table `[1 4 15]` — both correct, 8/8.
+
+**Then the LATENCY was measured** (move the cursor, poll the table every 8 ms):
+the table only changed after **~170 ms**. Cause: the helper's heartbeat polls
+every 120 ms and writes the table only then.
+
+**Why that breaks a wheel trigger** — the engine caches each region's verdict
+(`FUN_00415bf0`, `Test/native-disasm/decomp/00415bf0_FUN_00415bf0.c`):
+
+```c
+invalidate = (DAT_0049fc4c != DAT_004a26b4)  &&  // a new input message
+             (300 < counterDelta || |dx| > 3 || |dy| > 3)
+```
+and it recomputes a region only when the invalidation fired. So: move onto the
+close button and scroll within the stale-table window → the engine reads
+`table[15] == 0` → no 750 at all → the cache keeps that 0 for up to 300 ms →
+**every following notch is skipped too**. After 300 ms the region is recomputed
+with the fresh table and the action starts working again — exactly the
+"works, but sometimes stops" symptom. (The engine also caches the CURSOR
+POSITION for 200 ms in the precond evaluator, `FUN_00420050` case 0xd, which
+widens the window.)
+
+**Fix (helper):** the poll is 30 ms now, the classification runs the moment the
+cursor SETTLES (position unchanged between two polls) and a continuous move is
+throttled to 80 ms. Measured: write latency ~0 ms; CPU during a continuous drag
+22.7% → 11.6% of one core. Helper
+`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+
+⚠ The engine-side cache remains (it is the original engine's logic) — the fix
+only shrinks the window in which the table can be stale. If a report of a
+missed first notch persists, the next step is a small engine patch: force the
+`200 < counterDelta` position refresh in `FUN_00420050` to always run.
+
+### (m) "Hovered tab" actions targeted the WRONG tab — the 485 query + the _kg cache (2026-09-20)
+
+**User report (after the wheel benchmark):** "it sticks on the tabs where I
+scrolled — it works on them, but on another tab it no longer reacts."
+
+**Benchmark evidence** (`Test/_bench_watch.js`, the user's own hand on the
+wheel — the engine DROPS synthetic input, see §4): 12 wheel notches over 4
+different tabs produced 12 × `zones=[15,4,1] ∩ [15] → executing` and 11 page
+loads — **10 of them on one and the same tab** (the active one). So the zone
+gate was fine; the ACTION targeted the wrong tab.
+
+**Cause 1 — the native 485 answer lost its tab identity.** `hoveredTabs` is
+`{oper:"filter", params:{anyHvrd:true}}` (file59); the filter calls `_ys()`
+(file50), which asks the NATIVE for the tab under the mouse:
+
+```js
+function _ys(){ if(_kg) return _kg; ... a=(yield _Vy(_No,a))||{};
+  if("index" in a) c=yield _zg({windowId:b,index:a.index});
+  else if("title" in a && ...) ...
+```
+
+`_No` = **485**. On Chrome 148+ the engine answers only `{hWnd,x,y}` — no
+`index`, no `title` (its a11y hit-test no longer finds the tabs; documented in
+`Docs/archive/AGENTS-pitfalls-history.md`). So `c` stayed empty, `_kg` became
+`[]`, and file59's fallback took over:
+`c = _ys(); if (!c.length) c = [activeTab]` → **the active tab**.
+
+**Cause 2 — the resolved tab is cached.** `_kg` is only cleared by `_wd()`,
+which runs when the TAB LIST changed (file37 `_Rf` → `_Fk`). Verified live:
+the cursor was moved onto tab 2 while `_ys()` still returned tab 1's id.
+
+**Fix (extension-side, no native patch):**
+1. The zone helper reports the tab under the cursor — `TabIndexOf` counts the
+   PAGETAB siblings to the left of the hovered one, `TabUnderCursorJson`
+   returns `,"hWnd":N,"index":I,"title":"…"` for a request with `"tab":1`
+   (helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`).
+2. `sw.js` wraps `window._Vy` (the bundle's callback-native bridge): type 485
+   is answered from the helper instead of the engine (falling back to the
+   native when the helper is down or the cursor is not over a tab).
+3. `sw.js` `__acSetHoveredTab()` runs before EVERY dispatch
+   (`doDispatch = () => __acSetHoveredTab().then(...)`): it resolves the index
+   from the helper and sets the bundle's `_kg = [tabId]` (via `chrome.tabs.query`
+   + `_Or[hWnd]` → windowId), so the action always sees the CURRENT tab.
+
+**Verified live:** cursor over tab 1 → `_Vy(485)` = `{hWnd:21575720,index:1,…}`;
+over tab 2 → `index:2`; the resolution chain sets `_kg=[1672866628]` and
+`_ys()` returns it (before the fix it returned the stale tab 1).
+
+⚠ **Testing gotcha found on the way:** `Test/_probe_mouse.ps1` did not call
+`SetProcessDPIAware`, so on this 150% display `SetCursorPos(700,610)` placed
+the cursor at the PHYSICAL (1050,915) — every probe silently measured another
+spot (which looked like "a fresh helper misclassifies"). The probe is
+DPI-aware now; the same rule as for the scanners (§2).
+
+### (n) The "Event tab" target resolved to NOTHING — same root cause, no fallback (2026-09-20)
+
+**User report:** "something does not work" — the trigger fired, the action
+reported OK, and no tab was reloaded. In the settings UI the user then found the
+red banner **"This feature is not supported in Opera"** on the *Hovered tab*
+target and asked whether it explains the failure.
+
+**The banner is a red herring.** `noSuprt` (file65) is a **browser-NAME check**,
+not a capability test:
+
+```js
+noSuprt:` ${_9j._Jh.in("opera","vivaldi")?
+  `<noSuprt>This feature is not supported in ${_9j._Jh.caplze()}</noSuprt>`: ""}`
+```
+
+It is prepended to every mouse-dependent UI text (`tse.hvr` = Hovered tab,
+`tse` editor's `hvr` filter, `mseOvr` = Mouse over condition, `copyElemUrl`,
+`openElemUrl`, `ombar`). It was written upstream when Opera/Vivaldi exposed no
+usable a11y tree — with the zone helper most of those features DO work now, so
+the banner is **outdated** for the tab-strip cases (a UI-text decision, see
+"Open items" below).
+
+**The real cause is the same one as (m), but on a different target.** The user's
+action (trigger 12, region **15**, action `reloadTabs`) targets
+**`eventTabs`** — the **Event tab** target, not Hovered tab:
+
+```
+_ek[12] = [{"sequence":[{"action":"reloadTabs","params":{"force":0}}],"targets":"eventTabs"}]
+```
+
+`_Mg` (file59) resolves it with **no fallback at all**:
+
+```js
+function _Mg(b,a){let d=[],c;
+  if(a.favList) c=_Mo[a.favList]||[];
+  else if(a.evtTabs) c=_Eh(_zw);                    // ← the engine's event tabs
+  else if("menuSeltn"==a.tgtExpr) c=_3u(a.marked,a.hilited,a.hovered);
+  else if(a.anyHvrd) c=_3u(!1,!1,!0), c.length||(c=_ys(), c.length||(c=[_ji(_cd,_Jg(),"activeTab","id")]));
+  ...
+  if(c) d=b.filter(f=>0<=c.indexOf(f)==!a.negate);   // ← `if(c)` is TRUE for []
+  return[d]}
+```
+
+`_Eh(_zw)` (`_Cg(_zw).tabs`) is the tab list the ENGINE attached to the event —
+empty for mouse events on Chrome 148+, exactly as in (m). And because `if(c)` is
+truthy for an empty array, `d` becomes `[]` → the group is empty → the action
+iterates over zero tabs and **does nothing, reporting success**.
+
+Measured (cursor over tab 2's close button, `_zw` = 2):
+
+```
+[TEST] filter(evtTabs) in=[1672866590,1672866662,1672866587,1672866628] out=[[]] kg=null
+```
+
+⚠ Note `kg=null`: the pre-dispatch refresh of (m) had already run, but `_rf`
+does `yield _Rf()` **first** in every action and `_Rf` → `_wd()` (tab list
+changed) → `_kg = null`. So the cache refresh alone is undone by the action
+itself.
+
+**Fix (sw.js, `_pp.filter` patch + a SW-local tab):**
+1. The tab under the cursor is remembered in **`__acHoveredTabId`** — a
+   SW-local variable that the bundle's `_wd()` cannot clear.
+2. The **filter TABLE** is patched, not `window._Mg`: file59's `_pp` captured
+   the function object at load time, so wrapping the global is a no-op
+   (verified — the wrapper never ran). Both entries (`filter`, `posFilter`)
+   point at the same function and both are replaced:
+
+```js
+const __acFilter = function (b, a) {
+  const r = __acOrigFilter(b, a);
+  const empty = !r || !r.length || !r[0] || !r[0].length;
+  if (!empty) return r;                     // the bundle resolved it → never touch
+  if (!(a.evtTabs || a.anyHvrd)) return r;  // unrelated target → never touch
+  const hv = (__acHoveredTabId != null) ? [__acHoveredTabId] : (_kg && _kg.length ? _kg : null);
+  if (hv) { const hit = b.filter(id => hv.indexOf(id) !== -1); if (hit.length) return [hit]; }
+  return r;
+};
+```
+
+**Verified live** (cursor over tab 2's close button, active tab = index 1):
+
+| call | result |
+| --- | --- |
+| `_pp.filter(ids, {evtTabs:true})` | `[[1672866587]]` (index 2 — under the cursor) |
+| `_pp.filter(ids, {anyHvrd:true})` | `[[1672866587]]` |
+| `_pp.filter(ids, {})` | all 4 ids (untouched) |
+| full dispatch, cursor over close of idx 0 | `RELOAD id1672866590 idx0` (not the active idx 1) |
+| full dispatch, cursor over close of idx 2 | `RELOAD id1672866587 idx2` |
+| full dispatch, cursor over the PAGE | no reload (cursor not over a tab → original empty result) |
+
+`_anyHvrd` is normally already correct because `_ys()` re-resolves through the
+wrapped 485 (see (m)) — the patch is the safety net for the case where `_kg` was
+wiped mid-action. `evtTabs` has no other path at all.
+
+Pinned by `Test/mh_test.js` **B56** (runs the REAL patch source sliced out of
+sw.js against a stub table: fallback works, an unknown hovered tab keeps the
+original result, an unrelated target is never modified, a non-empty result is
+never overridden, both table entries are patched, the guard flag is set).
+
+⚠ For a mouse event the "event tab" IS the tab under the cursor — that is what
+the engine supplied before Chrome 148 (and what the *Hovered tab* tooltip
+documents: "A tab in the tab strip" → that tab; "any other part of the browser
+window gives the active tab"). Over the page the target stays EMPTY (no reload),
+which matches the old MV2 behavior for a wheel event that names no tab — and a
+zone-scoped trigger never gets there anyway (the SW gate skips it, see (e)).
+
+**Open items from this finding:**
+- the `noSuprt` banner is now WRONG for the tab-strip cases — decide whether to
+  drop it for `tse.hvr` / `hvr` / `mseOvr` (they work) and keep it only for
+  `copyElemUrl` / `openElemUrl` / `ombar` (never verified in Opera);
+- "Copy/Open hovered URL" in Opera is still untested (needs the engine's
+  element tracking, not the zone helper).
+
+### (o) Round 2 — "the PREVIOUS tab reloads" and "the first notch is ignored" (2026-09-21)
+
+**User report (after (m)/(n) were deployed):** "on a fast cursor move across the
+tabs the PREVIOUS tab reloads" and, on a second run, "if I move across the tabs
+and wheel at once, sometimes the first notch does nothing — but a FOREIGN tab is
+no longer reloaded". Both reproduced in Chrome Canary 156 (not Opera-specific).
+
+**Diagnosis — the CDP log (`Test/_probe_raceinstall.js` + `_probe_racedump.js`,
+see the tool notes in `Test/README.md`).** Three independent causes:
+
+**1. `_ys()` returns the bundle's own stale cache.** `_ys()` (file50) is THE
+resolution point for "the tab under the cursor" — the `Hovered tab` target
+(`_Mg` → `anyHvrd` → `_ys()`) and the `hovered` tab-filter property both call it.
+It returns `_kg` when set, and `_kg` is dropped ONLY by `_wd()` (a tab-list
+change), so it routinely holds the tab of the PREVIOUS wheel. The `_pp.filter`
+patch of (n) could not help: it only acts on an EMPTY result, and `anyHvrd` has
+a non-empty fallback (`c=_ys()`, then `[activeTab]`).
+Fix: `sw.js` wraps **`_ys` itself** — when `__acHoveredTabId` (the helper's
+answer) is known it returns `[__acHoveredTabId]` and does NOT call the original.
+Skipping the original also removes a redundant accessibility walk (below).
+
+**2. The helper served a tab computed for ANOTHER point.**
+```csharp
+private static void CacheStore(POINT pt, string body) { CacheStore(pt, body, null); }
+...
+  if (tabBody != null) cacheTabBody = tabBody;   // null KEEPS the previous tab
+  cachePt = pt;                                   // but the point is already new
+```
+The SW asks for the ZONE SET on every wheel; when the cursor has moved, that is
+a fresh classification → `CacheStore(pt, body)` updates the cached point while
+the cached TAB still belongs to the previous point. The tab request that follows
+matches the point and gets the OLD tab. The log shows it literally:
+```
+156637  res  id566 z=15 [15,4,1]      ← fresh zone classification (+21 ms)
+156637  req  id567  TAB-REQ
+156637  res  id567 ... TAB idx=14     ← answered in 0 ms = cache = PREVIOUS tab
+156637  reload  tabId=61304457        ← the previous tab reloaded
+```
+That is also why the SLOW test always worked: while the cursor rests, the
+background heartbeat stores the CORRECT tab and the request hits it.
+Fix: `cacheTabOk` — a tab is valid only for the point it was computed WITH; the
+zone-only store clears it. The request path now samples the cursor ONCE and uses
+that single sample for both answers (zones + tab).
+
+**3. The zone query timed out → the first notch was skipped.** Adding the tab
+walk to `ClassifyAndCache` (which runs on the helper's 30 ms heartbeat) cost
+60-104 ms per heartbeat and made the helper unable to answer the SW's zone query
+in time: the answer came back as the timeout marker and the gate skipped the
+trigger:
+```
+[AC-MV3-ZONE] trig 12: zones=[-2] ∉ [15] → skipped
+```
+Fix: the walk is OUT of the heartbeat (the tab is walked on demand, cached for
+its own point), and the SW's zone query waits **500 ms** instead of 250 ms — a
+fresh accessibility walk can take 100-300 ms while Chrome's window tree is
+waking, and an action that runs a few hundred ms late beats an action that never
+runs (the engine has already applied the same region decision on its side).
+
+**4. Two walks per event.** Each wheel produced TWO tab requests (`TAB-REQ`
+twice in the log) — one from `__acSetHoveredTab` and one from the bundle's own
+`_ys()` → `_Vy(485)` → the `_Vy` wrapper → the helper. The helper is
+single-threaded, so the walks QUEUED and the answers arrived 180-360 ms late
+(the log: the second answer 344 ms after the first). Fix: the wrapped `_ys` no
+longer calls the original when it has an answer (see 1) — measured after the
+change: **one** tab request per event.
+
+**Verified (Canary 156, helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`):**
+`_ys()` returns the helper's tab even with a deliberately poisoned `_kg`
+(`_ys() -> [61304275]` while `_kg=[61304272]`); the log shows
+`_ys ret=[61304458] kg=[61304464]` (stale cache overridden) and the reload always
+targets the helper's tab; one tab request per event instead of two.
+`mh_test` 105 pass / 0 FAIL (the pin now requires `__acYsWrapped` + `_ys = function`).
+
+**User verdict (2026-09-21):** "not perfect, but good enough for real use — it is
+hard to hit the situation where the action does not fire."
+
+**Remaining imperfection (known, accepted):** during a continuous fast move the
+tab identity can lag by one accessibility walk (~60-340 ms under load), so a
+notch can still act on the tab the cursor was over a moment earlier. The next
+cheap step, if it ever matters: let the zone gate and the tab refresh share ONE
+helper request (the helper's answer already carries both the zone set and the
+tab — the SW currently sends two messages).
+
+### (p) Opera 135: the close button (15) moved one level DEEPER (FIXED 2026-09-21)
+
+**Found while setting up the Opera test of the hovered-tab fix** — and it explains
+why a zone-15 trigger was unreliable there.
+
+In this Opera window (6 tabs, Chromium 151) hovering a tab's close button answers
+**"Title area" (4)** instead of **15**, so the SW gate SKIPS the trigger
+(`zones=[4,1] ∉ [15] → skipped`). `msaa_chain.ps1 -Point "390,30"` showed why:
+
+```
+d0 role=43 'Close tab' [380,21 25x24] cc=0
+d1 role=16 ''          [158,12 253x42] cc=6      ← the tab's body PANE
+d2 role=37 'badssl.com'[158,12 253x42] cc=3      ← the PAGETAB
+d3 role=60 'Tab bar'   …
+```
+
+The close button IS a real `43` (so the 2026-09-20 "Opera exposes it as a PANE"
+workaround is not the whole story), but it is nested **one level deeper** than in
+Chrome: `PAGETAB(37) → body PANE(16) → button(43)`. Neither rule matched:
+
+* `isTabBtn = roles[0] == 43 && roles[1] == 37` — the parent is the PANE, not the
+  PAGETAB;
+* `IsPaneCloseButton(chain[0], chain[1], pt)` — that rule expects the hovered
+  element to BE a square PANE, but the hovered element is the 43 button.
+
+**Fix (helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`, 22528 bytes):**
+1. the tab-button rule now accepts a PAGETAB at ANY depth within d0..d3
+   (`isTabBtn = ui && roles[0] == 43 && tabDepth >= 1`) and calls
+   `TabButtonZone(chain[tabDepth], …)`. It still cannot catch the "+" (a 43 under
+   the PAGETABLIST 60, no PAGETAB above).
+2. `TabButtonZone` scans the tab's children **two levels deep**
+   (`ScanTabButtons`), so a button nested in the tab's body PANE is found; the
+   classification stays by SIBLING ORDER (rightmost = close, other = speaker),
+   which is what keeps the Chrome speaker/favicon logic correct.
+
+The `IsPaneCloseButton` path stays (it covers the builds that expose the close as
+a PANE, e.g. the earlier Opera window where `[15,4,1]` was verified).
+
+**Verified (Opera 135, Chromium 151):** close `(390,30)` → `{"zone":15,"zones":[15,4,1]}`,
+tab body `(300,30)` → `[12,4,1]`, second tab `(600,30)` → `[12,4,1]`; Canary unchanged.
+
+**End-to-end verified with PHYSICAL input (2026-09-23, the user's own hand — the engine
+drops synthetic input, §4).** Five consecutive wheels over the close buttons of tabs
+3 → 4 → 5 → 2 → 3, captured by the runtime probe (`_probe_raceinstall.js` +
+`_probe_racedump.js` + `_probe_hold.js`, held CDP session so the SW was not evicted):
+
+```
+428833  res  id319 z=15 [15,4,1]  TAB idx=3 "Rammstein - Full Concert ["
+428834  _ys  ret=[1672867188] kg=null      ← the helper's tab, no stale cache
+428834  reload  tabId=1672867188           ← idx 3 ✔
+429000  loading idx=3 …
+430188  res  id321 z=15 [15,4,1]  TAB idx=4 … reload 1672867189   ✔
+431393  res  id323 z=15 [15,4,1]  TAB idx=5 … reload 1672867190   ✔
+432975  res  id326 z=15 [15,4,1]  TAB idx=2 … reload 1672867187   ✔
+434427  res  id328 z=15 [15,4,1]  TAB idx=3 … reload 1672867188   ✔
+```
+
+Every wheel reloaded EXACTLY the tab under the cursor, `_ys` always returned the
+helper's tab (`ret=` equals `sw=`) with `kg=null`, and there is only ONE `TAB-REQ`
+per event — the duplicate accessibility walk of §2f(o) is gone. The zone-15 trigger
+fires in Opera on the first notch.
+
+**Chrome regression check (2026-09-23) — the generalization does NOT change Chrome.**
+Two independent proofs:
+
+1. **The code path is the same one.** In Chrome the close button is a DIRECT child
+   of the PAGETAB (`PAGETAB(37) → [43 'Mute tab', 43 'Close']`, from
+   `zone_scan.ps1`), so `roles[0] == 43 && roles[1] == 37` → `tabDepth = 1` →
+   `TabButtonZone(chain[1])` — byte-for-byte the call the OLD rule made. The new
+   2-level scan finds nothing extra there because Chrome's tab buttons have no
+   children (`cc=0`), exactly like the Opera ones.
+2. **Measured: 30 points, 0 differences.** The OLD helper
+   (`ac_zone_helper.exe.bak-B338B6E7`, the build from before the round-2 work) and
+   the NEW one were run over the SAME points in Canary and their answers compared:
+   * 18 points along the tab strip (pinned tabs, regular tab bodies, TWO different
+     close buttons at x=1300 and x=2000, the strip row, the empty area right of the
+     last tab) — `[12,4,1]` / `[15,4,1]` / `[4,1]`, **all identical**;
+   * 12 points down a vertical line (tab strip → toolbar → omnibox → page) —
+     `[12,4,1]` → `[1]` → `[20,1]` → `[21,20,1]` → `[3,1]`, **all identical**.
+
+   Tool: `Test/_probe_zonegrid.js` (walks a grid with the DPI-aware cursor move and
+   asks the browser-spawned helper through the SW); for an A/B comparison against
+   another build, move the cursor with `_probe_mouse.ps1` and run
+   `node Test/zone_helper_smoke.js <helper.exe>` per build.
+
+⚠ **Probe gotcha found on the way:** `zone_probe.ps1` spawns the helper itself
+(`zone_helper_smoke.js`), so its "own browser window" gate is INERT — with another
+application in the foreground (Telegram, `Qt51519QWindowIcon`) every point answered
+`{"zone":1,"zones":[1]}` instead of `0`. Use the browser-spawned helper through
+the SW for a real answer: `node Test/cdp_eval.js 9224 "__acTest.zoneAsk(1000)" --await`
+(returns `[0]` when the cursor is not over that browser).rsor is not over that browser).
+
+### (q) Chrome 148: the tab index was ALWAYS 0, and the answer came too late (FIXED 2026-10-04)
+
+**User report:** "in Chrome 148 the action reloads the FIRST tab instead of the
+hovered one" (2026-09-23), then after the round-2 work: "it works, but not always
+— sometimes the ACTIVE tab is reloaded and I cannot tell when".
+
+**Cause 1 — `TabIndexOf` counted the wrong level.** The helper located the tab
+strip as *the first role-60 ancestor* and counted ITS direct children:
+
+```
+PAGETAB(37) 'hluk/CopyQ…'      ← the hovered tab
+PANE(16) cc=48                 ← ALL tabs live here
+PANE(16) cc=2
+PAGETABLIST(60) cc=5           ← the old rule stopped HERE and counted 0 tabs
+```
+
+Chrome 148 wraps the tabs one level deeper than Canary/Opera, so the count found
+no PAGETAB children and **every** tab answered `index:0`. Measured over the strip
+(8 points): **every title correct, every index 0**:
+
+```
+  150  …"index":0,"title":"hluk/CopyQ…"          ← 8 different tabs,
+  500  …"index":0,"title":"Non Est Deus…"        ← the same index 0
+ 2400  …"index":0,"title":"0x192/universal…"
+```
+
+The SW then took `list[0]` — the FIRST tab of the window. **Fix:** the strip is
+now *the level where the tabs really ARE siblings* (an ancestor with ≥ 2 PAGETAB
+children), with the role-60 ancestor kept as the fallback for a single-tab window;
+and the counting is done in ONE pass (the old code walked the children twice).
+
+**Cause 2 — the answer arrived after the SW gave up.** Even with the index fixed,
+a burst of wheels reloaded the ACTIVE tab. The SW→helper note channel (below)
+showed the answer and the timeout in the SAME millisecond:
+
+```
+22:36:55.838 tab ask 2541,20 -> …,"index":15,"title":"Трекер"   ← the helper answered
+22:36:55.839 SW hover FAIL answer=null                          ← the SW had given up
+22:36:55.839 SW RELOAD tab=988342169                            ← the ACTIVE tab
+```
+
+Two MSAA walks competed for the same tree — the heartbeat's zone classification
+(every 30 ms while the cursor moves) and the request's tab walk — and the walk
+itself cost ~300 ms because `TabIndexOf` walked the children twice.
+**Fix:** (a) `servingRequest` — the heartbeat skips its classification while a
+request is being served; (b) the single-pass walk; (c) the SW waits **900 ms**
+instead of 300 ms for the tab answer (an action that runs a few hundred ms late
+beats an action that hits the wrong tab).
+
+**Result (measured, all browsers):** `hover FAIL` 16 → **1**; `ys FALLBACK` → **2**;
+walk time **min 79 / median 125 / max 219 ms** (was ~300); and the chain now
+agrees end to end:
+
+```
+SW hover hWnd=527974158 idx=4 win=1344229309 list=8 -> tab=1344229314@4
+SW ys    hWnd=527974158 -> [1344229314]
+SW RELOAD hWnd=527974158 tab=1344229314 idx=4
+```
+
+**User verdict (2026-10-04):** "everywhere seems fine".
+
+**Method notes (both are reusable and were ESSENTIAL here):**
+1. **The action target can be read from the profile on disk.** Chrome 148 must not
+   be relaunched with a debug port, but its `Local Extension Settings\<ext-id>\
+   000003.log` (LevelDB) holds every write of `trigActList` — read it with
+   `[IO.File]::Open(..., FileShare::ReadWrite)` (Chrome keeps it locked). Walking
+   the writes showed the whole history of trigger 12:
+   `reload → hoveredTabs` (writes 9-29), `reloadTabs → hoveredTabs` (30-41),
+   **`reloadTabs → currentTab` (42-44, current)** — i.e. part of "it reloads the
+   active tab" was simply the *Current tab* target, not a bug. **Always check the
+   configured target before hunting the code.**
+2. **A SW→helper note channel replaces CDP in a browser without a debug port.**
+   The SW cannot be inspected there, but the helper CAN (it appends to
+   `%TEMP%\ac_zone_helper.log`). The SW posts `{__id, note:"…"}` on the helper
+   port; the helper writes the text into its log. That is how the timeout race
+   above was found. The channel was REMOVED from `mv3-build/sw.js` after the fix
+   (the shipped folder stays clean) — re-add it the same way when needed.
+
+### (r) Switching tabs with a wheel became DELAYED — the refresh ran for everyone (FIXED 2026-10-05)
+
+**User report:** "switching tabs by turning the wheel over the tabs is delayed,
+while Alt+wheel anywhere is instant — is it because of the increased timeout?"
+
+**Partly — but the timeout was not the main cost.** The Alt action is in
+`__acZoneFree` (a combo without a mouse-over condition), so it skips BOTH helper
+round trips; that is why it stayed instant and why it pointed at the helper.
+
+Every dispatch ran `__acSetHoveredTab()` — an accessibility walk (79-219 ms
+measured) whenever the cursor sits on a point the helper has not classified yet,
+which is exactly the case right after moving onto another tab. And it ran for
+**every** action, including the tab switches (`switchLeft`/`switchRight`), whose
+target is `currentTab` and which therefore never asks for the tab under the
+cursor. So the wheel paid ~80-220 ms for nothing.
+
+**Fix 1 (sw.js):** `__acBuildZoneMap` now also computes **`__acHoverNeeded`** —
+the triggers whose actions can ask for the hovered tab (`targets` matching
+`/hovered/i` or `eventTabs`). Dispatch:
+
+```js
+const needHover = !__acHoverNeededReady || __acHoverNeeded[zid] === true;
+const doDispatch = () => (needHover ? __acSetHoveredTab() : Promise.resolve()).then(…)
+```
+
+Before the map is built the refresh runs unconditionally (the safe old
+behaviour), and if a target is ever missed the `_ys` wrapper still falls back to
+the bundle's own resolution — so correctness never depends on the list being
+complete, only the speed does.
+
+**Fix 2 (helper):** the tab cache is warmed in the background again
+(`lastTabWarmAt`, at most every 150 ms) so a hovered-tab request answers in ~1 ms
+instead of paying a fresh walk. Guards — the round-2 failure was a walk on EVERY
+heartbeat classification, which starved the zone query (60-104 ms answers,
+`zones=[-2]` timeouts):
+
+* only while the cursor has **SETTLED** (never during a fast pass);
+* only over a tab-related zone (12 / 15 / 17) — the only place the tab can be asked for;
+* **never** while a request is being served (`servingRequest`);
+* throttled to 150 ms.
+
+**Verified:** `mh_test` — the zone-map test asserts `__acHoverNeeded` for four
+real cases (`currentTab` → no, `hoveredTabs` → yes, `eventTabs` → yes,
+`disabled` → no) and the gate test asserts that NO dispatch pays for the refresh
+when the map says it is not needed (both eval the REAL sw.js source). Helper
+`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (22528 bytes),
+`build_native.ps1` reproduces both components bit-for-bit.
+
+⚠ **The first version of the check was wrong and the test caught it:** the
+condition matched `hvrd` (the bundle's own field name for the filter), while the
+STORAGE value is `hoveredTabs`. Do not "simplify" it back — `Docs/GOTCHAS.md` has
+the same warning.
 
 ## 2g. SOLUTION (2026-09-12, night) — engine v19: the ZONE TABLE
 
@@ -860,10 +1533,10 @@ itself (type 170 opens it, type 185 `{hilited, hovered, marked}` reports the
 item indexes, type 175 closes it). Verified live: a `mouseOver = Any menu item`
 (40) trigger fired over the OPEN menu and stayed silent over the page / tab
 strip / beside the menu (§2g).
-⚠ **Still open (minor):** the individual item kinds 41-51 were NOT each
-verified — they share the same route and are expected to work, but per-kind
-accuracy (does "Menu item: tab" fire on the right item?) is unproven. Verify
-only if a user report appears.
+⚠ **Still open (minor, moved out 2026-10-05):** the individual item kinds 41-51
+were NOT each verified — they share the same route and are expected to work, but
+per-kind accuracy (does "Menu item: tab" fire on the right item?) is unproven.
+LOW PRIORITY: tracked in `Docs/TODO-menu-items.md`, verify on a user report.
 
 **5. Zone 30 + zone 17 verification:**
 - 30: ✅ RESOLVED 2026-09-12 — the pill counts as the menu button (user
@@ -890,7 +1563,8 @@ physically over it.
 2. Engine **v19** deployed (`powershell -File Test/deploy_patched_engine.ps1`
    → it copies `AutoControl_native/patched/`, SHA-256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`), config
    sent (`_Gf` via cdp_eval, verify `type 60`
-   in the boot log — see AGENTS.md). ⚠ A browser restart re-imports
+   in the boot log — the config-60 gotcha with the exact command is in
+   `Docs/GOTCHAS.md` § Triggers & actions). ⚠ A browser restart re-imports
    `settings.dat` into storage (test triggers get replaced).
 3. Helper registered + responding: `node Test/zone_helper_smoke.js [exe]`
    (default = the deployed copy; prints `zone` + `zones`).
@@ -959,7 +1633,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | File | Role | state (2026-09-13) |
 |---|---|---|
 | `Test/ac_zone_helper.cs` | helper source (`Classify()`, `WriteZoneTable`) | ✅ 11 zones + DPI + `zones[]` + pill→30 rule + a11y heartbeat + own-browser gate |
-| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `BC5DCADA849E7EE4EE1731DF6534B3FB697C8B6F66AF8F0ACCDF8A9DC693B59F` (deterministic Roslyn build, 2026-09-20) |
+| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (deterministic Roslyn build, 2026-09-20) |
 | `%LOCALAPPDATA%\AutoControl\ac_zone_helper.exe` | **the deployed binary Chrome runs** | ✅ same hash (Chrome picks it up without an extension reload) |
 | `AutoControl_native/patches/patch_zones_v19.js` | engine patch builder (zone table) | ✅ **CURRENT** — see `patches/README.md` |
 | `AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe` | repo copy of the built engine | ✅ `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
@@ -985,7 +1659,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | `Docs/BUILD-NATIVE.md` | bit-for-bit rebuild recipe for BOTH natives | ✅ |
 | `Docs/archive/NATIVE-REVERSING-2026-08-31.md` | RE context (§10-§13) | ✅ §13 updated |
 | `Docs/FEATURES-MV3.md` §7-12 | hover-region status | ✅ updated (all 12 areas) |
-| `AGENTS.md` (zone bullets) | gotchas: DPI, load path, signatures, dead mouse hook, proof chain | ✅ updated |
+| `Docs/GOTCHAS.md` (zone + native bullets) | gotchas: DPI, load path, signatures, dead mouse hook, proof chain | ✅ updated |
 | `README.md` §4.3 / §4.4 | user/dev install guide (helper + patched engine) | ✅ updated |
 
 ---

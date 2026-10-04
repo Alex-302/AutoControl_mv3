@@ -167,6 +167,16 @@ deploys it on a fresh install/repair with no manual copying.
 | `_Wi` | Current action | Which action type is executing |
 | `_Fk` | Ready flag | System ready flag |
 | `_Pw` | Watchdog | Detects stuck actions |
+| `_ys` | Hovered tabs | `_ys()` → tab ids under the mouse. Asks the NATIVE (type 485) for `{hWnd,index|title,x,y}`; the result is CACHED in `_kg` and only dropped by `_wd()` (runs when the tab list changed, file37 `_Rf`→`_Fk`). Returns `[]` synchronously while resolving — callers then fall back to the active tab |
+| `_kg` | Hovered-tab cache | The `_ys()` result (array of tab ids). STICKS until a tab-list change — see the 2026-09-20 fix (sw.js `__acSetHoveredTab` refreshes it before every dispatch) |
+| `_No` | 485 | Native "which tab is under the mouse". On Chrome 148+ answers `{hWnd,x,y}` only — no tab identity |
+| `_Mg` | Tab-set filter | Resolves target sets. `favList` → `_Mo`; **`evtTabs` → `_Eh(_zw)`** (NO fallback — `if(c)` is TRUE for `[]`, so an unknown event tab yields an EMPTY group: the action runs over zero tabs and reports success); `menuSeltn` → `_3u(...)`; `anyHvrd` → `_3u(!1,!1,!0)` → `_ys()` → **`[activeTab]` fallback**; `grpSize` → size test; otherwise `refTab`/`pos`/`tgtExpr`. Returns `[d]` (a WRAPPED array) |
+| `_Eh` | Event tabs | `_Eh(a)` → `_Cg(a).tabs`, filtered through `_Yp`/`_cd`: the tab ids the ENGINE attached to the event. Empty for mouse events on Chrome 148+ — the root cause of both the "Hovered tab" and the "Event tab" bugs (sw.js patches `_pp.filter` + keeps `__acHoveredTabId`) |
+| `_pp` | Filter TABLE | `{filter:_Mg, posFilter:_Mg, sort, groupBy, reverse, slice}` (file59). ⚠ `_Mg` is captured HERE at load time — wrapping `window._Mg` later is a NO-OP; patch `_pp.filter`/`_pp.posFilter` instead |
+| `_zw` | Event context | The event id/context of the action currently running (set by `_Mt`'s sequence processor). Read by `_Eh` |
+| `_3u` | Menu/tab-set ids | `_3u(marked,hilited,hovered)` → ids from the menu state |
+| `_wd` | Drop tab caches | `_kg=_hu=_Bk=_1i=_Kt=null; _Jr={}` — the only place the hovered-tab cache is cleared. ⚠ Runs at the START of every action (`_rf` → `yield _Rf()`), so it wipes a pre-dispatch refresh — keep SW-local copies |
+| `noSuprt` | UI banner | file65 `noSuprt: \` ${_9j._Jh.in("opera","vivaldi")?`<noSuprt>This feature is not supported in ${…}</noSuprt>`:""}\` — a browser-NAME check, NOT a capability test. Prepended to `tse.hvr`, the `hvr` filter, `mseOvr`, `copyElemUrl`, `openElemUrl`, `ombar` |
 
 ## Config Loading (file47.js)
 | Obfuscated | Meaning | Description |
@@ -377,7 +387,7 @@ deploys it on a fresh install/repair with no manual copying.
 |--------|-------------|
 | `_co(a=0,c=!1,b)` | Core repair/update: `c` → badge "Wait" + `_9k("showNotif",!0)`; sends `_Lk(_vh=55, null, cb)`; `a==1` → reload CURRENT page (MV2 `location.reload()` — the ACTUAL engine restart trigger via port drop; MV3: SW's `__acEmergencyRestartNative`, see NATIVE_PROTOCOL §18); `a==2` → `_Yk.runtime.reload()` (extension update); `a==0` → `_Xg()(b)` |
 | `_ze()` | Extension-state snapshot: collects `_Ft,_ea,_n,_Mo,_hd,_da,_He` into a plain array (for `_9k("extensionState",...)`) |
-| `_nk()` | (file47.js) Context-menu builder: `removeAll()` + "swtchList" parent (binSwtch checkboxes) + `reloadExtn` "Emergency repair" — runs on EVERY config-chain execution, hence the SW's removeAll/create patches (AGENTS.md FIX 11). **2026-08-12**: stubbed to no-op outside the SW (the SW owns the menu); the SW's removeAll patch recreates reloadExtn via the ORIGINAL create (`origCtxCreate` — the patched create returned 0 for reloadExtn while `__acCtxMenuOwned`, silently dropping the recreation) |
+| `_nk()` | (file47.js) Context-menu builder: `removeAll()` + "swtchList" parent (binSwtch checkboxes) + `reloadExtn` "Emergency repair" — runs on EVERY config-chain execution, hence the SW's removeAll/create patches (see `Docs/GOTCHAS.md`, the SW context-menu entry). **2026-08-12**: stubbed to no-op outside the SW (the SW owns the menu); the SW's removeAll patch recreates reloadExtn via the ORIGINAL create (`origCtxCreate` — the patched create returned 0 for reloadExtn while `__acCtxMenuOwned`, silently dropping the recreation) |
 | `_2u(a=0)` | Date gate: `22025 <= (Date.now()/1E3/3600/24|0) + a` — used as `_2u(5)` before `requestUpdateCheck`/update flows |
 | `_Eu.wait()` | (after repair) yields until the native reconnect completes — `_nt("showNotif")` path then shows the OK/Error badge (MV2 shows it AFTER the reload reconnects, not immediately) |
 | `__acRepairDiag` (storage) | **2026-08-12, FEATURES-MV3.md §7-15**: `{showNotif, diagnostics}` persisted by `__acEmergencyRestartNative` (`_j` reads the in-memory one-shot flags BEFORE the reload) — MV2 kept them in the background page's real localStorage; the MV3 in-memory shim dies with the SW. The fresh SW (proceedAfterFileCheck) consumes it and shows `_Kg` (stuck keys, `downKeys` from type 451) or `_Ht` (foreign profile, `actWinMine===0`) — MV2 semantics. The stuck-keys list is REAL (user-verified 2026-08-12) |
