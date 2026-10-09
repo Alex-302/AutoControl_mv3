@@ -1,0 +1,50 @@
+// FUN_00442f40 @ 00442f40 size=219 callers=5
+
+undefined4 __fastcall FUN_00442f40(int *param_1,int param_2)
+
+{
+  int iVar1;
+  uint *puVar2;
+  undefined1 local_6c [24];
+  undefined1 local_54 [24];
+  undefined1 local_3c [24];
+  undefined **local_24;
+  undefined8 local_20;
+  undefined4 local_18;
+  undefined1 local_14;
+  void *local_10;
+  undefined1 *puStack_c;
+  undefined4 local_8;
+  
+  local_8 = 0xffffffff;
+  puStack_c = &LAB_0047e1c8;
+  local_10 = ExceptionList;
+  iVar1 = *param_1;
+  if ((uint)(param_1[1] - iVar1) < param_2 + 5U) {
+    ExceptionList = &local_10;
+    puVar2 = (uint *)FUN_00403360(local_3c,4);
+    local_8 = 0;
+    puVar2 = (uint *)FUN_00442600(local_54,(uint *)"cannot read ",puVar2);
+    local_8._0_1_ = 1;
+    local_18 = (undefined4 *)FUN_004412a0(local_6c,puVar2,(uint *)" bytes from vector");
+    local_8 = CONCAT31(local_8._1_3_,2);
+    if (0xf < (uint)local_18[5]) {
+      local_18 = (undefined4 *)*local_18;
+    }
+    local_24 = std::exception::vftable;
+    local_20 = 0;
+    local_14 = 1;
+    ___std_exception_copy(&local_18,(undefined4 *)&local_20);
+    local_24 = std::out_of_range::vftable;
+                    /* WARNING: Subroutine does not return */
+    __CxxThrowException_8((int *)&local_24,&DAT_00499ebc);
+  }
+  local_18 = (undefined4 *)
+             CONCAT13(*(undefined1 *)(iVar1 + 1 + param_2),
+                      CONCAT12(*(undefined1 *)(iVar1 + 2 + param_2),
+                               CONCAT11(*(undefined1 *)(iVar1 + 3 + param_2),
+                                        *(undefined1 *)(iVar1 + 4 + param_2))));
+  return local_18;
+}
+
+

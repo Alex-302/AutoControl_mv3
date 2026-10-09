@@ -1,0 +1,70 @@
+Ghidra 12.1.3 disassembly of the bytes injected by patch_zones_v19.js
+=====================================================================
+
+Produced by Test/DisasmPatch.java (headless, no auto-analysis). This is an
+INDEPENDENT disassembler's view of the patch - it was not written by hand and
+does not share code with Test/patch_bytes_verify.js, which is why the two are
+kept side by side.
+
+Reproduce exactly (JDK 21+ required by Ghidra; adjust the paths):
+
+  node AutoControl_native/patches/patch_zones_v19.js "$env:TEMP\ac_disasm_in.exe"
+  $env:JAVA_HOME='E:\Downloads\Tools\jdk-25.0.4.1+1'
+  New-Item -ItemType Directory -Force "$env:TEMP\ac_ghidra_disasm" | Out-Null
+  E:\Downloads\Tools\Ghidra\support\analyzeHeadless.bat `
+      "$env:TEMP\ac_ghidra_disasm" acpatch `
+      -import "$env:TEMP\ac_disasm_in.exe" -noanalysis `
+      -scriptPath "<repo>\Test" -postScript DisasmPatch.java -deleteProject
+
+Note: Ghidra prints JAE as JNC and JE as JZ - same opcodes (0x73 / 0x74),
+different mnemonics for the same condition codes.
+
+The script also rewrites the cave prefix in memory with the RUNTIME variant
+(absolute addresses computed by the helper at run time; the values below were
+observed live) and disassembles that as well.
+
+=====================================================================
+PATCH 1 - entry jump (VA 0x4156f0, 5 bytes)
+=====================================================================
+004156f0  e9 ae a0 06 00             JMP 0x0047f7a3
+
+=====================================================================
+PATCH 2 - code cave, FILE variant (helper absent) (VA 0x47f7a3, 38 bytes)
+=====================================================================
+0047f7a3  83 fa 28                   CMP EDX,0x28
+0047f7a6  73 17                      JNC 0x0047f7bf
+0047f7a8  b8 01 00 00 00             MOV EAX,0x1
+0047f7ad  c3                         RET
+0047f7ae  90                         NOP
+0047f7af  90                         NOP
+0047f7b0  90                         NOP
+0047f7b1  90                         NOP
+0047f7b2  90                         NOP
+0047f7b3  90                         NOP
+0047f7b4  90                         NOP
+0047f7b5  90                         NOP
+0047f7b6  90                         NOP
+0047f7b7  90                         NOP
+0047f7b8  90                         NOP
+0047f7b9  90                         NOP
+0047f7ba  90                         NOP
+0047f7bb  90                         NOP
+0047f7bc  90                         NOP
+0047f7bd  90                         NOP
+0047f7be  90                         NOP
+0047f7bf  83 ec 20                   SUB ESP,0x20
+0047f7c2  53                         PUSH EBX
+0047f7c3  55                         PUSH EBP
+0047f7c4  e9 2c 5f f9 ff             JMP 0x004156f5
+
+=====================================================================
+PATCH 2 - code cave, RUNTIME variant (helper writes this) (VA 0x47f7a3, 28 bytes)
+=====================================================================
+0047f7a3  83 fa 28                   CMP EDX,0x28
+0047f7a6  73 17                      JNC 0x0047f7bf
+0047f7a8  80 3d 00 00 5d 00 00       CMP byte ptr [0x005d0000],0x0
+0047f7af  74 08                      JZ 0x0047f7b9
+0047f7b1  8b 04 95 10 00 5d 00       MOV EAX,dword ptr [EDX*0x4 + 0x5d0010]
+0047f7b8  c3                         RET
+0047f7b9  b8 01 00 00 00             MOV EAX,0x1
+0047f7be  c3                         RET

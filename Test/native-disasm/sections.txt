@@ -1,0 +1,9 @@
+Headers	start=00400000	size=0x400	perm=r--	initialized=true
+.text	start=00401000	size=0x7e800	perm=r-x	initialized=true
+.rdata	start=00480000	size=0x1c400	perm=r--	initialized=true
+.data	start=0049d000	size=0x63e8	perm=rw-	initialized=true
+.gfids	start=004a4000	size=0x400	perm=r--	initialized=true
+.tls	start=004a5000	size=0x200	perm=rw-	initialized=true
+.rsrc	start=004a6000	size=0x5400	perm=r--	initialized=true
+.reloc	start=004ac000	size=0x7200	perm=r--	initialized=true
+tdb	start=ffdff000	size=0x1000	perm=rw-	initialized=true

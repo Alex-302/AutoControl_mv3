@@ -1,0 +1,9 @@
+{
+  "allowed_origins": [
+    "chrome-extension://lkaihdpfpifdlgoapbfocpmekbokmcfd/"
+  ],
+  "path": "ac_zone_helper.exe",
+  "type": "stdio",
+  "description": "AutoControl zone classifier helper (external MSAA, no hooks)",
+  "name": "com.autocontrol.zonehelper"
+}
