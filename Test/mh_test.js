@@ -2980,6 +2980,55 @@ try {
     false, (out.trim().split('\n')[0] || e.message.split('\n')[0]) + ' — run: node Test/_tools_index.js');
 }
 
+// ---------- B60. copyLinks DOM-free extraction (2026-10-09) ----------
+// `_E` (file95, the copyLinks action) used to walk the selection-as-HTML with
+// `_Uu(g).querySelectorAll(...)`. `_Uu` (file67) starts with
+// `a instanceof DocumentFragment` and the SW has no DOM -> it threw
+// `ReferenceError: DocumentFragment is not defined` (live Canary 156 repro,
+// Docs/GOTCHAS.md "Actions (misc)"). `_E` now extracts the URLs from the HTML
+// STRING via `_hB` (no DOM). This pins:
+//  - link/img/video/audio/background-image kinds + document order;
+//  - href > src > <source> > background priority (incl. the old path's quirk:
+//    an element matched via imgRes still yields its href/src first);
+//  - entity decoding (`&amp;` in URLs, `&quot;` in style) + script/comment skipping;
+//  - the no-params default (lnk) and disabled kinds staying out;
+//  - `_Uu` STILL throws in the SW (that is why _E must not call it);
+//  - `_E`'s source in the bundle no longer mentions _Uu/querySelectorAll.
+const FRAG = '<!-- <a href="https://ex.test/comment.png">c</a> -->'
+  + '<p style="color:red">t</p>'
+  + '<a href="https://ex.test/a?x=1&amp;y=2">A</a>'
+  + '<img src="https://ex.test/i.png">'
+  + '<img src="https://ex.test/src-wins.png" style="background-image: url(&quot;https://ex.test/bg.png&quot;)">'
+  + '<span style="background: url(https://ex.test/bg2.png)">s</span>'
+  + '<video src="https://ex.test/v.mp4"></video>'
+  + '<video><source src="https://ex.test/v2.mp4"><source src="https://ex.test/v3.mp4"></video>'
+  + '<audio><source src="https://ex.test/a2.mp3"></audio>'
+  + '<script>var fake="https://ex.test/script.png"</script>';
+const hb = (params) => vm.runInContext(`_hB(${JSON.stringify(FRAG)},${JSON.stringify(params)})`, ctx);
+check('copyLinks _hB: links only (+ entity decode)', hb({ lnk: true }) === 'https://ex.test/a?x=1&y=2',
+  JSON.stringify(hb({ lnk: true })));
+check('copyLinks _hB: no params -> default lnk', hb({}) === 'https://ex.test/a?x=1&y=2', JSON.stringify(hb({})));
+check('copyLinks _hB: img src (src wins over background-image)', hb({ img: true }) === 'https://ex.test/i.png\nhttps://ex.test/src-wins.png',
+  JSON.stringify(hb({ img: true })));
+check('copyLinks _hB: imgRes matches any element, href/src win, else the background URL',
+  hb({ imgRes: true }) === 'https://ex.test/src-wins.png\nhttps://ex.test/bg2.png', JSON.stringify(hb({ imgRes: true })));
+check('copyLinks _hB: video src + nested first <source>', hb({ vid: true }) === 'https://ex.test/v.mp4\nhttps://ex.test/v2.mp4',
+  JSON.stringify(hb({ vid: true })));
+check('copyLinks _hB: audio nested <source>', hb({ aud: true }) === 'https://ex.test/a2.mp3', JSON.stringify(hb({ aud: true })));
+const all = hb({ lnk: true, img: true, imgRes: true, vid: true, aud: true });
+check('copyLinks _hB: all kinds in document order, script/comment skipped',
+  all === ['https://ex.test/a?x=1&y=2', 'https://ex.test/i.png', 'https://ex.test/src-wins.png', 'https://ex.test/bg2.png',
+    'https://ex.test/v.mp4', 'https://ex.test/v2.mp4', 'https://ex.test/a2.mp3'].join('\n'),
+  JSON.stringify(all));
+check('copyLinks _hB: disabled kinds stay out (vid off -> no v.mp4)', !hb({ lnk: true }).includes('v.mp4'), '');
+const uuThrow = vm.runInContext('(()=>{try{_Uu("<b>x</b>");return "NO THROW"}catch(e){return e.name+": "+e.message}})()', ctx);
+check('copyLinks: _Uu still throws in the SW (DocumentFragment is not defined)',
+  uuThrow === 'ReferenceError: DocumentFragment is not defined', uuThrow);
+const eIdx = bundle.indexOf('_E=_cg(');
+const eSrc = eIdx >= 0 ? bundle.slice(eIdx, eIdx + 400) : '';
+check('copyLinks: _E uses DOM-free _hB (no _Uu / querySelectorAll in the action source)',
+  eSrc.includes('_hB(') && !eSrc.includes('_Uu(') && !eSrc.includes('querySelectorAll'), eSrc.slice(0, 120));
+
 // ---------- summary ----------
 setTimeout(() => {
   console.log('---');

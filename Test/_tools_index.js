@@ -29,6 +29,7 @@ const SKIP = new Set([SELF, 'mh_test.js', 'SCRIPTING-API-TEST.js', 'README.md'])
 
 // Category by filename prefix, in display order.
 const CATS = [
+  [/^verify_/, 'Validation (run before handing a change over)'],
   [/^(cdp_|ac_swlog_)/, 'CDP / SW-console tools (drive a browser through the DevTools port)'],
   [/^(_probe_|_bench_)/, 'Probes & benchmarks (a PHYSICAL test is needed: the engine drops synthetic input)'],
   [/^zone_/, 'Zone tools (test triggers, probes, the regression suite)'],

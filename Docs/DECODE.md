@@ -284,6 +284,9 @@ deploys it on a fresh install/repair with no manual copying.
 | `_Cr(a,b)` | Badge setter | `chrome.action.setBadgeText` + `setBadgeBackgroundColor` — `_Cr("Wait","#F00")`, `_Cr(" OK ","#0F0")`; `_Cr("")` clears (toasts are invisible in SW — §7-10; badge is the SW-visible channel) |
 | `_Wd` | Input element | File input for import/export |
 | `_Fj` | Read file | Reads selected file |
+| `_Bf` | 490 | Native selection-read type (`_qi`): the focused control's selection, `{timeout,format}` |
+| `_4g` | 91 | Clipboard/selection format: CF_HTML |
+| `_fd` | 1 | Clipboard text format (request); native answers `trueFmt` 13 |
 
 ## Config/Type-60 internals (file25.js, file3.js)
 | Obfuscated | Meaning | Description |
@@ -364,6 +367,12 @@ deploys it on a fresh install/repair with no manual copying.
 | `_Zt/_It/_3r` (file41) | Clipboard write | `_Zt(a,b,c="")` → `_Lk(286,{data,fmt,[c]:!0},cb)`; `_It` appends text (per-id buffer `_os`); `_3r` writes image from a file |
 | `_yw/_aw/_ag` (file41) | Clipboard read | `_yw(fmt)` → `_Lk(280,fmt,cb)`; `_aw` = text getter (joins the `_zo` buffer); `_ag` normalizes (decodes image b64, chunked getter `_Yi`) |
 | `_gp(b)` (file95) | Native action cmd | `_Lk(285,{cmd:b},...)` — `_gp(2)` = clpbrdPaste |
+| `_qi(t,f)` (file41) | Selection read (native 490) | `_Lk(_Bf,{timeout:t,format:f},cb)` → `{content,format,size,trueFmt}`; `_qi(t)` = TEXT of the focused control's selection, `_qi(t,91)` = CF_HTML; omnibox → text = address bar, CF_HTML `{}` (2026-10-09) |
+| `_E` (file95) | copyLinks action | `_qi(700,91)` → `_hB` DOM-free extraction (2026-10-09 fix) → `_It(clpbrd,…)`; writes an EMPTY string when the read answers `{}` |
+| `_Hp` (file95) | extractURLs action | resolves `<selection>`/text and keeps scheme-prefixed URLs (`https?|file|ftp|telnet|chrome|chrome-extension|edge://`, `news|about|data|magnet|view-source:`); SW-safe (no DOM) |
+| `_hB` (file95) | DOM-free URL extraction | scans the CF_HTML fragment string (comments/script/style skipped); kinds lnk/img/imgRes/vid/aud; priority href>src>`<source>`>background; decodes `&amp;`/`&quot;` etc. |
+| `_Uu` (file67) | HTML→DocumentFragment | `if(a instanceof DocumentFragment)return a;` then `document.createElement("template")` — **throws `ReferenceError: DocumentFragment is not defined` in the SW** (no DOM globals); sw.js proxies it for the BGScript iframe case only |
+| `_4o` (file41) | CF_HTML parser | pure string: `{fragment, sourceURL}` from `<!--StartFragment-->…<!--EndFragment-->` — SW-safe |
 
 ## MV3 Shim (mv3_native_shim.js)
 | Symbol | Description |

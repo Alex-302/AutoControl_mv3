@@ -213,6 +213,16 @@
 
 #### Triggers & actions
 
+- **"Copy selected URLs" works again (2026-10-09).** The action that copies the
+  URLs of the links (and optionally images/videos/audio) inside the selected
+  text did nothing in the MV3 port: it started, then failed silently — no
+  clipboard write, no error visible to the user. The selection is read as HTML
+  and the action walked it with browser DOM calls, which do not exist in the
+  extension's service worker (the MV2 background page had them). The action now
+  extracts the URLs directly from the HTML text, with the same element kinds,
+  order and priority as before (link > image/video/audio source > CSS
+  background image) and with HTML entities decoded. The clipboard content for
+  a selection without URLs is unchanged (an empty clipboard, as in MV2).
 - **Switching tabs with a mouse wheel is instant again (2026-10-05).** The
   previous round made the worker ask for the tab under the cursor before EVERY
   mouse-over action — including actions that never use that tab (switch to the
