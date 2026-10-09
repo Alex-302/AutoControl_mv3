@@ -600,7 +600,8 @@ Tuples `[2|_N, x, y, hold]` (mouse moves) are only used by the full sendInput en
 | 365 | `_si` | → | Topmost |
 | 370+ | — | → | (—) |
 | 400 | `_ms` | → | Window move `{win,x,y,noNotif}` |
-| 403–450, 452–490 | — | → | (—) |
+| 403–450, 452–489 | — | → | (—) |
+| 490 | `_Bf` | → | Selection of the FOCUSED control `{timeout, format}` → `{content, format, size, trueFmt}` (same shape as the clipboard read); format 91 (`_4g`) = CF_HTML, default = text. Callback INSIDE content (with 240/285 — file61.js `_Lk`). Browser-UI controls (omnibox) answer text = the address-bar string as displayed (Chrome's decoded form, `%0A` still encoded), CF_HTML = `{}`. Verified live 2026-10-09 (copyLinks/extractURLs probes, Canary 156) |
 | 451 | `_ya` | → | Native diagnostics `{PBC, actWinMine, appUserModelIDs, downKeys, focusWin, ...}` (sent before type 55, see sec. 18) |
 | 470 | `_2p` | → | Resolve special-folder path `{content:CSIDL}` → path string (16 = Desktop; file50 `_Pf` cache) |
 | 704 | `_R` | ← | Version `{verNum}` |

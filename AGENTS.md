@@ -24,18 +24,31 @@
 | Feature status & port gaps | `Docs/FEATURES-MV3.md` |
 | MV2→MV3 coverage | `Docs/MV2-MV3-coverage.md` |
 | Scripting API reference | `Docs/SCRIPTING-API-SUMMARY.md` |
+| Change handoff (what a finished change must state) | `Docs/CHANGE-HANDOFF.md` |
 | Fix chronology | `CHANGELOG.md` |
 | **Open items (mouse-over zones)** | `Docs/TODO-mouseover-zones.md` |
 | **Open items (menu-item zones 41-51)** | `Docs/TODO-menu-items.md` |
 | **Open items (helper auto-heal)** | `Docs/TODO-helper-autoheal.md` |
 | Historical one-offs | `Docs/archive/`, `Test/archive/README.md` |
 
+## Change routing - read before editing
+
+| If the change touches | Read first |
+|---|---|
+| engine patch / cave bytes | `Docs/BUILD-NATIVE.md`; `Docs/GOTCHAS.md` (native lifecycle) |
+| helper / zone classification | `Test/README.md`; `Docs/GOTCHAS.md` (triggers & actions) |
+| SW gate / triggers / actions | `Docs/GOTCHAS.md` (triggers & actions); symbols -> `Docs/DECODE.md` |
+| bundle sources | `Docs/BUNDLE-BUILD.md` (rebuild rules) |
+| CDP / live browser checks | `Docs/CDP-DEBUGGING.md` |
+| settings UI | `Docs/GOTCHAS.md` (UI / settings) |
+| user-visible behavior | `CHANGELOG.md` + the matching `Docs/FEATURES-MV3.md` row |
+
 ## Critical rules (read first)
 
 1. **Scope**: work ONLY on this repository's files; any create/copy/modify outside needs the user's explicit confirmation — every time. Full text below.
 2. **`ext-mv2/` is the upstream baseline — DO NOT EDIT.**
 3. **`mv3-build/` is the shipped artifact**: English-only code, keep it clean; dev tools/harnesses live in `Test/`.
-4. **Verify every change**: `node Test/mh_test.js` → `SUMMARY: N pass, 0 known gaps, 0 FAIL` (exit 1 on FAIL). Native patch edits → the full proof chain (`Docs/BUILD-NATIVE.md`).
+4. **Verify every change**: `node Test/mh_test.js` → `SUMMARY: N pass, 0 known gaps, 0 FAIL` (exit 1 on FAIL; quick full pass: `node Test/verify_all.js`). Native patch edits → the full proof chain (`Docs/BUILD-NATIVE.md`).
 5. **Bundle list edits** → rebuild `sw_core_bundle.js` (recipe: `Docs/BUNDLE-BUILD.md`); `file77.js` MUST stay after `file48.js`.
 6. **CDP**: before launching a debug browser ALWAYS ask which Chrome variant/profile (`Docs/CDP-DEBUGGING.md`).
 7. **Never**: delete `window._Lk`; `taskkill /F` the engine; give a test trigger a `sctnId` that does not exist; copy files outside the repo — details in `Docs/GOTCHAS.md`.
@@ -134,6 +147,16 @@ This includes comments, log strings, and error messages in `sw.js`,
   `node Test/mh_test.js` — expect `SUMMARY: N pass, 0 known gaps,
   0 FAIL` (exit 1 on FAIL). Filter: `2>&1 | Select-String -Pattern
   "PASS|FAIL|GAP|SUMMARY"`.
+- Quick full pass: `node Test/verify_all.js` - harness + tool inventory (+ the
+  byte proof when native files changed), one verdict line. A convenience, not
+  a replacement for the live run below.
+- **A live run is part of the change, not a bonus.** For anything real input
+  can reach, the change note states the browser build + OS, the physical
+  action (wheel / hotkey / click) and what was observed (SW log marker,
+  negative control). A diff read, a green harness or a type check is not a
+  live run; if it was not run, write why and what stays unverified.
+- Describe finished changes per `Docs/CHANGE-HANDOFF.md` (what/why, surfaces,
+  validation, live run, evidence, risks).
 - You MUST keep `mh_test.js` current — every new fix ships with a smoke test
   (`[PASS]`/`[FAIL]`/`[GAP ]`/`[FIXED?]`). When a `[GAP ]` stops reproducing,
   update `Docs/FEATURES-MV3.md` §7.
@@ -279,7 +302,8 @@ otherwise the next session starts from zero. Concretely:
 - This repo's own docs: `README.md` (install guide — user-facing),
   `Docs/BUILD-NATIVE.md` (rebuild the helper / patch the engine bit-for-bit),
   `Docs/GOTCHAS.md` (known pitfalls), `Docs/CDP-DEBUGGING.md`,
-  `Docs/MV3-ARCHITECTURE.md`, `Docs/BUNDLE-BUILD.md`, `Test/README.md`
+  `Docs/MV3-ARCHITECTURE.md`, `Docs/BUNDLE-BUILD.md`,
+  `Docs/CHANGE-HANDOFF.md` (change notes), `Test/README.md`
   (test toolset), `Docs/NATIVE_PROTOCOL.md`, `Docs/DECODE.md`,
   `Docs/archive/RIGHT-CLICK-ISSUE.md`, `Docs/FEATURES-MV3.md`, `CHANGELOG.md`.
 

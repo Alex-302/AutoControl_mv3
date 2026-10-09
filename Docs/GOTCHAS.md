@@ -915,6 +915,31 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
 
 ### Actions (misc)
 
+- **`copyLinks` ("Copy selected URLs") — FIXED 2026-10-09 (found live 2026-10-06).** Symptom was:
+  the action starts (`[AC-ACT] ACT action=copyLinks`), then dies silently - no clipboard write, no
+  `OK`, only a telemetry `[AC-TEL] event=error` (invisible while telemetry is off). Reproduced with
+  a PHYSICAL hotkey on Canary 156, on a `data:` page AND on `https://example.org` - so it is NOT
+  about non-site tabs. Root cause (CONFIRMED by a direct SW probe 2026-10-09): `_E` (file95.js) read
+  the selection-as-HTML through `_Uu` (file67.js), whose FIRST statement is
+  `if (a instanceof DocumentFragment) return a;` - `DocumentFragment` is not a global in a service
+  worker, so it threw `ReferenceError: DocumentFragment is not defined` BEFORE reaching its
+  `document.createElement("template")` (the earlier wording blamed createElement - corrected).
+  MV2 ran the same code on the background page, which HAD a DOM. SECOND failure mode (same action,
+  no focused CF_HTML): when native 490 answers `{}` (e.g. focus in the browser UI), `_E` skipped the
+  parsing branch and wrote an EMPTY string to the clipboard with `OK` - silent data loss; that is
+  MV2-parity (the `if(e.format==_4g)` guard) and stays. FIX: `_E` now extracts the URLs from the
+  HTML STRING with the new DOM-free `_hB` helper (file95.js) - same selector set/order/priority
+  (href > src > `<source>` > background-image), entities decoded (`&amp;` etc.), comments/script/
+  style skipped; bundle rebuilt (259912 → 260633, arrow OK). mh_test B60 pins `_hB` (kinds, order,
+  priority, entity decode, script/comment skip, default lnk) and that `_Uu` still throws in the SW.
+  Native type **490** (`_Bf`) = the selection of the FOCUSED control: `_qi(timeout)` returns it as
+  TEXT, `_qi(timeout, 91)` as CF_HTML (format 91); documented in `Docs/NATIVE_PROTOCOL.md`.
+  If the OMNIBOX is focused, the TEXT is the address-bar URL (Chrome's displayed form - `%0A`
+  stays encoded) and CF_HTML is `{}` - observed live 2026-10-09 (agent run via CDP + keybd_event;
+  the engine ignores injected input while `advOpts.ignInjInp` is not "no" - see
+  `Docs/CDP-DEBUGGING.md`). `extractURLs` WORKS (re-verified live 2026-10-09: page text, textarea
+  and the omnibox case above; it extracts ALL scheme-prefixed URLs from the selected TEXT by
+  design; a scheme-less `www.example.org/...` is NOT matched).
 - **Play audio (FIXED 2026-08-09)** — the original lazy-loads file53.js via
   a script tag (a NO-OP in the SW) → the action hung the chain AND the
   queue; file53 also needs AudioContext/speechSynthesis (no worker APIs).

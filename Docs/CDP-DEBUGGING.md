@@ -190,6 +190,22 @@
     does `uVar5 = FUN_004156f0(...); return uVar5;` — **match == consume**
     (`functions.csv`: `004156f0;FUN_004156f0;1034;1`). Documents and bytes are
     kept in sync by mh_test B53c.
+- **Injected input vs. `advOpts.ignInjInp` (2026-10-09)** — the engine ignores
+  `keybd_event`/`SendInput` input while `advOpts.ignInjInp` is `"kbd"`/`"all"`
+  (it was `"all"` during the copyLinks session, so `ac_keys.ps1` alone did
+  NOTHING). To self-test: read `advOpts` from `chrome.storage.local`, set
+  `ignInjInp:"no"`, call `_Jf(advOpts)` (native type 65 — the advOpts config),
+  run the test, then RESTORE the original value the same way. Two focus
+  gotchas: the ALT-hold foreground trick leaves the focus in the browser UI, so
+  the target page must be re-clicked with the DPI-aware
+  `_probe_mouse.ps1 -Action lmb -X <px> -Y <py>` (physical px = CSS ×
+  `devicePixelRatio`; `_ac_mouse.ps1` clicks at the CURRENT cursor position —
+  its `X/Y` only work for `-Action move`) and the keys then sent with
+  `ac_keys.ps1 -NoForeground`. `ac_keys.ps1` treats DIGIT tokens as VK numbers
+  (`"1"` = VK 1, the left mouse button!) — for the '1' KEY pass `49`
+  (e.g. `-Combo "162+160+49"`). Clipboard read/write without a DOM, from the
+  SW: `_yw(_fd)(cb)` (native 280) / `_Lk(_Hi,{data:"TEXT",fmt:_fd,"":true},cb)`
+  (native 286).
 - **⚠ NEVER `delete window._Lk`** — the shim's `_Lk` lives inside its IIFE
   and `window._Lk` is the ONLY global reference; deleting it breaks
   `closeMenu`/`moveSelectMark` (free-variable `_Lk` → ReferenceError → the

@@ -5,6 +5,13 @@
 #   powershell -ExecutionPolicy Bypass -File Test\ac_keys.ps1 -Combo "ctrl+m"
 #   powershell -ExecutionPolicy Bypass -File Test\ac_keys.ps1 -Combo "alt+e77"
 #   (vk numbers may be given directly: "162+77" = Ctrl + 'M')
+#
+# NOTE (2026-10-09): digit tokens are VK NUMBERS - "1" is VK 1 (the left mouse
+# button), NOT the '1' key; for the '1' key pass 49 ("162+160+49" = Ctrl+Shift+1).
+# The ALT-hold foreground step can leave the focus in the browser UI: to keep
+# the PAGE focused, re-click it (DPI-aware _probe_mouse.ps1) and use
+# -NoForeground. The engine ALSO drops this input while advOpts.ignInjInp is
+# "kbd"/"all" (see Docs/CDP-DEBUGGING.md).
 param(
   [string]$Combo = "ctrl+m",
   [int]$HoldMs = 80,
