@@ -2,9 +2,10 @@
 
 **What this folder is:** everything the extension needs *outside* the browser —
 the native messaging host (the "engine" the extension talks to) plus our own
-zone-classifier helper. Nothing here is loaded by Chrome directly: the files are
-**copied by hand** into `%LOCALAPPDATA%\AutoControl\` and registered in the
-registry (see `README.md` in the repo root, §4.2/§4.3).
+zone-classifier helper. Nothing here is loaded by Chrome directly: it is the
+**source/reference copy** of what the extension deploys into
+`%LOCALAPPDATA%\AutoControl\` and registers in the registry by itself (root
+`README.md` §6.1/§6.3); the manual copy/registry steps are only a fallback.
 
 > Why these binaries are in the repository at all: the AutoControl engine is
 > **abandoned** (no updates will ever come) and it needs a byte patch to work on
@@ -36,9 +37,11 @@ AutoControl_native/
 ```
 
 **Which one do I install?** → `patched/` (that is what actually works today).
-`original/` is only the input of the patch script and a reference for hash
-comparisons. Nothing in `original/` may be modified — the patch script verifies
-its SHA-256 and refuses to run on anything else.
+The extension deploys this build automatically from its bundled payload; the
+folder is kept as the reproducible source (and for a manual install into
+another checkout). `original/` is only the input of the patch script and a
+reference for hash comparisons. Nothing in `original/` may be modified — the
+patch script verifies its SHA-256 and refuses to run on anything else.
 
 ### `AutoControlZero.exe` — do not skip it
 The host manifest points at `AutoControlZero.exe`, never at the engine: Zero is
@@ -54,9 +57,11 @@ cache never refreshes over the tab strip, and an MSAA query from its input hook
 deadlocks). The service worker asks the helper before executing any
 mouse-over-gated trigger.
 
-Install: copy `ac_zone_helper.exe` + `com.autocontrol.zonehelper.json` to
-`%LOCALAPPDATA%\AutoControl\` and register the host (one `reg add` line, see the
-root `README.md` §4.3). The helper runs only while a browser talks to it.
+Install: automatic — the extension writes `ac_zone_helper.exe` +
+`com.autocontrol.zonehelper.json` into `%LOCALAPPDATA%\AutoControl\` and
+registers the host (all vendor branches) on the first successful handshake; the
+manual `reg add` fallback is in the root `README.md` §6.3. The helper runs only
+while a browser talks to it.
 
 ## Rebuild / verify (bit for bit)
 
@@ -81,10 +86,12 @@ Full byte-level explanation (addresses, the code cave, the runtime table):
 | `patched/AutoCtrl_2025.4.22.0.v19.exe` | 695 296 | `1A10EDD191B80A80` | `patches/patch_zones_v19.js` |
 | `ac_zone_helper.exe` | 22 528 | `C8466CF7CE1AC40C` | `Test/build_native.ps1` (Roslyn, deterministic) |
 
-> The engine the *extension* unpacks on a fresh install is a different file
-> (`mv3-build/file76.dat`, the distro build) — it has **no** zone fix, so a fresh
-> install still needs `deploy_patched_engine.ps1` (or a manual copy of
-> `patched/`) before mouse-over zones work.
+> The engine the *extension* deploys comes from its own payload
+> (`mv3-build/file76.dat`) — since 2026-10-10 that payload **is the patched v19
+> build**, and the zone helper is deployed from `mv3-build/ac_zone_helper.dat`
+> and registered automatically (all known browser branches). A fresh install
+> therefore needs no scripts; `deploy_patched_engine.ps1` remains a development
+> tool for manual deploys into another checkout.
 
 ## History / other patch scripts
 

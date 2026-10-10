@@ -27,7 +27,7 @@
 | `_yp` | FormData builder | `a => { let b = new FormData; for (let [c,d] of a) b.append(c,d); return b }` — used by `_Ot` |
 | `_mo` | (domain) | `"www.autocontrol.app"` (file10.js) — site-bridge gate host |
 | `_Zo` | (endpoint base — DEAD domain) | `"https://" + _mo + "/"` — kept ONLY for the two endpoints that have no mirror page: telemetry `_Zo + "appEvent"` (default OFF) and the animated-demo base in `file36` (`_Zo` as the base URL for `/demos/<name>/` + `/file9.js`). **Do NOT point user-visible links here** — they go through `_Zl` (AGENTS rule 7). |
-| `_Zl` | (mirror base — the working site copy) | `` `https://${_9n}/AutoControl_mv3/https@${_mo}/` `` (file10.js, added 2026-09-13) = `https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/`. Every page carries `.htm`; `scrtDoc` is the DIRECTORY `_Zl+"scripting/"` and the sub-page call sites append `<name>.htm` themselves (`file28/file33/file65/file75` — `file75` builds the `ACtl.*` apiRef links). `_4a` is extended in `file78_mv3.js` AND `file78.js` (both loaded by `main.html` → the LATER one wins — keep the two in sync); its keys feed the tooltips in `file28/file33/file44/file65/file70/file75/file80` + `file30`. `chromium-bugs.htm` was restored into the mirror from the 2023-09-03 Wayback snapshot (raw `id_` download, archive toolbar stripped, internal links re-pointed); the ONLY remaining 404 is `files/Native-Component.exe` (never archived — the port installs the native component from its own bundle). |
+| `_Zl` | (mirror base — the working site copy) | `` `https://${_9n}/AutoControl_mv3/https@${_mo}/` `` (file10.js, added 2026-09-13) = `https://alex-302.github.io/AutoControl_mv3/https@www.autocontrol.app/`. Every page carries `.htm`; `scrtDoc` is the DIRECTORY `_Zl+"scripting/"` and the sub-page call sites append `<name>.htm` themselves (`file28/file33/file65/file75` — `file75` builds the `ACtl.*` apiRef links). `_4a` is extended in `file78_mv3.js` AND `file78.js` (both loaded by `main.html` → the LATER one wins — keep the two in sync); its keys feed the tooltips in `file28/file33/file44/file65/file70/file75/file80` + `file30`. `chromium-bugs.htm` was restored into the mirror from the 2023-09-03 Wayback snapshot (raw `id_` download, archive toolbar stripped, internal links re-pointed); the ONLY remaining 404 is `files/Native-Component.exe` (never archived — the port installs the native component from its own bundle). ⚠ The `support` key (`groups.google.com/g/autocontrol_app`) was REMOVED from `_4a` on 2026-10-10 (dead forum, user request) — never reintroduce it; `mh_test` B62 scans every `mv3-build` js/html for the URL. |
 | `_9n` | (mirror host) | `"alex-302.github.io"` (file10.js) — GitHub Pages mirror of the site; accepted by the webSettgs gate since 2026-08-29 |
 | `_Zr(tabId)` | Site-bridge injection (file62_mv3) | On `tabs.onUpdated` "complete" (`_Fd`=6) for a tab whose hostname is `_mo`/`_9n`: `chrome.scripting.executeScript({target:{tabId}, world:"ISOLATED", injectImmediately:true, func, args:["2025.4.22"]})` — MV2 parity (tabs.executeScript = isolated world; the MAIN-world `__acInjectCode` has no `chrome.runtime`). ⚠ `ScriptInjection` has NO `runAt` (only tabs.executeScript/contentScripts.register do) — using it throws `Unexpected property: 'runAt'` SYNCHRONOUSLY (the .catch never fires); the equivalent is `injectImmediately:true` (Chrome 102+). Injects: `window._ACtlExt[ver]`, a `webSettgs` listener sending `{[btn.value]: decodeURI(closest("a").href)}` to the SW, and an immediate `redirSttgs` probe. ⚠ Hardened 2026-08-29: `(document.head||document.documentElement)` (head can be NULL at document_start) + try/catch (listener registers FIRST). sw.js `__acReinjectSiteBridge()` also calls `_Zr` for already-open site tabs at SW start (MV2's `_zg` re-injection; a tab opened before SW start otherwise never gets the bridge — onUpdated "complete" won't re-fire). ⚠ Hardened 2026-08-30: `c()` guards `chrome.runtime.sendMessage` + the `webSettgs` listener wraps the call in try/catch — after an extension reload the OLD injected listener (dead context) throws `Extension context invalidated` / `chrome.runtime undefined` on every Import/View click (noise; the NEW injection still handles the event). The stale listener can only be purged by reloading the site tab |
 | `_ja(url)` | Site-import (SW re-implementation 2026-08-29) | MV2: file78 `_ja` = fetch the `.acs` (`_1p`+`_mg`) → `_kp(b,"add",!0)` → `_uw` → `_lj` (UI: toasts, permission prompts). MV3: file78 is NOT bundled → `window._ja` undefined → file48 `m()` `imprtSttgs` died in the SW. sw.js re-implements `window._ja` with the UI-free pipeline: fetch → `JSON.parse` → `_Qj({}.add(_2d,data))` (`_2d` = default shape `{trigActList:[],customEntities:{},toolbarBtns:{},sections:[]}`) → `_9i(_2d,cb)` (load existing) → `_K(l,merged,true,true)` (dedupe/renumber) → `_4p(l,merged,false)` (merge-add) → `_bd(out)` (save) → `_ku()` (config rebuild → native type 60). No toast (page-side `_lj` not ported). ⚠ file48 `m()` routes `{imprtSttgs}` via `(window._ja||l)(url)` — the MV2 `l` (`_Es` debounce → `_0j()` → settings-page window via `_0s()`/`chrome.extension.getViews({tabId})[0]`) CANNOT work in the MV3 SW (getViews is empty) — direct `window._ja` call required |
@@ -131,8 +131,14 @@ The extension ships its two native payloads as **obfuscated blobs**, not as
 
 | file | size | decodes to |
 |---|---|---|
-| `mv3-build/file76.dat` | 695296 | `AutoCtrl_2025.4.22.0.exe` — sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09` == `AutoControl_native/original/` (the UNPATCHED engine) |
+| `mv3-build/file76.dat` | 695296 | `AutoCtrl_2025.4.22.0.exe` — **patched v19** (sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`; blob md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`). Deployed and kept in sync by the extension itself |
+| `mv3-build/ac_zone_helper.dat` | 22528 | `ac_zone_helper.exe` — sha256 `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (blob sha256 `E79EF3F80365BD6C8C7655D58BE9C13B9B798063463978E80C1597A5E8A97629`); deployed + registered by the extension |
 | `mv3-build/file69.dat` | 332800 | `AutoControlZero.exe` — sha256 `994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38`; the same binary doubles as the installer (`Native-Component.exe`, `/noConfirm`) |
+
+Historical (before 2026-10-10): `file76.dat` decoded to the pristine distro
+engine (sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09`,
+historical blob md5 `6BF791F5B2D267834A52A47E8CC3C2F4` of the pre-2026-10-10
+payload); that build stays in `AutoControl_native/original/` and `ext-mv2/`.
 
 `_7g(a, binary=false)` (file13.js) is a **byte-wise reversible transform**:
 reverse the array and subtract a 5-byte key plus the destination index:
@@ -140,12 +146,16 @@ reverse the array and subtract a 5-byte key plus the destination index:
 - decode: `exe[i] = (dat[len-1-i] - KEY[i%5] - i) mod 256`, `KEY = [94,14,77,49,13]`
 - encode: `dat[len-1-i] = (exe[i] + KEY[i%5] + i) mod 256`
 
-**Verified bit-for-bit in both directions** (2026-09-13): decoding
-`file76.dat` yields sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09` (= the pristine engine) and encoding
-that engine reproduces `file76.dat` byte-for-byte. Consequence: the bundled
-payload can be replaced by ANY build of the same size — e.g. the patched v19
-engine — and the extension's own `unpackBundledEngine()` (type 250 write)
-deploys it on a fresh install/repair with no manual copying.
+**Verified bit-for-bit in both directions** (2026-09-13; re-verified with the
+patched payloads 2026-10-10): decoding `file76.dat` yields the patched v19
+engine and `ac_zone_helper.dat` yields the helper exe (byte-identical to
+`AutoControl_native/`); encoding either build reproduces its payload
+byte-for-byte. Consequence: a bundled payload can be replaced by ANY build of
+the same size, and the extension's own deploy paths (`unpackBundledEngine()`
+for the engine, the NATIVE BUNDLE SYNC for both — type 250 writes) deploy it on
+a fresh install/repair with no manual copying. Standalone tooling:
+`Test/dat_codec.js`; pins: mh_test B61/B62; protocol:
+`Docs/BUILD-NATIVE.md` §D.
 | `_Sp` | Import from file | `storage.local.clear()` + set — merges old `customEntities` missing from the file (round-17 fix: scripts survive import) |
 | `_qj` | Write settings file | `settings.dat` via type 250 |
 

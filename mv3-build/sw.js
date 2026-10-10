@@ -1179,12 +1179,23 @@
         // chrome.runtime.lastError. Both are EXPECTED here: the host exits
         // during Emergency Repair (we taskkill the engine and drop the port)
         // and when the host is not installed.
-        void chrome.runtime.lastError;
+        // AC-MV3 (2026-10-10): a "host not found" disconnect during the
+        // uninstall release is the proof that the native is REALLY gone (the
+        // lastError usually surfaces HERE, not right after connectNative) —
+        // the next successful connect is the reinstall and forces the sync.
+        const __discErr = chrome.runtime.lastError;
+        void __discErr;
+        if (__discErr && Date.now() < __acZoneReleasedUntil) __acUninstallDone = true;
         onDisc(gen);
       });
       portConnectedOk = false;
       if (chrome.runtime.lastError) {
         console.warn("[AC-MV3] Connect error:", chrome.runtime.lastError.message);
+        // AC-MV3 (2026-10-10): a failed connect during the uninstall release is
+        // the proof that the native is REALLY gone — the next successful connect
+        // is the reinstall and must force the bundle sync (the throttle would
+        // otherwise skip it and the helper would be missing until a reload).
+        if (Date.now() < __acZoneReleasedUntil) __acUninstallDone = true;
         scheduleRetry();
       } else {
         console.log("[AC-MV3] Port created, starting handshake...");
@@ -1192,6 +1203,7 @@
       }
     } catch(e) {
       console.error("[AC-MV3] Connect exception:", e.message);
+      if (Date.now() < __acZoneReleasedUntil) __acUninstallDone = true;
       scheduleRetry();
     }
   }
@@ -1251,11 +1263,21 @@
 
   /**
    * Schedule the next reconnect attempt with exponential backoff (capped at
-   * MAX_RECONNECT_DELAY); stops permanently when the host never connected and
-   * the failure cap is reached.
+   * MAX_RECONNECT_DELAY). After __acMaxNeverConnectedFailures CONSECUTIVE
+   * failures the loop switches to a SLOW 60 s retry instead of stopping: the
+   * host can come back (a reinstall in another browser registers all branches)
+   * and a fresh handshake restores gestures without any user action (user
+   * report 2026-10-11: browser B needed Emergency Repair after A was
+   * reinstalled). The old cap did not actually stop the loop — onConnError
+   * called scheduleRetry unconditionally, so the log showed 90+ attempts
+   * every ~9 s.
    */
   function scheduleRetry() {
     cleanup();
+    if (errors >= __acMaxNeverConnectedFailures) {
+      reconnectTimer = setTimeout(connect, 60000);
+      return;
+    }
     const delay = Math.min(MAX_RECONNECT_DELAY,
       Math.pow(Math.max(retries, errors) + 1, 0.4) * 1000);
     reconnectTimer = setTimeout(connect, delay);
@@ -1266,7 +1288,7 @@
   // ("AutoCtrl_2025.4.22.0.exe not found") and wrote it into the host folder
   // via the running native (type 250, chunked; the Zero proxy handles it).
   // The port dropped that branch, so the engine had to be copied by hand
-  // (README S2.1 step 4). Restored here.
+  // (README section 6.2). Restored here.
   //
   // Stale processes: every reconnect spawns a new Zero -> new engine; the old
   // engine processes can linger and CRASH the fresh one on type 140
@@ -1509,6 +1531,19 @@
       console.log("[AC-MV3] proceedAfterFileCheck skipped (handshake already done)");
       return;
     }
+    // AC-MV3 (2026-10-10): after an uninstall, the FIRST successful connect that
+    // follows a FAILED one (__acUninstallDone) is the reinstall — leave the
+    // release window and FORCE the bundle sync (the 60 s throttle would skip it
+    // and the zone helper would stay missing until an extension reload; user
+    // report 2026-10-10). A connect that happens mid-uninstall (host still
+    // registered) must NOT clear the window — the helper must stay down until
+    // the uninstaller has finished.
+    if (__acUninstallDone) {
+      __acUninstallDone = false;
+      __acZoneReleasedUntil = 0;
+      __acNativeCheckForce = true;
+      console.log("[AC-MV3-NATIVE] native is back after the uninstall — forcing the bundle sync");
+    }
     portConnectedOk = true;
     connected = true;
     __acConnecting = false;
@@ -1533,7 +1568,12 @@
     // (file2.js `_nd` branch). Without this the install pane would re-appear
     // after every reload even with the native working. Triggers the debounced
     // storage.onChanged config rebuild — harmless (idempotent).
-    try { chrome.storage.local.set({ natHostInstalled: true }); } catch(e) {}
+    // 2026-10-11: also clear `__acUninstalling` HERE (any successful handshake
+    // means the native is back) — clearing it only in the __acUninstallDone
+    // branch could leave a stale marker when the browser never reconnected
+    // inside the 120 s release window, which would block the install-pane
+    // watcher (mv3_shim.js) after a later reinstall.
+    try { chrome.storage.local.set({ natHostInstalled: true, __acUninstalling: 0 }); } catch(e) {}
     __acNotReadyPings = 0;
 
     // AC-MV3 FIX (2026-08-08): Emergency Repair completion — the repair
@@ -1697,6 +1737,12 @@
     console.log("[AC-MV3] Native connected successfully!");
     // Broadcast nativeConfigReady above (inside the storage.get callback) is the
     // primary signal telling the page to run window enum + config chain.
+
+    // AC-MV3 NATIVE BUNDLE SYNC (2026-10-10): verify the deployed engine + zone
+    // helper against the bundled payloads (patched engine / helper) and deploy
+    // them when missing or outdated. Delayed so the config chain settles first;
+    // throttled inside (__acEnsureNativeBundle).
+    setTimeout(() => { try { __acEnsureNativeBundle(); } catch (e) {} }, 2500);
   }
 
   // Kill lingering AutoCtrl engine processes via the CURRENT native connection
@@ -1782,7 +1828,7 @@
               unpackBundledEngine().then(ok => {
                 if (gen !== __acConnGen) return; // superseded
                 if (!ok) {
-                  console.warn("[AC-MV3] Engine unpack failed — manual copy required (README S2.1 fallback)");
+                  console.warn("[AC-MV3] Engine unpack failed — manual copy required (see README section 6.2)");
                   onConnError("engine unpack failed", gen);
                   return;
                 }
@@ -1826,7 +1872,7 @@
                   unpackBundledEngine().then(ok => {
                     if (gen !== __acConnGen) return; // superseded
                     if (!ok) {
-                      console.warn("[AC-MV3] Engine unpack failed — manual copy required (README S2.1 fallback)");
+                      console.warn("[AC-MV3] Engine unpack failed — manual copy required (see README section 6.2)");
                       onConnError("engine unpack failed", gen);
                       return;
                     }
@@ -1850,7 +1896,7 @@
                   return;
                 }
                 console.error("[AC-MV3] Engine still missing after unpack — giving up. Check Task Manager for orphaned AutoCtrl_*.exe / AutoControlZero.exe processes (duplicates crash the fresh engine).");
-                console.error("[AC-MV3] Manual fallback: copy AutoControl_native\\patched\\AutoCtrl_2025.4.22.0.v19.exe over %UserProfile%\\AppData\\Local\\AutoControl\\AutoCtrl_2025.4.22.0.exe and reload the extension (README S2.1).");
+                console.error("[AC-MV3] Manual fallback: copy AutoControl_native\\patched\\AutoCtrl_2025.4.22.0.v19.exe over %UserProfile%\\AppData\\Local\\AutoControl\\AutoCtrl_2025.4.22.0.exe and reload the extension (README section 6.2).");
                 if (port) { try { port.disconnect(); } catch(e) {} port = null; }
                 connected = false;
               });
@@ -1955,6 +2001,9 @@
    */
   function onConnError(reason, gen) {
     if (gen !== undefined && gen !== __acConnGen) return; // stale port — ignore
+    // AC-MV3 (2026-10-10): the file-check timeout is the other "host really
+    // gone" signal during the uninstall release (see __acUninstallDone).
+    if (reason === "native not found" && Date.now() < __acZoneReleasedUntil) __acUninstallDone = true;
     connected = false;
     // CRITICAL (2026-08-04): reset the handshake state so a RECONNECT re-runs
     // the FULL handshake (file check → init 20 → 67 → config → 21). Without
@@ -1965,18 +2014,18 @@
     startupSent = false;
     type72Sent = false;
     if (port) { try { port.disconnect(); } catch(e) {} port = null; }
-    // Verified install path (2026-08-03, README S2.1): the UI installer
+    // Verified install path (2026-08-03, README section 4.1): the UI installer
     // ("Reinstall native component" twice, second = Repair) deploys
     // AutoControlZero.exe + manifest + the HKCU NativeMessagingHosts registry
     // key (a plain folder copy alone does NOT register the host). The engine
-    // AutoCtrl_2025.4.22.0.exe is NOT deployed by the installer - the extension
-    // unpacks the UNPATCHED distro engine from file76.dat, so copy the patched
-    // build (AutoControl_native\patched\) over it by hand, then reload.
+    // AutoCtrl_2025.4.22.0.exe is deployed by the EXTENSION itself from
+    // file76.dat (patched build) and the zone helper from ac_zone_helper.dat —
+    // no manual copying is needed (2026-10-10).
     console.warn("[AC-MV3] Native connection failed (" + reason + "). " +
       "Install steps: in the extension choose 'Reinstall native component' twice " +
-      "(second time 'Repair installation'), then copy AutoControl_native\\" +
-      "patched\\AutoCtrl_2025.4.22.0.v19.exe over %UserProfile%\\AppData\\Local\\AutoControl\\" +
-      "AutoCtrl_2025.4.22.0.exe and reload the extension (see README.md S2 / S4.4).");
+      "(second time 'Repair installation'); the extension then deploys the patched " +
+      "engine and the zone helper itself. Reload the extension if the connection " +
+      "does not come up (see README.md S4).");
     scheduleRetry();
   }
 
@@ -2011,24 +2060,28 @@
     else if (lived < 500) retries = Math.min(3, retries + 0.5);
     else if (lived > 3000) retries = 0;
 
-    // AC-MV3 FIX (2026-08-07): stop the auto-reconnect loop after N
-    // CONSECUTIVE failed connects — the host is gone (uninstalled, never
-    // installed, or a broken install). Retrying forever spawns Zero attempts
-    // + console noise with no chance of success (user VM: gens 2-50+ after
-    // uninstall — the earlier `!__acEverConnected` guard missed the
-    // uninstall-after-connect case). `errors` counts CONSECUTIVE failures:
-    // it resets on every successful handshake (proceedAfterFileCheck), so a
-    // temporarily-down-but-alive host (e.g. a Reinstall in progress) still
-    // reconnects when it comes back up. The install UI's z() sends
-    // {cmd:"reconnect"} (resets errors/retries) and B24's auto-reload
-    // covers the cached "host not found" case — a REAL install still
-    // connects without a manual reload.
+    // AC-MV3 FIX (2026-08-07, reworked 2026-10-11): after N CONSECUTIVE
+    // failed connects (host gone: uninstalled, never installed, broken
+    // install) the FAST loop stops — but a SLOW 60 s retry continues (see
+    // scheduleRetry), because the host can come back and must then be picked
+    // up without any user action. User report 2026-10-11: browser B needed
+    // Emergency Repair after A reinstalled the component — the old "stop
+    // forever" was also not actually in effect (onConnError scheduled its
+    // own fast retry, so the log showed 90+ attempts every ~9 s); the slow
+    // retry makes the intent explicit AND keeps auto-recovery.
+    // `errors` counts CONSECUTIVE failures: it resets on every successful
+    // handshake (proceedAfterFileCheck), so a temporarily-down-but-alive
+    // host (e.g. a Reinstall in progress) still reconnects when it comes
+    // back up. The install UI's z() sends {cmd:"reconnect"} (resets
+    // errors/retries) and B24's auto-reload covers the cached "host not
+    // found" case — a REAL install still connects without a manual reload.
     if (errors >= __acMaxNeverConnectedFailures) {
       console.warn("[AC-MV3] Native host not found " + errors +
-        "x in a row — stopping auto-retry. " +
+        "x in a row — switching to a slow 60 s retry (auto-recovers when the host returns). " +
         "Install the native component (install pane / Reinstall) or reload the extension.");
       broadcast({ type: "nativeDisconnected" });
-      return; // no scheduleRetry — wait for a page-driven reconnect
+      scheduleRetry();   // slow mode (see scheduleRetry) — no endless fast loop
+      return;
     }
 
     scheduleRetry();
@@ -2513,6 +2566,26 @@
     // (snipboard.io: E007 image data was not found on your clipboard).
     // Verified in mh_test.js: `userAPI dispatch: 1 answered of 1 listeners`.
     if (msg.type === "userAPI") return false;
+
+    // AC-MV3 (2026-10-10): the settings' "Uninstall native component" flow asks
+    // the SW to perform the WHOLE native cleanup (file30.js no longer runs the
+    // original installer — it removes only the Chrome key and dies on a locked
+    // directory). See __acUninstallNative.
+    if (msg && msg.cmd === "acUninstallNative") {
+      __acUninstallNative().then(ok => { if (sendRes) sendRes({ ok: !!ok }); });
+      return true;
+    }
+
+    // AC-MV3 (2026-10-10): native connection state query for the uninstall flow
+    // (file30.js). The page must reload into the install view only AFTER the
+    // native is really gone — clearing natHostInstalled while the SW can still
+    // reconnect lets the SW re-set it and the page keeps the normal UI (user
+    // report: after the uninstall the settings page sometimes stayed on the
+    // normal view instead of switching to the install pane).
+    if (msg && msg.cmd === "nativeState") {
+      if (sendRes) sendRes({ connected: !!connected, portOk: !!portConnectedOk, handshakeDone: !!handshakeDone });
+      return true;
+    }
 
     // AC-MV3 FIX (2026-08-12, FEATURES-MV3.md §7-15): file71 popup result
     // (button click / window close). The MV3 _Fo implementation
@@ -3272,6 +3345,11 @@
 
   chrome.runtime.onInstalled.addListener(det => {
     if (det.reason === "install") chrome.runtime.openOptionsPage();
+    // AC-MV3 (2026-10-10): an extension update/reload must not leave the
+    // deployed engine/helper behind the bundle — force the native bundle sync
+    // on the next handshake (and right now when already connected).
+    __acNativeCheckForce = true;
+    try { if (connected && handshakeDone) __acEnsureNativeBundle(true); } catch (e) {}
   });
 
   // AC-MV3 FIX (2026-08-08, FEATURES-MV3.md §7-7): NO chrome.action.onClicked listener here.
@@ -3671,6 +3749,8 @@
   } catch (e) {} // listener registration only — safe to ignore
 
   function __acZoneAsk(timeoutMs) {
+    // released for uninstall: do not reconnect (would respawn the helper)
+    if (Date.now() < __acZoneReleasedUntil) return Promise.resolve([-3]);
     // BURST CACHE (2026-09-12): one physical input event makes the engine emit
     // a 750 for EVERY trigger that matches its key — those arrive within a few
     // ms, and each one used to re-ask the helper. Between two of those queries
@@ -3991,7 +4071,349 @@
   //   2. the table must stay fresh while the cursor moves.
   // A periodic request solves both: it starts the helper after an SW restart,
   // keeps its background heartbeat alive and re-spawns it if it dies.
-  setInterval(() => { try { __acZoneAsk(300); } catch (e) {} }, 2500);
+  setInterval(() => {
+    if (Date.now() < __acZoneReleasedUntil) return;   // released for uninstall
+    // AC-MV3 (2026-10-11): the helper only matters while the engine is
+    // connected (the engine asks it for the zone table; a 750 can only arrive
+    // through the engine). Without this guard the interval kept calling
+    // connectNative(helper) every 2.5 s while the main native was gone (the
+    // uninstall window) — Chrome logged "Unchecked runtime.lastError:
+    // Specified native messaging host not found" each time (user log A,
+    // 2026-10-11). The helper is reconnected on demand by the next real ask.
+    if (!connected) return;
+    try { __acZoneAsk(300); } catch (e) {}
+  }, 2500);
+
+  // ======== NATIVE BUNDLE SYNC (2026-10-10): patched engine + zone helper ========
+  // The extension ships the PATCHED engine (file76.dat) and the zone helper
+  // (ac_zone_helper.dat). Both deployed copies are kept in sync with the bundle:
+  //   * engine missing/foreign/unpatched -> taskkill + type-250 write + a clean
+  //     reconnect (a fresh Zero spawns the new engine);
+  //   * zone helper missing/outdated -> write + `reg add` for every known
+  //     Chromium vendor branch (HKCU, no elevation) + a port reconnect to the
+  //     new exe; a poisoned per-SW host-lookup cache is healed by ONE extension
+  //     reload (same pattern as the fresh-install auto-reload).
+  // The check runs once per SW session (short throttle) after a successful
+  // handshake and is FORCED after an extension update/repair. The user-facing
+  // notice (file71 popup + chrome.notifications) fires only when a deploy
+  // actually failed. Full protocol: Docs/BUILD-NATIVE.md section D.
+  const __AC_ENGINE_EXE = 'AutoCtrl_2025.4.22.0.exe';
+  const __AC_HELPER_EXE = 'ac_zone_helper.exe';
+  const __AC_HELPER_MANIFEST = 'com.autocontrol.zonehelper.json';
+  const __AC_HELPER_DAT = 'ac_zone_helper.dat';
+  const __AC_NATIVE_CHECK_TTL = 60 * 1000;
+  // Bump when the registration payload changes (v2 = the engine host keys are
+  // added for every vendor branch, 2026-10-10): existing installs that carry an
+  // older marker re-register once, so the new keys appear without a helper
+  // rewrite.
+  const __AC_HOST_REG_VERSION = 2;
+  // Every known Chromium vendor branch (HKCU). Opera/Vivaldi/Edge/Brave keep
+  // their own keys; registering all of them is harmless and covers portables.
+  const __AC_HELPER_REG_KEYS = [
+    'HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.autocontrol.zonehelper',
+    'HKCU\\Software\\Google\\Chrome SxS\\NativeMessagingHosts\\com.autocontrol.zonehelper',
+    'HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.autocontrol.zonehelper',
+    'HKCU\\Software\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.autocontrol.zonehelper',
+    'HKCU\\Software\\Opera Software\\NativeMessagingHosts\\com.autocontrol.zonehelper',
+    'HKCU\\Software\\Vivaldi\\NativeMessagingHosts\\com.autocontrol.zonehelper',
+    'HKCU\\Software\\Chromium\\NativeMessagingHosts\\com.autocontrol.zonehelper',
+    'HKCU\\Software\\Yandex\\YandexBrowser\\NativeMessagingHosts\\com.autocontrol.zonehelper'
+  ];
+  // The same vendor branches for the ENGINE host (`hrich.autocontrol`). The
+  // original installer registers ONLY the Chrome branch, so a second browser
+  // (Vivaldi, Opera, Edge...) needs its own key or connectNative fails there
+  // (user live report 2026-10-10: the second-browser install needed a manual
+  // registry step). The engine manifest pins our extension ID in
+  // allowed_origins, so registering every branch is safe; the manual README
+  // commands stay as a fallback.
+  const __AC_ENGINE_REG_KEYS = __AC_HELPER_REG_KEYS.map(k =>
+    k.replace('com.autocontrol.zonehelper', 'hrich.autocontrol'));
+  let __acNativeCheckRunning = false;
+  let __acNativeCheckForce = false;
+  let __acReloadScheduled = false;   // set when __acHelperVerify reloads the SW once
+  // Uninstall release (2026-10-10): while the native component is being
+  // uninstalled the zone helper must NOT be respawned (the uninstaller deletes
+  // the folder and a running ac_zone_helper.exe locks its exe). The keepalive
+  // and the helper sync stand down until this timestamp.
+  let __acZoneReleasedUntil = 0;
+  // set when a connect FAILS inside the release window: the native is really
+  // gone, so the next successful connect is the reinstall and must force the
+  // bundle sync (the 60 s check throttle would otherwise skip it and the zone
+  // helper would stay missing until an extension reload — user report 2026-10-10)
+  let __acUninstallDone = false;
+
+  function __acSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  function __acStorageGet(key) {
+    return new Promise(r => { try { chrome.storage.local.get([key], o => r(o && o[key])); } catch (e) { r(undefined); } });
+  }
+  function __acStorageSet(obj) { try { chrome.storage.local.set(obj); } catch (e) {} }
+  /** Bound a promise so a stuck native round-trip cannot wedge the sync. */
+  function __acTimeout(p, ms, fallback) {
+    return new Promise(res => {
+      let done = false;
+      const t = setTimeout(() => { if (!done) { done = true; res(fallback); } }, ms);
+      p.then(v => { if (!done) { done = true; clearTimeout(t); res(v); } },
+             () => { if (!done) { done = true; clearTimeout(t); res(fallback); } });
+    });
+  }
+
+  /** Read a file from the native host folder (type 255, binary). Resolves to
+   *  the byte-string, null when the file does not exist, undefined on error. */
+  function __acNativeRead(name) {
+    return __acTimeout(new Promise(res => {
+      if (typeof _If !== 'function') { res(undefined); return; }
+      try {
+        _If(name, '', 0, 786000)(r => {
+          if (r && typeof r.content === 'string') res(r.content);
+          else res(null);
+        });
+      } catch (e) { res(undefined); }
+    }), 10000, undefined);
+  }
+  /** Decode a bundled .dat payload; resolves to its byte-string or null. */
+  function __acBundlePayload(name) {
+    return __acTimeout(new Promise(res => {
+      if (typeof _3t !== 'function') { res(null); return; }
+      try {
+        _3t(chrome.runtime.getURL(name), 'binary')(d => res(typeof d === 'string' && d.length ? d : null));
+      } catch (e) { res(null); }
+    }), 10000, null);
+  }
+  /** Write a file through the native (type 250, chunked). */
+  function __acNativeWrite(name, data) {
+    return __acTimeout(new Promise(res => {
+      if (typeof _4u !== 'function') { res(false); return; }
+      try {
+        _4u(name, data)(r => res(r === 0 || r === false || r === undefined || r === null));
+      } catch (e) { res(false); }
+    }), 30000, false);
+  }
+  /** Run a cmd.exe command through the native (type 260; ack when cmd STARTS). */
+  function __acRunCmd(cmd) {
+    return __acTimeout(new Promise(res => {
+      if (typeof _iw !== 'function') { res(false); return; }
+      try { _iw(cmd)(() => res(true)); } catch (e) { res(false); }
+    }), 10000, false);
+  }
+
+  function __acHelperManifestText() {
+    return JSON.stringify({
+      name: 'com.autocontrol.zonehelper',
+      description: 'AutoControl MV3 zone classifier helper',
+      path: __AC_HELPER_EXE,
+      type: 'stdio',
+      allowed_origins: ['chrome-extension://' + chrome.runtime.id + '/']
+    }, null, 2);
+  }
+
+  function __acRegisterHelperHost() {
+    const helperManifest = '%LOCALAPPDATA%\\AutoControl\\' + __AC_HELPER_MANIFEST;
+    const engineManifest = '%LOCALAPPDATA%\\AutoControl\\AutoControl.manifest';
+    const addAll = (keys, manifest) => keys.reduce((p, key) =>
+      p.then(() => __acRunCmd('reg add "' + key + '" /ve /t REG_SZ /d "' + manifest + '" /f')),
+      Promise.resolve());
+    return addAll(__AC_HELPER_REG_KEYS, helperManifest)
+      .then(() => addAll(__AC_ENGINE_REG_KEYS, engineManifest))
+      .then(() => console.log('[AC-MV3-NATIVE] native hosts registered for',
+        __AC_HELPER_REG_KEYS.length, 'browser branches (engine + helper)'));
+  }
+
+  /** Warning UI: file71 popup (over pages) + chrome.notifications (optional perm). */
+  function __acNativeWarn() {
+    const title = 'AutoControl: native component problem';
+    const body = 'The updated native component could not be installed or updated automatically, so many areas will not function properly when you hover over them. Select "Uninstall native component" in the settings, reinstall it, and then restart the extension.';
+    console.warn('[AC-MV3-NATIVE] ' + title + ' — ' + body);
+    try {
+      if (typeof _Fo === 'function') {
+        _Fo({ width: 560 },
+          '<b>' + title + '</b> <hr b=2> ' + body +
+          ' <hr b=3> <center><button yes>Open settings</button> <button>Close</button></center>',
+          ans => { if (ans && ans.answer) { try { chrome.runtime.openOptionsPage(); } catch (e) {} } });
+      }
+    } catch (e) { console.warn('[AC-MV3-NATIVE] warning popup failed:', e.message); }
+    try {
+      if (chrome.notifications && chrome.notifications.create) {
+        chrome.notifications.create('acNativeWarn_' + Date.now(), {
+          type: 'basic',
+          iconUrl: chrome.runtime.getURL('AutoCtrl/logo32.png'),
+          title: title,
+          message: body
+        }, () => { try { void chrome.runtime.lastError; } catch (e) {} });
+      }
+    } catch (e) { /* notifications permission not granted — the popup above is enough */ }
+  }
+
+  /** Wait until the zone helper answers; warns (and reloads once) when it never does. */
+  function __acHelperVerify() {
+    let tries = 0;
+    const attempt = () => __acZoneAsk(1500).then(zs => {
+      const ok = Array.isArray(zs) && zs.length && zs[0] >= 0;
+      if (ok) { console.log('[AC-MV3-NATIVE] zone helper connected:', JSON.stringify(zs)); return true; }
+      if (++tries >= 3) {
+        console.warn('[AC-MV3-NATIVE] zone helper NOT responding:', JSON.stringify(zs));
+        return __acStorageGet('__acHelperReloaded').then(done => {
+          if (done) { __acNativeWarn(); return false; }
+          __acReloadScheduled = true;
+          __acStorageSet({ __acHelperReloaded: 1 });
+          console.warn('[AC-MV3-NATIVE] helper host lookup may be cached as missing — reloading the extension once');
+          setTimeout(() => { try { chrome.runtime.reload(); } catch (e) {} }, 1500);
+          return false;
+        });
+      }
+      return __acSleep(1200).then(attempt);
+    });
+    return attempt();
+  }
+
+  /**
+   * Full native uninstall (settings → Uninstall native component). The
+   * extension performs the WHOLE cleanup itself as ONE cmd chain (type 260) —
+   * the original installer removes only the Chrome engine key and cannot
+   * delete a directory locked by another browser's helper/engine ("Could not
+   * delete the installation directory. Remove the extension from all your
+   * browser profiles...", user report 2026-10-10). Chain order matters:
+   *   1. delete all 16 host keys (8 branches x engine+helper) — the browsers
+   *      can no longer respawn anything;
+   *   2. kill every helper / engine / Zero (our own too; the cmd survives its
+   *      parent's death — proven by the original uninstaller, which killed the
+   *      engine and continued to its delete step);
+   *   3. wait for the handles to be released, delete the helper files, the
+   *      temp installer copy and the whole component directory (the `cd /d`
+   *      is required: cmd's CWD is the directory being deleted);
+   *   4. retry the `rd` once for slow handle release.
+   * A reinstall is detected by the next successful connect (__acUninstallDone)
+   * which clears the quiet window and forces the bundle sync.
+   */
+  function __acUninstallNative() {
+    __acZoneReleasedUntil = Date.now() + 120000;
+    console.log('[AC-MV3-NATIVE] uninstall: starting the full native cleanup');
+    if (__acZonePort) { try { __acZonePort.disconnect(); } catch (e) {} __acZonePort = null; }
+    __acStorageSet({ __acHelperReg: 0, __acUninstalling: 1 });
+    const parts = [];
+    __AC_HELPER_REG_KEYS.forEach(k => parts.push('reg delete "' + k + '" /f'));
+    __AC_ENGINE_REG_KEYS.forEach(k => parts.push('reg delete "' + k + '" /f'));
+    parts.push('taskkill /F /IM ' + __AC_HELPER_EXE);
+    parts.push('taskkill /F /IM ' + __AC_ENGINE_EXE);
+    parts.push('taskkill /F /IM AutoControlZero.exe');
+    parts.push('ping -n 4 127.0.0.1 >nul');
+    parts.push('del /F /Q ' + __AC_HELPER_EXE + ' ' + __AC_HELPER_MANIFEST);
+    parts.push('del /F /Q "%TEMP%\\Native-Component.exe"');
+    parts.push('cd /d "%LOCALAPPDATA%"');
+    parts.push('rd /s /q "AutoControl"');
+    parts.push('ping -n 2 127.0.0.1 >nul');
+    parts.push('rd /s /q "AutoControl"');
+    return __acRunCmd(parts.join(' & '))
+      .then(ok => {
+        console.log('[AC-MV3-NATIVE] uninstall: cleanup chain dispatched', ok ? 'OK' : 'FAILED');
+        return ok;
+      });
+  }
+
+  /** Deploy/refresh the zone helper + its host registration. */
+  function __acSyncHelper() {
+    if (Date.now() < __acZoneReleasedUntil) {
+      console.log('[AC-MV3-NATIVE] helper sync skipped (released for uninstall)');
+      return Promise.resolve();
+    }
+    return __acBundlePayload(__AC_HELPER_DAT).then(bundled => {
+      if (!bundled) { console.warn('[AC-MV3-NATIVE] bundled helper payload missing'); return; }
+      return __acNativeRead(__AC_HELPER_EXE).then(deployed => {
+        if (deployed === undefined) { console.warn('[AC-MV3-NATIVE] helper read failed — skipped'); return; }
+        const manifest = __acHelperManifestText();
+        const writeAll = () => {
+          // the running helper locks its exe: disconnect first (Chrome kills it)
+          if (__acZonePort) { try { __acZonePort.disconnect(); } catch (e) {} __acZonePort = null; }
+          return __acSleep(400)
+            .then(() => __acNativeWrite(__AC_HELPER_EXE, bundled))
+            .then(ok => {
+              console.log('[AC-MV3-NATIVE] helper write:', ok ? 'OK' : 'FAILED');
+              if (!ok) return false;
+              return __acNativeWrite(__AC_HELPER_MANIFEST, manifest);
+            })
+            .then(ok => {
+              if (ok === false) { __acNativeWarn(); return false; }
+              return __acRegisterHelperHost().then(() => {
+                __acStorageSet({ __acHelperReg: __AC_HOST_REG_VERSION, __acHelperReloaded: 0 });
+                return true;
+              });
+            });
+        };
+        if (deployed !== bundled) {
+          console.warn('[AC-MV3-NATIVE] helper ' + (deployed ? 'MISMATCH' : 'MISSING') + ' — deploying the bundled build');
+          return writeAll().then(ok => ok === false ? false : __acHelperVerify());
+        }
+        // file is current: make sure the manifest matches (extension ID!) and the
+        // host is registered at least once
+        return __acNativeRead(__AC_HELPER_MANIFEST).then(mf => {
+          let p = Promise.resolve();
+          if (mf !== manifest) {
+            console.log('[AC-MV3-NATIVE] helper manifest missing/outdated — writing');
+            p = p.then(() => __acNativeWrite(__AC_HELPER_MANIFEST, manifest));
+          }
+          return p.then(() => __acStorageGet('__acHelperReg')).then(reg => {
+            if (reg !== __AC_HOST_REG_VERSION) {
+              return __acRegisterHelperHost().then(() => __acStorageSet({ __acHelperReg: __AC_HOST_REG_VERSION }));
+            }
+          }).then(() => __acHelperVerify());
+        });
+      });
+    });
+  }
+
+  /** Deploy/refresh the patched engine (taskkill + write + clean reconnect). */
+  function __acSyncEngine() {
+    return __acBundlePayload('file76.dat').then(bundled => {
+      if (!bundled) { console.warn('[AC-MV3-NATIVE] bundled engine payload missing'); return; }
+      return __acNativeRead(__AC_ENGINE_EXE).then(deployed => {
+        if (deployed === undefined) { console.warn('[AC-MV3-NATIVE] engine read failed — skipped'); return; }
+        if (deployed === bundled) { console.log('[AC-MV3-NATIVE] engine OK: deployed == bundled patched build'); return; }
+        console.warn('[AC-MV3-NATIVE] engine ' + (deployed ? 'MISMATCH' : 'MISSING') + ' — deploying the bundled patched build');
+        const stop = deployed
+          ? __acRunCmd('taskkill /F /IM ' + __AC_ENGINE_EXE).then(() => __acSleep(700))
+          : Promise.resolve();
+        return stop.then(() => __acNativeWrite(__AC_ENGINE_EXE, bundled)).then(ok => {
+          console.log('[AC-MV3-NATIVE] engine write:', ok ? 'OK' : 'FAILED');
+          if (!ok) { __acNativeWarn(); return; }
+          // the old engine (if any) is gone and the file changed: reconnect so a
+          // fresh Zero spawns the new engine (same final step as unpackBundledEngine)
+          console.warn('[AC-MV3-NATIVE] engine replaced — clean reconnect');
+          handshakeDone = false;
+          startupSent = false;
+          type72Sent = false;
+          if (port) { try { port.disconnect(); } catch (e) {} port = null; }
+          connected = false;
+          scheduleRetry();
+        });
+      });
+    });
+  }
+
+  /**
+   * Entry point — call after a successful handshake. The HELPER is checked on
+   * EVERY call (22 KB read, cheap — a missing helper must self-heal after an
+   * uninstall/reinstall without waiting for the throttle or a reload); only the
+   * ENGINE check (700 KB read) is throttled and force-able.
+   */
+  function __acEnsureNativeBundle(force) {
+    if (__acNativeCheckRunning) return Promise.resolve(false);
+    if (!connected || !portConnectedOk) return Promise.resolve(false);
+    __acNativeCheckRunning = true;
+    return __acStorageGet('__acNativeCheckAt').then(last => {
+      const skipEngine = !force && !__acNativeCheckForce && last && (Date.now() - last < __AC_NATIVE_CHECK_TTL);
+      __acNativeCheckForce = false;
+      console.log('[AC-MV3-NATIVE] checking deployed engine + zone helper...' + (skipEngine ? ' (engine check throttled)' : ''));
+      return __acSyncHelper()
+        .then(() => skipEngine ? null : __acSyncEngine())
+        .catch(e => console.warn('[AC-MV3-NATIVE] sync error:', e && e.message))
+        .then(() => {
+          // a scheduled reload re-checks with a fresh host lookup, so keep the
+          // throttle stamp unset in that case
+          if (!__acReloadScheduled) __acStorageSet({ __acNativeCheckAt: Date.now() });
+          __acNativeCheckRunning = false;
+          return true;
+        });
+    });
+  }
 
   // TEST HOOK (2026-09-20): the SW internals are IIFE-local, so the zone gate
   // and the hovered-tab refresh cannot be driven from the console — and the
@@ -4008,7 +4430,13 @@
       tabAsk: (t) => __acZoneTabAsk(t),
       // The tab the helper reported at the last refresh (SW-local: _kg is
       // wiped by the bundle's own _wd() during an action, this one is not).
-      hoveredId: () => __acHoveredTabId
+      hoveredId: () => __acHoveredTabId,
+      // Native bundle sync (2026-10-10) — live checks/deploys via CDP:
+      nativeCheck: (force) => __acEnsureNativeBundle(force),
+      nativeRead: (name) => __acNativeRead(name),
+      nativeWrite: (name, data) => __acNativeWrite(name, data),
+      helperRegister: () => __acRegisterHelperHost(),
+      nativeWarn: () => __acNativeWarn()
     };
   } catch (e) {}
 
