@@ -1,8 +1,7 @@
 // _tools_index.js - generate the TOOL INVENTORY of Test/ (and check it is fresh).
 //
 // WHY: 80+ helper scripts live in Test/, but only a handful are described in the
-// docs, so a tool could not be found without knowing its NAME ("сейчас их не
-// найти, не зная имени" - user, 2026-10-04). The inventory is GENERATED from the
+// docs, so a tool could not be found without knowing its NAME. The inventory is GENERATED from the
 // tools themselves (each one starts with a comment block: a one-line summary plus
 // an optional Usage: block), so it cannot drift from the code.
 //
@@ -34,7 +33,7 @@ const CATS = [
   [/^(_probe_|_bench_)/, 'Probes & benchmarks (a PHYSICAL test is needed: the engine drops synthetic input)'],
   [/^zone_/, 'Zone tools (test triggers, probes, the regression suite)'],
   [/^(engine_|patch_)/, 'Engine & patch tools (the v19 zone-table patch)'],
-  [/^(build_|deploy_)/, 'Build & deploy'],
+  [/^(build_|deploy_|dat_|native_)/, 'Build & deploy'],
   [/^(_?ac_|acs_|ac_keys|ac_zone_helper)/, 'Input & state probes (keys, mouse, audio, settings audit)'],
 ];
 

@@ -194,6 +194,92 @@
     // ping callback hasn't fired yet (SW may be asleep — runtime.sendMessage
     // then never calls back and _Eu would otherwise stay unresolved).
     try { if (typeof _Eu !== 'undefined' && _Eu.send) _Eu.send(window._nd || false, !0); } catch(e) {}
+
+    // AC-MV3 (2026-10-11): the settings page can open BEFORE the SW finishes
+    // connecting (fresh extension install: onInstalled → openOptionsPage, and
+    // the native may connect while the page is still booting — the
+    // nativeConfigReady event then arrives before the install pane registers
+    // its ac-install-done listener, so the pane stayed until a manual refresh;
+    // user report). Watch the storage flag and transition as soon as BOTH the
+    // pane exists and the flag is set. Stops on success, after ~42 s, or when
+    // the page was opened with the flag already present. The __acUninstalling
+    // marker (set by __acUninstallNative, cleared by the reinstall connect)
+    // keeps a mid-uninstall reconnect from re-opening the settings UI.
+    if (!window._nd) {
+      let paneTries = 0;
+      const paneWatch = setInterval(() => {
+        if (window.__acPaneTransitioned) { clearInterval(paneWatch); return; }
+        if (++paneTries > 60) { clearInterval(paneWatch); return; }
+        if (!document.body || !document.body.classList.contains('installPane')) return;
+        try {
+          chrome.storage.local.get(['natHostInstalled', '__acUninstalling'], r2 => {
+            if (r2 && r2.natHostInstalled && !r2.__acUninstalling) {
+              window.__acPaneTransitioned = true;
+              console.log("[AC-MV3] install pane shown but the native is up — transitioning to settings");
+              window.dispatchEvent(new CustomEvent('ac-install-done'));
+              clearInterval(paneWatch);
+            }
+          });
+        } catch(e) {}
+      }, 700);
+    }
+
+    // `__acBootNoNative` must be captured BEFORE the native shim flips the
+    // shared `_nd` global to true (the listener below is registered outside
+    // this callback so an early connection event is never missed).
+    window.__acBootNoNative = !window._nd;
+  });
+
+  // AC-MV3 (2026-10-11): the page picks its view (settings / error dialog /
+  // install pane) ONLY at load and nothing re-renders it afterwards, so a
+  // page that booted without the native can stay stuck even after the worker
+  // reconnected — user reports: the install pane after a fresh install (fixed
+  // by the watcher above), a "Starting Native Component..." spinner window
+  // stuck for a minute, and a stale "Native Component not working" dialog.
+  // On every nativeConfigReady/nativeConnected (a REAL connection):
+  //   * page booted in the no-native branch -> force the SAME transition the
+  //     install pane uses (`ac-install-done` -> file2 z(): removes the panes
+  //     AND closes dialogs via _gs("dialog")), one-shot like the watcher;
+  //   * otherwise (or while the boot flag is still unknown — the storage read
+  //     above is async) close ONLY dialogs whose text is one of the two known
+  //     stale windows (never a blanket close: the user may have another
+  //     dialog open — a confirmation, REPAIR COMPLETE, ...). A real
+  //     connection event means such a window is stale by definition.
+  window.addEventListener('ac-sw-msg', ev => {
+    const m = ev && ev.detail;
+    if (!m || (m.type !== 'nativeConfigReady' && m.type !== 'nativeConnected')) return;
+    if (window.__acBootNoNative === true) {
+      if (window.__acPaneTransitioned) return;
+      // Same mid-uninstall guard as the watcher above: while the component is
+      // being removed the install UI must stay (a reconnect during that
+      // window must not re-open the settings view). Only the marker is
+      // required — `natHostInstalled` is set by the SW in the same tick as
+      // the event we are handling, so a read could still see the old value.
+      try {
+        chrome.storage.local.get(['__acUninstalling'], r2 => {
+          if (r2 && r2.__acUninstalling) return;
+          if (window.__acPaneTransitioned) return;
+          window.__acPaneTransitioned = true;
+          // Gated like the rest of the page diagnostics: Options → Advanced
+          // Options → "Log settings page" (OFF by default — the shim replaces
+          // console.log/warn with no-ops until it is enabled).
+          console.log("[AC-MV3] reconnect: page booted without the native — leaving the install/waiting UI");
+          try { window.dispatchEvent(new CustomEvent('ac-install-done')); } catch(e) {}
+        });
+      } catch(e) {}
+      return;
+    }
+    try {
+      if (typeof $ !== 'function' || typeof _gs !== 'function') return;
+      $("dialog").each(function () {
+        const t = $(this).text() || "";
+        if (t.indexOf("Native Component not working") >= 0 ||
+            t.indexOf("Starting Native Component") >= 0) {
+          console.log("[AC-MV3] reconnect: closing a stale native-status window");
+          _gs(this);
+        }
+      });
+    } catch(e) {}
   });
 
   // ======== PAGE STATE SYNC ========

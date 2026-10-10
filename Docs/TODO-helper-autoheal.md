@@ -1,5 +1,10 @@
 # TODO — Helper auto-recovery for a HUNG `ac_zone_helper.exe` (2026-09-05)
 
+> **Update 2026-10-10:** the helper is now installed/updated automatically by
+> the extension (NATIVE BUNDLE SYNC, `Docs/BUILD-NATIVE.md` §D) and a helper
+> that DIES is respawned by the SW (onDisconnect + the 2.5 s keepalive). The
+> HANG case below is still open.
+
 **Status:** ⬜ open — DEFERRED by the user 2026-09-12 ("put it in the TODO,
 for later"). Not blocking anything: Emergency Repair heals a hung helper
 manually, and a DEAD helper self-heals via `onDisconnect`.
@@ -37,7 +42,7 @@ zombie until reboot (cosmetic).
    `port.disconnect()` alone should suffice for the hang case.
 2. **Emergency Repair integration (already works, document only):** the
    manual repair path heals the helper via the SW reload; add a doc note
-   (README §4.3, or the helper-recovery note in `Docs/GOTCHAS.md`) that a hung helper is fixed by Emergency
+   (README §4.2, or the helper-recovery note in `Docs/GOTCHAS.md`) that a hung helper is fixed by Emergency
    Repair. Optionally: kill ONLY OUR stale helper zombie during the repair
    (via the stored PID — see above; NEVER by image name).
 

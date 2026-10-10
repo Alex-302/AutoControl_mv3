@@ -34,7 +34,8 @@ function nativeTouched() {
   if (r.error || r.status !== 0) return false;   // no git -> treat as not native
   return (r.stdout || '').split(/\r?\n/).some(l => {
     const p = l.slice(3).trim().replace(/\\/g, '/');
-    return /^Test\/ac_zone_helper\.cs$/.test(p) || /^AutoControl_native\//.test(p);
+    return /^Test\/ac_zone_helper\.cs$/.test(p) || /^AutoControl_native\//.test(p) ||
+      /^mv3-build\/file76\.dat$/.test(p) || /^mv3-build\/ac_zone_helper\.dat$/.test(p);
   });
 }
 

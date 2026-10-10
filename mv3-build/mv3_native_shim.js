@@ -221,6 +221,25 @@
       _nd = true;
       _dh = msg.time || Date.now();
 
+      // AC-MV3 (2026-10-10): the settings page may have opened BEFORE the SW
+      // finished connecting (second-browser install: the page booted with
+      // connected=false and rendered the install pane). Now the native is up —
+      // transition like registerWithSW does, otherwise the page stays on the
+      // install view until a manual refresh (user live report). Guarded by the
+      // storage flag (removed before the uninstall reload), so an uninstall
+      // never triggers it; one-shot so repeated config refreshes cannot re-run it.
+      if (!window._nd && !window.__acPaneTransitioned) {
+        try {
+          chrome.storage.local.get('natHostInstalled', r2 => {
+            if (r2 && r2.natHostInstalled) {
+              window.__acPaneTransitioned = true;
+              console.log("[AC-MV3] nativeConfigReady with the install pane shown — transitioning to settings");
+              window.dispatchEvent(new CustomEvent('ac-install-done'));
+            }
+          });
+        } catch(e) {}
+      }
+
       // nativeConnected (legacy): just signal page init to continue.
       // nativeConfigReady (new): SW finished type 10→20→72, page must now run the
       //   _lr→_Gf config chain, and ONLY after it completes tell SW → type 21 (startup).

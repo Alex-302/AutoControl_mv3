@@ -30,7 +30,7 @@ re-tested after it.
 |---|---|---|
 | (g) | the empty strip area counted as a tab | zone 12 now requires a real PAGETAB |
 | (h) | Opera: bookmark zone fired on every toolbar button | the omnibox GROUPING must sit BETWEEN button and toolbar; Opera's heart matched BY NAME |
-| (i) | Opera: zone 30 fired on the Extensions button | the right-edge rule is Chromium-only; 'Extensions'/'Расширения' is never the menu |
+| (i) | Opera: zone 30 fired on the Extensions button | the right-edge rule is Chromium-only; 'Extensions' is never the menu |
 | (j) | Opera: the close button never matched | it is a square PANE (16) in the right part of the tab → `IsPaneCloseButton` |
 | (k) | a browser menu/dropdown was treated as chrome | a WS_POPUP+TOOLWINDOW popup answers only zone 1 |
 | (l) | "works, but sometimes stops" | the zone TABLE was written up to 170 ms late → 30 ms poll + settle detection |
@@ -114,7 +114,11 @@ engine v19 (the mouseOver region check is a TABLE LOOKUP the helper fills in;
   deadlock — `Docs/archive/NATIVE-REVERSING-2026-08-31.md` §12).
 - Helper: `Test/ac_zone_helper.cs` → `AutoControl_native/ac_zone_helper.exe`
   (native host `com.autocontrol.zonehelper`, registered in HKCU). Answers
-  `{__id:N}` → `{__id:N, zone:Z, zones:[…]}`.
+  `{__id:N}` → `{__id:N, zone:Z, zones:[…]}`. Since 2026-10-10 the engine and
+  the helper are **bundled as `.dat` payloads and deployed/registered
+  automatically** by the extension (NATIVE BUNDLE SYNC —
+  `Docs/BUILD-NATIVE.md` §D); the manual install steps are only an emergency
+  fallback.
 - Gate: `mv3-build/sw.js` `__acDispatchTrigger750` + `__acBuildZoneMap`
   (map rebuilt live on `storage.onChanged` since 2026-09-03) +
   `__acZoneAsk`.
@@ -811,7 +815,7 @@ is Chrome only"). A standalone helper run (zone probes) keeps the Chrome
 behaviour, so the probes stay representative.
 
 **Fix 2 — 'Extensions' is never the menu.** `IsRightEdgeButton` rejects a
-button whose accessible name contains "extension" / "расширен" — the
+button whose accessible name contains "extension" — the
 extensions-panel toggle is a rightmost button in several builds and in none of
 them is it the browser menu.
 
@@ -1660,7 +1664,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | `Docs/archive/NATIVE-REVERSING-2026-08-31.md` | RE context (§10-§13) | ✅ §13 updated |
 | `Docs/FEATURES-MV3.md` §7-12 | hover-region status | ✅ updated (all 12 areas) |
 | `Docs/GOTCHAS.md` (zone + native bullets) | gotchas: DPI, load path, signatures, dead mouse hook, proof chain | ✅ updated |
-| `README.md` §4.3 / §4.4 | user/dev install guide (helper + patched engine) | ✅ updated |
+| `README.md` §4.2 / §4.3 | user/dev install guide (helper + patched engine) | ✅ updated |
 
 ---
 
@@ -1719,7 +1723,7 @@ input for its hover cache — see §4). For each browser:
 
 1. **Register the native hosts** for that browser (only Chrome/Canary/Brave
    are covered by the Chrome registration; Opera/Vivaldi need their own
-   `reg add` — README §4.1 step 6), then load the extension from the same
+   `reg add` — README §6.3), then load the extension from the same
    `mv3-build\` folder (unpacked; the ID must match `allowed_origins`).
 2. **Start the browser** (Vivaldi additionally with
    `--force-renderer-accessibility`), open two tabs, play sound in one.

@@ -10,13 +10,167 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
 ### Native lifecycle
 
 - **Engine auto-install (FIXED 2026-08-04, clean rewrite)** — `sw.js`
-  answers file check `2` by unpacking bundled `file76.dat` (MD5 = distro) via
-  type 250 → poll on the SAME port (MV2 style) → one clean reconnect → give
-  up with guidance. ROOT CAUSE of "file flashed and vanished": our own
-  `del /Q /F AutoCtrl_*.exe` — the native acks type 260 when cmd.exe STARTS
-  (~7ms), NOT when the command finishes → the async del deleted the fresh
-  engine. **No del, no nuke, no chrome.runtime.reload, no infinite retry**;
-  taskkill only (processes, not files); write overwrites. mh_test A11-A13.
+  answers file check `2` by unpacking bundled `file76.dat` via type 250 →
+  poll on the SAME port (MV2 style) → one clean reconnect → give up with
+  guidance. Since 2026-10-10 that payload IS the **patched v19 build**
+  (md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`), so a fresh install/repair deploys
+  the zone fix automatically. ROOT CAUSE of "file flashed and vanished": our
+  own `del /Q /F AutoCtrl_*.exe` — the native acks type 260 when cmd.exe
+  STARTS (~7ms), NOT when the command finishes → the async del deleted the
+  fresh engine. **No del, no nuke, no chrome.runtime.reload, no infinite
+  retry**; taskkill only (processes, not files); write overwrites.
+  mh_test A11-A13, B61.
+- **Native bundle sync (NEW 2026-10-10)** — after every successful handshake
+  `sw.js` compares the deployed engine and zone helper with the bundled
+  payloads (`file76.dat` / `ac_zone_helper.dat`) via type 255 reads. The HELPER
+  half runs EVERY time (22 KB read — a missing helper self-heals after an
+  uninstall/reinstall without waiting for a throttle or an extension reload);
+  only the ENGINE half (700 KB) is throttled to once per SW session and FORCED
+  by `chrome.runtime.onInstalled`, after a repair, and by `__acUninstallDone`
+  (the first connect after an uninstall — set by a failed connect inside the
+  release window):
+  - engine differs → `taskkill /F /IM` + type-250 write + clean reconnect
+    (an existing unpatched distro engine is migrated automatically);
+  - helper differs/missing → disconnect the helper port (Chrome kills the
+    process), write `ac_zone_helper.exe` + `com.autocontrol.zonehelper.json`
+    (manifest `allowed_origins` from `chrome.runtime.id`), then `reg add` BOTH
+    hosts — the engine (`hrich.autocontrol` → `AutoControl.manifest`) and the
+    helper — for all known vendor branches via type 260 (HKCU, no elevation).
+    The engine key is what makes a SECOND browser work without the manual
+    registry step (the installer registers only the Chrome branch; user report
+    2026-10-10).
+  If the helper still cannot connect, the SW reloads the extension ONCE
+  (Chrome caches a failed host lookup per SW instance) and then warns with a
+  `file71` popup + `chrome.notifications`. The warning points to the WORKING
+  recovery path — settings → **Uninstall native component** → reinstall →
+  restart the extension (user live report 2026-10-10: the settings' "Reinstall
+  native component" button is NOT shown while the native is connected, so the
+  old hint did not lead anywhere). The popup carries no support-forum link —
+  the dead forum URL was removed from the whole UI the same day (the `support`
+  key is gone from `_4a`, the `_Lh`/`_Ht` popups and `main.html`; mh_test B62
+  scans every `mv3-build` js/html for it). Logs: `[AC-MV3-NATIVE]`.
+  mh_test B62; protocol: `Docs/BUILD-NATIVE.md` §D.
+- **Second browser / settings page opened too early (FIXED 2026-10-10)** — a
+  settings page that opens BEFORE the SW finished connecting (fresh install in
+  a second browser) used to stay on the install pane until a manual refresh.
+  Now `mv3_native_shim.js` also transitions the page out of the install pane
+  when `nativeConfigReady` arrives (one-shot `__acPaneTransitioned`, guarded by
+  `natHostInstalled` — the same `ac-install-done` path `registerWithSW` uses),
+  and the engine host key is auto-registered for every vendor branch (above).
+  The registration marker is versioned (`__AC_HOST_REG_VERSION = 2`), so an
+  existing install re-registers ONCE and the new engine keys appear even when
+  the helper itself was not rewritten. ⚠ **VERIFIED 2026-10-10 (binary strings
+  of `AutoControl_native/original/AutoControlZero.exe`): the installer registers
+  ONLY `Software\Google\Chrome\NativeMessagingHosts` — no Chrome SxS / Edge /
+  Brave / Opera / Vivaldi / Chromium / Yandex branch exists in the binary.**
+  Chrome works out of the box and Brave falls back to the Chrome branch; every
+  other fork needs its own key. ⚠ The sync needs a successful connection
+  to run: a browser whose vendor branch has NO key at all still needs the first
+  `reg add` by hand (or one run of the extension in a browser that already has
+  its key — its sync then registers every branch, including the portable's).
+  The browser caches the host list at startup — restart it once after the key
+  appears. ⚠ **Fresh-install race (FIXED 2026-10-11)**: `onInstalled` →
+  `openOptionsPage` can open the page BEFORE the SW connects, so the
+  `nativeConfigReady` event arrives before the install pane registers its
+  `ac-install-done` listener → the pane stayed until F5 (user report). The
+  page-only `mv3_shim.js` now ALSO watches the storage flag while the pane is
+  shown (700 ms × 60 ≈ 42 s, one-shot `__acPaneTransitioned`) and dispatches
+  `ac-install-done` as soon as BOTH the pane exists and `natHostInstalled` is
+  set; the `__acUninstalling` marker (set by `__acUninstallNative`, cleared by
+  the reinstall connect) keeps a mid-uninstall reconnect from re-opening the
+  settings UI. ⚠ **CORRECTION (2026-10-11)**: the transition inside
+  `mv3_native_shim.js` (nativeConfigReady handler) is DEAD CODE — the same
+  handler sets the shared global `_nd = true` a few lines earlier (`var _nd` in
+  `file34_mv3.js` IS `window._nd` in the page), so its `if (!window._nd …)`
+  check can never be true. The working paths are the `mv3_shim.js` watcher and
+  the reconnect handler below; do not rely on the native-shim copy.
+  ⚠ **Stale-UI self-heal (2026-10-11, user log A)**: a page that booted without
+  the native could stay stuck even after the worker reconnected — the install
+  pane (fixed by the watcher), a "Starting Native Component…" spinner window
+  (the original `natHostInit` template) and a stale "Native Component not
+  working" dialog. `mv3_shim.js` now captures the boot state
+  (`window.__acBootNoNative`, BEFORE the native shim flips `_nd`) and on every
+  `nativeConfigReady`/`nativeConnected` (a REAL connection): if the page booted
+  without the native → force the `ac-install-done` transition (one-shot;
+  `file2 z()` removes the panes AND closes dialogs via `_gs("dialog")`);
+  otherwise close ONLY dialogs whose text matches one of the two known stale
+  windows (never a blanket close — the user may have a confirmation or the
+  REPAIR COMPLETE popup open). mh_test B62/B63. ⚠ These three transition lines
+  are GATED like the rest of the page diagnostics — visible only with Options →
+  Advanced Options → "Log settings page" (OFF by default: the shim replaces
+  `console.log/info/warn/debug` with no-ops). The user controls them with that
+  option on purpose (2026-10-11). ⚠ Also: `type 740` entries in the SW log
+  that look like UI strings ("Starting Native Component", pasted instructions,
+  a whole log dump) are the CLIPBOARD being reported (format 13 =
+  CF_UNICODETEXT) — the user's copy/paste, not an event and not any UI the
+  extension renders.
+  ⚠ **Zone keepalive vs a missing helper (2026-10-11, same log)**: the 2.5 s
+  zone keepalive kept calling `connectNative(zonehelper)` while the main native
+  was gone (keys deleted) → Chrome logged `Unchecked runtime.lastError:
+  Specified native messaging host not found` every 2.5 s. It now returns early
+  when `!connected` — the helper only matters while the engine (which asks it
+  for the zone table) is up; it is reconnected on demand by the next real ask.
+- **Uninstall native component — the extension does the WHOLE cleanup (2026-10-10,
+  user live reports)** — the original installer registers/removes only the
+  Chrome engine key (`Software\Google\Chrome\NativeMessagingHosts`, verified by
+  binary strings) and cannot delete a directory locked by another browser's
+  helper/engine: on a two-browser machine it showed "Could not delete the
+  installation directory. Remove the extension from all your browser profiles
+  and try again", left the helper running and left `hrich.autocontrol` in the
+  fork branch (user live report; a manual `Test/native_uninstall.ps1` pass fixed
+  it — it needed TWO passes because the browsers respawned the processes after
+  the first kill while the keys still existed). Now `file30.js` sends
+  `{cmd:"acUninstallNative"}` and the SW (`__acUninstallNative`) dispatches ONE
+  cmd chain (type 260), in this order:
+  1. `reg delete` all 16 host keys (8 vendor branches x engine+helper) — after
+     this nothing can respawn;
+  2. `taskkill /F /IM` for `ac_zone_helper.exe`, `AutoCtrl_2025.4.22.0.exe` and
+     `AutoControlZero.exe` — ALL browsers, our own chain too (the cmd survives
+     its parent's death: the original uninstaller killed the engine and went on
+     to its delete step; the whole cleanup is a single cmd line);
+  3. `ping` wait (~3 s), `del` the helper files + the `%TEMP%\Native-Component.exe`
+     copy, then `cd /d "%LOCALAPPDATA%"` + `rd /s /q AutoControl` (twice — the
+     handles are released slowly; the `cd` is required because cmd's CWD is the
+     directory being deleted).
+  The quiet window is 120 s; a reinstall is detected by the next successful
+  connect (`__acUninstallDone`, set by a failed connect inside the window) which
+  clears it and forces the bundle sync. The settings page polls
+  `{cmd:"nativeState"}` and reloads into the install view once the connection is
+  really gone (a 12 s cap reloads as-is). The installer is NOT run any more —
+  the extension's own cleanup is complete (the binary touches only that one key
+  + the files). mh_test B62.
+
+  **Live test procedure (two browsers):**
+  1. Preconditions: browsers A and B, extension loaded from the same folder,
+     both connected, zones working (e.g. wheel over a tab in both).
+  2. A: settings → **Uninstall native component** → confirm.
+  3. Expected SW log in A: `[AC-MV3-NATIVE] uninstall: starting the full native
+     cleanup` → `cleanup chain dispatched OK`; no error dialog.
+  4. A reloads into the install view by itself; B cannot reconnect (its keys are
+     gone) — reload B and it offers the install UI too.
+  5. Verify: Task Manager has no `ac_zone_helper.exe` / `AutoCtrl_*` /
+     `AutoControlZero.exe`; `%LOCALAPPDATA%\AutoControl` is gone;
+     `reg query` for all 16 keys returns nothing.
+  6. Reinstall: run the installer in A (extension's Install), reload → engine +
+     helper auto-deploy (`[AC-MV3-NATIVE] ... native hosts registered ...`),
+     zones work; B needs a restart (host-list cache) and gets its keys from A's
+     sync.
+  7. **B after A's reinstall (2026-10-11):** after step 6 do NOT touch B — its
+     SW is on the slow 60 s retry. Within ~1 min B's log must show
+     `Connecting to native host` → `Native connected successfully!` →
+     `Forced config refresh` → `Config loaded: N triggers, M active`, and
+     gestures/zones work again with NO Emergency Repair. (Before this fix B
+     retried every ~9 s forever, the "stop after 8 failures" message was a lie,
+     and the successful connect was the user's manual repair — log evidence:
+     90+ generations then `badge present` + `repair diag: NOT found`.)
+     A browser restarted during the window connects immediately.
+  If the cleanup chain ever dies together with the engine (Chrome job object),
+  the directory stays locked — fallbacks: (B) make the helper report its engine
+  PID and kill every engine EXCEPT ours, or run `Test/native_uninstall.ps1`
+  manually. One-shot detach probe: in the SW console run
+  `_iw('echo 1 > "%TEMP%\\ac_detach_1.txt" & ping -n 6 127.0.0.1 >nul & echo 2 > "%TEMP%\\ac_detach_2.txt"')()`,
+  kill the engine+Zero within ~5 s, then check whether `ac_detach_2.txt`
+  appeared.
 - **Zero proxy chain is MANDATORY**: manifest `path` MUST point at
   `AutoControlZero.exe` (proxy/launcher, spawns the engine with arg 152).
   No-Zero is impossible — the engine crashes standalone with a C++ exception.
@@ -48,10 +202,17 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   second; after 20 "not ready" answers with a DEAD port the SW sets
   `__acInstallAutoReload` in storage and reloads itself once; the fresh SW
   reopens the options page. mh_test B24.
-- **No infinite reconnect loop after uninstall (FIXED 2026-08-07)** —
-  auto-retry stops after 8 CONSECUTIVE failures (`errors` resets on every
-  successful handshake); a temporarily-down host still reconnects when it
-  returns. mh_test B25.
+- **No infinite reconnect loop after uninstall (FIXED 2026-08-07, reworked
+  2026-10-11)** — the fast auto-retry loop stops after 8 CONSECUTIVE failures
+  (`errors` resets on every successful handshake) and switches to a SLOW 60 s
+  retry (`scheduleRetry` slow mode): the host coming back (a reinstall in
+  another browser registers all branches, installer run, keys re-added) is
+  picked up automatically — no Emergency Repair needed. ⚠ The 2026-08-07
+  "stop forever" never actually stopped: `onConnError` called
+  `scheduleRetry()` unconditionally, so a dead host produced an attempt every
+  ~9 s forever (user log 2026-10-11: 90+ generations) — noisy, but it is also
+  what let browser B reconnect "by itself" after A's reinstall. The slow retry
+  makes the intent explicit AND keeps that auto-recovery. mh_test B25/B63.
 - **Install pane must NOT auto-close (FIXED 2026-08-07)** — the ping-loop
   starts ONLY after the user clicks Install; for the leftover-native case the
   shim dispatches `ac-install-done` when the SW reports connected AND
@@ -63,13 +224,23 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   `__acEmergencyRestartNative` sets `__acRepairBadge` in storage →
   `chrome.runtime.reload()`; the FRESH SW shows " OK " after the reconnect
   succeeded. **NEVER hard-kill the engine (taskkill /F)** — TerminateProcess
-  leaves WH_KEYBOARD_LL/WH_MOUSE_LL hooks DANGLING → no input for ~40s.
+  leaves WH_KEYBOARD_LL/WH_MOUSE_LL hooks DANGLING → no input for ~40s
+  (2026-08-08 measurement; ⚠ re-measured 2026-10-10: engine kill → first
+  trigger < 1 s, helper kill → ~3 s — the automatic replace path is safe in
+  practice, but keep a known-good control before judging a zone).
   No `__acRepairBadgePending`, no port-drop-only cycle, no 20s Error timer.
   Dead port (`a===55 && !port`) → openOptionsPage + "Error" badge (no stuck
   Wait). Menu item is created by the SW at startup (`__acCtxMenuOwned`); the
   `contextMenus.removeAll` patch re-creates it after config-chain runs; the
   bundle `_co` is the SINGLE onClicked handler (sw.js must NOT add its own).
-  onDisconnect reads `void chrome.runtime.lastError` first. mh_test B25.
+  onDisconnect reads `void chrome.runtime.lastError` first. ⚠ **2026-10-11:
+  the error dialog's "Reload extension" button now calls the SAME repair path
+  (`file2.js` `_co(1,!0)`)** — it used `_co(2,!0)` = type 55 PLUS a page-side
+  `chrome.runtime.reload()` (double-reload race: the page could tear the SW
+  down mid-restart and the badge/diagnostics were written in the PAGE's
+  localStorage shim, which the SW never reads — "repair diag: NOT found in
+  storage" in the user log). `_co(1)` reloads only the extension pages and
+  lets the SW restart itself cleanly. mh_test B25/B63.
 - **Fast wheel-spin tab skipping (FIXED 2026-08-08, FIX 17/18)** — the
   pos:next/prev target filters used the cached active tab `_Np`, refreshed
   only by onActivated ASYNC → fast triggers hit the stale tab and skipped
@@ -418,7 +589,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   button is the extensions-panel toggle (Opera 135: `57 'Extensions' 36x37`,
   right edge 38 px from the window edge), so those browsers are excluded
   (`MenuAtRightEdge()` → false for opera.exe/vivaldi.exe; their menu is on the
-  LEFT and matched by name) and a button named 'Extensions'/'Расширения' never
+  LEFT and matched by name) and a button named 'Extensions' never
   answers 30 — user report "the zone-30 action fires on the blue
   extensions-collapse button"), **33**
   bookmark star (43 inside the GROUPING 20 which sits BELOW the toolbar 22 —

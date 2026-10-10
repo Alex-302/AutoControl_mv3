@@ -5,7 +5,11 @@
 - **Channel:** `chrome.runtime.connectNative("hrich.autocontrol")`
 - **Encoding:** JSON over stdin/stdout
 - **Port:** Single persistent bidirectional port
-- **Reconnection:** Exponential backoff, max ~8s delay
+- **Reconnection:** Exponential backoff, max ~8s delay; after 8 CONSECUTIVE
+  failed connects the loop switches to a slow 60 s retry (2026-10-11) — a host
+  that comes back (reinstall anywhere registers all vendor branches) is picked
+  up automatically. The pre-2026-10-11 "stop forever" was ineffective:
+  `onConnError` scheduled its own fast retry (user log: 90+ attempts ~every 9 s).
 
 ---
 
@@ -677,12 +681,29 @@ NOTES (FIX 12/14 history — do NOT resurrect):
 - **NO taskkill /F of the engine.** TerminateProcess leaves its global hooks
   (WH_KEYBOARD_LL/WH_MOUSE_LL) DANGLING — the next engine gets no input for
   ~40s (user VM 01:36: first trigger 43s after a taskkill-based repair).
+  ⚠ **RE-MEASURED LIVE 2026-10-10** on the port's own auto-replace path:
+  after killing the engine the first mouse trigger fired in **< 1 s**; a killed
+  zone helper recovers in **~3 s** (SW respawn + table rewrite). The 43 s
+  figure stays as the 2026-08-08 observation — it no longer reproduces here,
+  so the automatic engine replacement (taskkill + write + reconnect) is safe
+  in practice. Keep the no-blanket-kill rule for OTHER reasons (the mouse hook
+  can die while the keyboard keeps working — always run a known-good control).
 - **NO in-memory `__acRepairBadgePending`** — the badge flag must survive the
   SW reload, so it lives in `chrome.storage.local` as `__acRepairBadge`.
 - **NO port.disconnect() / 20s Error timer** — the reload IS the cycle.
   A lingering old engine keeps LIVE hooks (events reach ALL hooks), so no
   kill is needed; hooks are cleaned when the fresh engine takes over.
 - User-verified: hotkeys bind IMMEDIATELY after the reload.
+- **2026-10-11 — the error dialog's "Reload extension" button now calls
+  `_co(1,!0)`, the SAME path as Emergency Repair.** It used `_co(2,!0)` = type
+  55 PLUS a page-side `chrome.runtime.reload()`. Both routes reload the SW
+  (the type-55 SW branch calls `__acEmergencyRestartNative`), so the page-side
+  reload was a DOUBLE-reload race that could tear the SW down mid-restart
+  (and the page wrote `showNotif`/`diagnostics` into its own in-memory
+  localStorage shim, which the SW never reads — the user log showed
+  `repair diag: NOT found in storage`). `_co(2)` remains in use for the
+  update-check path (`requestUpdateCheck` → `_co(2)`), where no page reload is
+  wanted. mh_test B63.
 
 ### Related protocol facts (same session)
 
@@ -690,6 +711,22 @@ NOTES (FIX 12/14 history — do NOT resurrect):
   still starting (Zero answers 2 until the engine is up, even when the file
   exists). Disambiguate with type 260 `if exist` (getStdout) —
   `__acEngineFileExists`.
+- **Bundled payload deploy (2026-10-10)**: the extension writes its own engine
+  (`file76.dat` → `AutoCtrl_2025.4.22.0.exe`, the PATCHED v19 build) and the
+  zone helper (`ac_zone_helper.dat` → `ac_zone_helper.exe`) with type 250,
+  compares the deployed copies with the payloads via type 255 (binary,
+  chunked), and registers BOTH native hosts (`hrich.autocontrol` → the engine
+  manifest, `com.autocontrol.zonehelper` → its manifest) with `reg add`
+  through type 260 for every known vendor branch — the installer registers only
+  the Chrome branch, so a second browser (Vivaldi/Opera/Edge) needs its own
+  key (user report 2026-10-10). An engine that differs from the bundle is
+  stopped (`taskkill` via 260) and rewritten; the helper port is disconnected
+  before its exe is overwritten. **Uninstall is also done by the extension**:
+  `{cmd:"acUninstallNative"}` → ONE cmd chain (16 `reg delete` → `taskkill /IM`
+  for helper/engine/Zero, all browsers → wait → `del` helper files → `cd` +
+  `rd /s /q` the component directory) — the original installer is not used
+  (it removed only the Chrome key and failed on locked files). Details:
+  `Docs/BUILD-NATIVE.md` §D; SW logs: `[AC-MV3-NATIVE]`.
 - **Zero→engine lifecycle**: EVERY `connectNative` spawns a NEW Zero→engine
   pair. Orphan engines (from Zeros whose ports died without closing them)
   linger and CRASH the fresh engine on type 140 (ACCESS_VIOLATION
@@ -705,7 +742,8 @@ NOTES (FIX 12/14 history — do NOT resurrect):
   repair that used taskkill). MV2 semantics: restart = background-page
   reload → port drop → Zero exits on EOF → reconnect → fresh Zero+engine; a
   lingering (detached) engine keeps LIVE hooks and events still reach all
-  hooks, so no kill is needed.
+  hooks, so no kill is needed. ⚠ 2026-10-10 live re-measurement: engine kill →
+  first trigger < 1 s, helper kill → ~3 s (see the NOTES block above).
 - **MV3 Emergency Repair = SW reload (2026-08-08, FIX 15)**: the MV2
   "background-page reload" is implemented as `chrome.runtime.reload()` in
   the SW — a fresh SW re-runs connectNative → fresh Zero → fresh engine

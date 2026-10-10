@@ -7,6 +7,7 @@ components** of this port from their inputs:
 |---|---|---|
 | **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **22528**, sha256 `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (deterministic build, 2026-09-21) |
 | **Patched engine** (`AutoCtrl_2025.4.22.0.v19.exe`) | `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` (untouched upstream) | size **695296**, sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
+| **Bundled payloads** (what the extension actually deploys) | the two builds above, encoded with the `.dat` codec | `mv3-build/file76.dat` (695296, md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`) + `mv3-build/ac_zone_helper.dat` (22528, sha256 `E79EF3F80365BD6C8C7655D58BE9C13B9B798063463978E80C1597A5E8A97629`) |
 
 Everything below was verified on 2026-09-12 by rebuilding and comparing hashes
 (the engine: **bit-identical**; the helper: bit-identical with the Roslyn recipe
@@ -113,8 +114,8 @@ button (the heart) matched BY NAME ('Add to bookmarks' / 'Edit bookmark',
 Russian via a unicode escape) as the fallback. The same session added the
 MENU-BUTTON fix: the right-edge geometry rule is Chromium-only now
 (`MenuAtRightEdge()` — false for opera.exe/vivaldi.exe, whose menu is on the
-LEFT and matched by name) and a right-edge button named 'Extensions' /
-'Расширения' never answers 30 (in Opera the rightmost toolbar button IS the
+LEFT and matched by name) and a right-edge button named 'Extensions' never
+answers 30 (in Opera the rightmost toolbar button IS the
 extensions-panel toggle — user report), plus the CLOSE-BUTTON fix: Opera (and
 Vivaldi) expose a tab's close button as a plain PANE (role 16), not a
 PUSHBUTTON — a square 37x37 element in the RIGHT part of the tab,
@@ -194,7 +195,7 @@ Copy-Item $env:TEMP\ac_rebuild\ac_zone_helper.exe `
 #    `path` is relative, so ac_zone_helper.exe must sit NEXT TO the JSON.
 #    (PowerShell: `$env:LOCALAPPDATA` expands; `%LOCALAPPDATA%` would be
 #    written to the registry literally outside cmd.exe.) User-facing
-#    duplicate: README §4.1 step 6.
+#    duplicate: README §6.3.
 reg add "HKCU\Software\Google\Chrome\NativeMessagingHosts\com.autocontrol.zonehelper" /ve /t REG_SZ /d "$env:LOCALAPPDATA\AutoControl\com.autocontrol.zonehelper.json" /f
 ```
 
@@ -471,8 +472,9 @@ found. The requirement is therefore enforced, not trusted.
 **Source of truth: `Test/build_native.ps1`** — the script that PROVES the bytes:
 
 ```powershell
-$EXPECT_ENGINE = '1A10EDD1…2C3E'   # engine, 695296 bytes
-$EXPECT_HELPER = 'C8466CF7…ABAF'   # helper, 22528 bytes
+$EXPECT_ENGINE  = '1A10EDD1…2C3E'   # engine, 695296 bytes
+$EXPECT_HELPER  = 'C8466CF7…ABAF'   # helper, 22528 bytes
+$EXPECT_DAT_MD5 = '2F878E9E…AB5D'   # mv3-build/file76.dat (encoded engine payload)
 ```
 
 Every document that states the *current* build must match those values.
@@ -503,6 +505,16 @@ same change — the old styles stay checked either way.
 **Sweep after a rebuild** (do it in the same change as the rebuild):
 
 ```powershell
+node Test/hash_update.js --engine <new-sha64> --helper <new-sha64> --dat-md5 <new-md5>          # dry run
+node Test/hash_update.js --engine <new-sha64> --helper <new-sha64> --dat-md5 <new-md5> --apply  # update claim sites + retired fixtures
+```
+
+`hash_update.js` reads the OLD values from `build_native.ps1`, updates every
+unambiguous claim site (never a line with a historical marker — the B58 rule)
+and reports the marked history lines for a manual date check. The old manual
+grep remains useful as a cross-check:
+
+```powershell
 Select-String -Path (Get-ChildItem -Recurse -File -Include *.md,*.ps1 -Path . |
   Where-Object { $_.FullName -notmatch '\\ext-mv2\\' }) -Pattern '<old hash>'
 # must return nothing — every hit is either a claim to update or history to date
@@ -516,3 +528,84 @@ the places for it.
 ⚠ When a claim site's wording changes, update the regex in `mh_test` B57 in the
 SAME change — otherwise the pin fails on the next run (which is the intent, but
 the fix must be the regex, not a weakened check).
+
+---
+
+## D. Embedding the payloads into the extension (file76.dat / ac_zone_helper.dat)
+
+Since 2026-10-10 the extension ships **both** native components as encoded
+payloads and deploys them itself; no manual copying is part of the user flow.
+
+### D.1 What is bundled
+
+| Payload | Decodes to | Verification |
+|---|---|---|
+| `mv3-build/file76.dat` (695296 B, md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`) | the patched engine (v19) | `node Test/dat_codec.js verify mv3-build/file76.dat --exe AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe --sha256 1A10EDD1…2C3E --dat-md5 2F878E9E…AB5D` |
+| `mv3-build/ac_zone_helper.dat` (22528 B, sha256 `E79EF3F80365BD6C8C7655D58BE9C13B9B798063463978E80C1597A5E8A97629`) | the zone helper | `node Test/dat_codec.js verify mv3-build/ac_zone_helper.dat --exe AutoControl_native/ac_zone_helper.exe --sha256 C8466CF7…ABAF` |
+
+The codec is `file13.js` `_7g` (reversible, size-preserving); `Test/dat_codec.js`
+is its standalone implementation. `ext-mv2/` keeps the ORIGINAL distro blob
+(md5 `6BF791F5B2D267834A52A47E8CC3C2F4`, the pre-2026-10-10 payload) — never
+copy the patched payload there.
+
+### D.2 How the extension deploys/keeps them in sync (sw.js NATIVE BUNDLE SYNC)
+
+Runs after every successful handshake. The HELPER half is checked every time
+(22 KB read — a missing helper must self-heal after an uninstall/reinstall
+without waiting for a throttle or an extension reload); the ENGINE half
+(700 KB read) is throttled to once per SW session (`__AC_NATIVE_CHECK_TTL`) and
+FORCED by `chrome.runtime.onInstalled` (extension update/reload), after a
+repair, and by the first connect that follows a failed one during the uninstall
+release window (`__acUninstallDone`):
+
+* **helper** — read `ac_zone_helper.exe` (type 255), compare with the decoded
+  payload; if missing/outdated: disconnect the helper port (Chrome kills the
+  process), write the exe + `com.autocontrol.zonehelper.json` (type 250), then
+  `reg add` the host for every known vendor branch (type 260, HKCU, no
+  elevation). The manifest's `allowed_origins` is built from
+  `chrome.runtime.id` at runtime. If the helper still cannot connect, the SW
+  reloads the extension ONCE (Chrome caches a failed host lookup per SW
+  instance) and then warns via popup + `chrome.notifications`;
+* **engine** — read `AutoCtrl_2025.4.22.0.exe` (type 255), compare with
+  `decode(file76.dat)`; if missing/foreign/unpatched: `taskkill /F /IM` (a
+  running exe locks the file), wait, write the payload (type 250) and do a clean
+  reconnect so a fresh Zero spawns the new engine. Failures raise the same
+  popup + notification;
+* **uninstall** — the settings' "Uninstall native component" flow sends
+  `{cmd:"acUninstallNative"}` (`file30.js`); the SW (`__acUninstallNative`)
+  dispatches ONE cmd chain (type 260): `reg delete` all 16 host keys, then
+  `taskkill /F /IM` for helper/engine/Zero (ALL browsers, our own chain too —
+  the cmd survives its parent's death), wait, `del` the helper files + the temp
+  installer copy, `cd /d "%LOCALAPPDATA%"` + `rd /s /q AutoControl` (twice).
+  The original installer is no longer used: it removed only the Chrome key and
+  failed on a directory locked by another browser's helper/engine (user live
+  report 2026-10-10). Quiet window 120 s; a reinstall is detected by
+  `__acUninstallDone` and forces the sync. Live test procedure: see
+  `Docs/GOTCHAS.md` (native lifecycle, uninstall bullet).
+
+The user-facing fallback (when the automatic deploy fails) is the manual section
+in `README.md` (§6.2/§6.3 — troubleshooting).
+
+### D.3 Update protocol (when the engine patch or the helper changes)
+
+1. **build** — `node AutoControl_native/patches/patch_zones_vXX.js out.exe`
+   (+ `build_native.ps1 -UpdatePatched`); helper: `Test/ac_zone_helper.cs`.
+2. **pack** — `node Test/dat_codec.js encode out.exe mv3-build/file76.dat`
+   (+ helper → `ac_zone_helper.dat`), or `build_native.ps1 -UpdateBundle`.
+3. **verify** — `build_native.ps1` (3/3: both payloads + the repo copies),
+   `node Test/patch_bytes_verify.js` (PROOF HOLDS), `node Test/mh_test.js`
+   (B53b–B53g + B61/B62), `node Test/engine_abi_dump.js <build>`
+   (ABI AUDIT: OK), `node Test/verify_all.js` (VERDICT: PASS).
+4. **claims** — `$EXPECT_DAT_MD5` in `Test/build_native.ps1` is the source of
+   truth; update the README §4.0 table + `mv3-build/mv3-build.md5`; a retired
+   payload md5 goes into `mh_test` B58's retired list with a dated marker.
+5. **deploy** — fresh install/Repair: the extension deploys the new payloads
+   itself; an existing install is migrated by the SW sync (taskkill + write) or,
+   as a fallback, `Test/deploy_patched_engine.ps1` (dev).
+6. **live** — deployed hash == expected + a physical zone test + a negative
+   control (see `Test/README.md` "Physical-test sessions").
+
+**Rule:** the engine and the helper are a matched pair (cave RVA / `ORIG_BLOCK`
+/ the `83 FA 28 73 17` signature; pinned by B53f/B53g). Changing the patch
+requires re-checking the helper; changing the helper requires re-packing its
+payload in the same change.

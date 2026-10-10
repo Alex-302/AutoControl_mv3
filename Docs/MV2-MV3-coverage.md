@@ -35,8 +35,8 @@ place) or broken identically in MV2 (Chrome platform changes).
 | Area | Coverage | Notes |
 |---|---|---|
 | **Native integration** (connection, handshake, callbacks, keepalive) | ✅ ~100% | Same wire protocol as MV2; every message type handled |
-| **Native component lifecycle** (auto-update of the engine, auto-reconnect, cleanup of old session files, install/uninstall, Emergency Repair) | ✅ ~100% | Repair now restarts the extension (equivalent of the MV2 background-page reload) — no stuck states, no dangling hooks |
-| **Triggers** (hotkeys, mouse buttons, wheel, gestures, rocker, joystick, voice, bookmarks, browser events, omnibox, startup, timers, binary switches, menus, preconditions) | ✅ ~100% | Full set; trigger config compilation identical to MV2. **One caveat:** hover regions ("Browser tab", "close button", "speaker icon", "new tab button", "any menu item", …) do NOT fire with the ORIGINAL engine on Chrome 148+ — a native-side a11y regression that **also breaks MV2** (not a port loss). The port fixes it with a patched engine plus an external zone classifier: all 12 regions verified — see `README.md` §4.4 and `Docs/TODO-mouseover-zones.md`. Install the patched engine or these options stay dead |
+| **Native component lifecycle** (auto-update of the engine, auto-reconnect, cleanup of old session files, install/uninstall, Emergency Repair) | ✅ ~100% | Repair now restarts the extension (equivalent of the MV2 background-page reload) — no stuck states, no dangling hooks. Since 2026-10-11 a browser that lost the component reconnects by itself (slow 60 s retry after the failure cap; the component coming back anywhere is picked up within ~1 min) and the error dialog's "Reload extension" runs the same restart as Emergency Repair |
+| **Triggers** (hotkeys, mouse buttons, wheel, gestures, rocker, joystick, voice, bookmarks, browser events, omnibox, startup, timers, binary switches, menus, preconditions) | ✅ ~100% | Full set; trigger config compilation identical to MV2. **One caveat:** hover regions ("Browser tab", "close button", "speaker icon", "new tab button", "any menu item", …) do NOT fire with the ORIGINAL engine on Chrome 148+ — a native-side a11y regression that **also breaks MV2** (not a port loss). The port fixes it with a patched engine plus an external zone classifier (both bundled and deployed automatically since 2026-10-10) — all 12 regions verified, see `README.md` §4.3 and `Docs/TODO-mouseover-zones.md` |
 | **Actions** (tabs, windows, bookmarks, menus, clipboard, system, SendInput, commands, scripts, screenshots, Save URL, Play audio) | ✅ ~100% | All categories. The two hardest ones were fixed: **Save URL** (Referer header now set via declarative network rules instead of the MV2 blocking webRequest) and **Play audio** (audio now plays in an offscreen document — the MV2 background page could play it directly) |
 | **Scripting engine + ACtl API** (33 methods) | ✅ ~100% | All methods work, including the complex ones: code in the page's main world with return values, subframes, ES modules, events |
 | **Settings UI** (trigger/action editors, script editor, import/export, sync, live config apply without restart) | ✅ ~100% | Script editor uses a local CodeMirror copy (offline-safe) |
@@ -61,14 +61,13 @@ place) or broken identically in MV2 (Chrome platform changes).
 
 1. **Not Web-Store ready** — unpacked-only dev build; GitHub publication is
    a process TODO.
-2. **Hover regions need the patched engine** — they are FIXED (all 12
-   verified), but the fix is a byte patch of the engine plus a small external
-   helper, so a plain installation (which deploys the bundled UNPATCHED engine)
-   leaves them dead until `Test/deploy_patched_engine.ps1` is run
-   (`README.md` §4.4). Shipping the patched engine in the bundle is the
-   follow-up that would close this.
-3. **Multi-browser helper test** — the zone classifier has never been exercised
-   by two browsers at once (`Docs/TODO-mouseover-zones.md` §2c).
+2. ~~Hover regions need the patched engine~~ — **CLOSED 2026-10-10**: the
+   patched engine (v19) and the zone helper are bundled as `.dat` payloads and
+   deployed/kept in sync by the extension itself (`Docs/BUILD-NATIVE.md` §D);
+   a plain installation gets working zones with no scripts.
+3. ~~Multi-browser helper test~~ — **CLOSED 2026-09-13**: two browsers
+   (stable Chrome + Chrome SxS) were exercised at once; the helper binds to its
+   own browser's engine (`Docs/TODO-mouseover-zones.md` §2c).
 
 ---
 

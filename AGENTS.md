@@ -36,6 +36,7 @@
 | If the change touches | Read first |
 |---|---|
 | engine patch / cave bytes | `Docs/BUILD-NATIVE.md`; `Docs/GOTCHAS.md` (native lifecycle) |
+| bundled payloads (`file76.dat` / `ac_zone_helper.dat`) | `Docs/BUILD-NATIVE.md` §D (pack + verify + update protocol); `mh_test` B61/B62 |
 | helper / zone classification | `Test/README.md`; `Docs/GOTCHAS.md` (triggers & actions) |
 | SW gate / triggers / actions | `Docs/GOTCHAS.md` (triggers & actions); symbols -> `Docs/DECODE.md` |
 | bundle sources | `Docs/BUNDLE-BUILD.md` (rebuild rules) |
@@ -123,12 +124,15 @@ This includes comments, log strings, and error messages in `sw.js`,
   extension).
 - **`AutoControl_native/`** = the native side (manifests + binaries), laid out
   as `original/` (untouched upstream: engine + `AutoControlZero.exe`),
-  `patched/` (**the current build**: `AutoCtrl_2025.4.22.0.v19.exe`) and
-  `patches/` (the patch script that turns `original/` into `patched/`); the
-  host manifests stay at the root. **Structure doc:
-  `AutoControl_native/README.md`** (`patches/README.md` = exact commands).
-  The extension never reads this folder — it unpacks its own engine from
-  `file76.dat`, which is the UNPATCHED distro build.
+  `patched/` (**the current build**: `AutoCtrl_2025.4.22.0.v19.exe` — the source
+  of the bundled payload) and `patches/` (the patch script that turns
+  `original/` into `patched/`); the host manifests stay at the root.
+  **Structure doc: `AutoControl_native/README.md`**
+  (`patches/README.md` = exact commands).
+  The extension never reads this folder — it deploys its own engine from
+  `mv3-build/file76.dat` (**the patched v19 build** since 2026-10-10) and the
+  zone helper from `mv3-build/ac_zone_helper.dat`; the SW keeps both in sync
+  (see `Docs/BUILD-NATIVE.md` §D).
 - **`mv3-build/`** = the MV3 port (SW-brain). **This is where ALL work
   happens.** Load this folder in Chrome as an unpacked extension. Contains its
   own copies of the core `file*.js`/`res/` — independent from `ext-mv2/`.
@@ -168,8 +172,9 @@ This includes comments, log strings, and error messages in `sw.js`,
      **deployed** engine by default; pass a file to check a build
      (`--orig <pristine.exe>` for another original, `--no-diff` only if you
      deliberately accept `PROOF HOLDS (PARTIAL)`).
-  2. `powershell -File Test/build_native.ps1` → both hashes OK
-     (engine `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`).
+  2. `powershell -File Test/build_native.ps1` → all hashes OK (engine
+     `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`,
+     payloads `file76.dat` md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D` + `ac_zone_helper.dat`; step 3/3 verifies the repo copies too).
   3. `node Test/mh_test.js` → B53b–B53g `[PASS]`: CLI + determinism,
      docs == bytes, the decoder proof, its mutation (teeth) test, the helper
      writer == the verifier's simulation, the Ghidra listing == the build.
@@ -182,6 +187,12 @@ This includes comments, log strings, and error messages in `sw.js`,
      (`Test/DisasmPatch.java`) and update the byte tables in
      `Docs/BUILD-NATIVE.md` §B.3/B.4 + `patches/README.md` in the SAME change —
      B53c/B53g fail on a stale listing or doc, by design.
+  6. If a bundled payload was regenerated (`file76.dat` / `ac_zone_helper.dat`,
+     recipe: `Docs/BUILD-NATIVE.md` §D): update `$EXPECT_DAT_MD5` in
+     `Test/build_native.ps1` and the claim sites (README §4.0 +
+     `mv3-build/mv3-build.md5`) in the SAME change; a retired payload md5 goes
+     into `mh_test` B58's retired list with a dated marker. `mh_test` B61/B62
+     and `verify_all`'s native-touched check enforce this.
 - After editing ANY file from the bundle list (recipe: `Docs/BUNDLE-BUILD.md`), you MUST
   rebuild `sw_core_bundle.js` and run the arrow sanity check.
 - After editing `Test/SCRIPTING-API-TEST.js` you MUST re-copy its content
@@ -267,6 +278,15 @@ otherwise the next session starts from zero. Concretely:
    `chromium-bugs.htm` with its 5 images; `files/Native-Component.exe` has NO
    snapshot anywhere and stays dead (the port installs the native component
    from its own `file69.dat`). Inventory: `/memories/session/autocontrol-mv3.md`.
+   ⚠ **The support forum (`groups.google.com/g/autocontrol_app`) was removed
+   from the UI on 2026-10-10 (dead).** The `support` key is gone from `_4a`
+   (`file10.js`), from the `_Lh`/`_Ht` repair popups (`file70.js`) and from
+   `main.html` (help tab + install-pane tips); never reintroduce it. The
+   native-update warning points to the working recovery path instead:
+   settings → **Uninstall native component** → reinstall → restart the
+   extension. `mh_test` B62 scans every `mv3-build` js/html for the URL.
+   (The archived site copy under `Docs/autocontrol.app-site/` still contains
+   the original forum links — historical content, not the UI.)
    ⚠ **Demo entries are LINKS now (2026-09-13)** — the Help → *Show demos*
    panel (`main.html` template `demoPanel`) lists three links to mirror guides
    instead of playing `file9.js` animations: those need the dead site's

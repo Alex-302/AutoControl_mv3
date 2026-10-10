@@ -962,7 +962,10 @@ setTimeout(() => {
     !shim.includes('chrome.storage.local.set({ natHostInstalled: true })') &&
     !shim.includes('Without this, file2.js shows the install pane');
   const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
-  const swOk = sw.includes('chrome.storage.local.set({ natHostInstalled: true })');
+  // 2026-10-11: the connect path now also clears the __acUninstalling marker
+  // in the SAME write (a stale marker would block the install-pane watcher
+  // after a later reinstall) — allow extra keys.
+  const swOk = /chrome\.storage\.local\.set\(\{ natHostInstalled: true[,}]/.test(sw);
   const f30 = fs.readFileSync(path.join(MV3, 'file30.js'), 'utf8');
   const f30Ok = f30.includes('chrome.storage.local.remove("natHostInstalled")') &&
     f30.includes('window._nd=!1');
@@ -1050,7 +1053,12 @@ setTimeout(() => {
   const ok = sw.includes('__acEverConnected') &&
     sw.includes('__acMaxNeverConnectedFailures') &&
     /errors >= __acMaxNeverConnectedFailures/.test(sw) &&
-    sw.includes('stopping auto-retry') &&
+    // 2026-10-11: the cap no longer STOPS the loop ("stopping auto-retry" was
+    // a lie — onConnError scheduled its own fast retry, log showed 90+
+    // attempts every ~9 s). It switches to a slow 60 s retry instead, so the
+    // host coming back is picked up without any user action.
+    sw.includes('switching to a slow 60 s retry') &&
+    !sw.includes('stopping auto-retry') &&
     /errors = 0; retries = 0;\s*connect\(\)/.test(sw) &&
     sw.includes('__acCtxMenuOwned') &&
     /id: "reloadExtn", title: "Emergency repair", contexts: \["action\"\]/.test(sw) &&
@@ -2313,7 +2321,12 @@ vm.runInContext(`
   // The SW keepalive that starts the helper at SW boot: without it the helper
   // only ran after the first 750 — and since the engine drops the 750s it
   // cannot classify, that first 750 never came (chicken-and-egg).
-  const keepaliveOk = /setInterval\(\(\) => \{[\s\S]{0,120}__acZoneAsk\(300\)/.test(sw);
+  // 2026-10-11: the interval now carries a `!connected` guard + an explanatory
+  // comment (no helper connects while the main native is down), so the gap
+  // between `setInterval(() => {` and the ask grew — keep the window generous
+  // and pin the guard itself as well.
+  const keepaliveOk = /setInterval\(\(\) => \{[\s\S]{0,700}__acZoneAsk\(300\)/.test(sw) &&
+    /if \(!connected\) return;\s*try \{ __acZoneAsk\(300\); \} catch \(e\) \{\}/.test(sw);
 
   const bad = [];
   if (!knownOk) bad.push('known=' + JSON.stringify(known));
@@ -2860,9 +2873,10 @@ try {
   const buildPs1 = fs.readFileSync(path.join(__dirname, 'build_native.ps1'), 'utf8');
   const curHelper = (buildPs1.match(/\$EXPECT_HELPER\s*=\s*'([0-9A-F]{64})'/) || [])[1];
   const curEngine = (buildPs1.match(/\$EXPECT_ENGINE\s*=\s*'([0-9A-F]{64})'/) || [])[1];
+  const curDat = (buildPs1.match(/\$EXPECT_DAT_MD5\s*=\s*'([0-9A-F]{32})'/) || [])[1];
   const helperBin = path.join(repo, 'AutoControl_native', 'ac_zone_helper.exe');
   const helperSize = fs.existsSync(helperBin) ? fs.statSync(helperBin).size : -1;
-  if (!curHelper || !curEngine) throw new Error('cannot read $EXPECT_HELPER/$EXPECT_ENGINE from build_native.ps1');
+  if (!curHelper || !curEngine || !curDat) throw new Error('cannot read $EXPECT_HELPER/$EXPECT_ENGINE/$EXPECT_DAT_MD5 from build_native.ps1');
 
   const read = (p) => fs.readFileSync(path.join(repo, p), 'utf8');
   // file, regex, which capture group holds the HASH, what it claims - every site
@@ -2891,15 +2905,43 @@ try {
     if (!m) { bad4.push(`${what} (${file}): the claim was not found - did the wording change?`); continue; }
     const hex = m[hashGroup];
     if (!curHelper.startsWith(hex)) bad4.push(`${what} (${file}): says ${hex.slice(0, 16)}…, build is ${curHelper.slice(0, 16)}…`);
-    // size claims, where the pattern captured one (any group that is not the hash)
+    // size claims, where the pattern captured one (any group that is not the hash);
+    // commas are stripped so the README's "695,296 B" form is comparable too.
     for (let g = 1; g < m.length; g++) {
       if (g === hashGroup) continue;
-      const digits = String(m[g]).replace(/\s|\u00A0/g, '');
+      const digits = String(m[g]).replace(/[\s\u00A0,]/g, '');
       if (/^\d+$/.test(digits) && Number(digits) !== helperSize) {
         bad4.push(`${what} (${file}): claims ${digits} bytes, the binary is ${helperSize}`);
       }
     }
   }
+
+  // The bundled engine payload (mv3-build/file76.dat): its MD5 is quoted by the
+  // README §4.0 table and recorded in mv3-build/mv3-build.md5; $EXPECT_DAT_MD5 in
+  // build_native.ps1 is the source of truth. The decoded content is pinned by B61.
+  const datBin = path.join(repo, 'mv3-build', 'file76.dat');
+  const datSize = fs.existsSync(datBin) ? fs.statSync(datBin).size : -1;
+  const datSites = [
+    ['README.md', /\| `file76\.dat` \(([\d,]+) B\) \| `([0-9A-F]{32})`/, 2, 'the README §4.0 payload table'],
+  ];
+  for (const [file, re, hashGroup, what] of datSites) {
+    const m = read(file).match(re);
+    if (!m) { bad4.push(`${what} (${file}): the claim was not found - did the wording change?`); continue; }
+    if (m[hashGroup] !== curDat) bad4.push(`${what} (${file}): says ${m[hashGroup]}, payload is ${curDat}`);
+    for (let g = 1; g < m.length; g++) {
+      if (g === hashGroup) continue;
+      const digits = String(m[g]).replace(/[\s\u00A0,]/g, '');
+      if (/^\d+$/.test(digits) && Number(digits) !== datSize) {
+        bad4.push(`${what} (${file}): claims ${digits} bytes, the payload is ${datSize}`);
+      }
+    }
+  }
+  try {
+    const md5man = fs.readFileSync(path.join(repo, 'mv3-build', 'mv3-build.md5'), 'utf8').toLowerCase();
+    if (!md5man.includes(curDat.toLowerCase() + ' *file76.dat')) {
+      bad4.push('mv3-build/mv3-build.md5 does not record the current file76.dat md5');
+    }
+  } catch (e) { bad4.push('mv3-build/mv3-build.md5: ' + e.message); }
 
   // Abbreviated claims (`C8466CF7…ABAF`) - the §C "source of truth" block in
   // Docs/BUILD-NATIVE.md shows the expected values in this form, and the 64-char
@@ -2909,6 +2951,7 @@ try {
   const abbrevSites = [
     ['Docs/BUILD-NATIVE.md', /\$EXPECT_ENGINE\s*=\s*'([0-9A-F]{8})…([0-9A-F]{4})'/, 'the §C block (engine)', curEngine],
     ['Docs/BUILD-NATIVE.md', /\$EXPECT_HELPER\s*=\s*'([0-9A-F]{8})…([0-9A-F]{4})'/, 'the §C block (helper)', curHelper],
+    ['Docs/BUILD-NATIVE.md', /\$EXPECT_DAT_MD5\s*=\s*'([0-9A-F]{8})…([0-9A-F]{4})'/, 'the §C block (payload)', curDat],
   ];
   for (const [file, re, what, cur] of abbrevSites) {
     const m = read(file).match(re);
@@ -2957,8 +3000,27 @@ try {
       }
     }
   }
+
+  // Retired .dat payload MD5s (32 chars) - the same rule as the helper hashes:
+  // an old value may appear only with a historical marker. 6BF791F5… is the
+  // distro blob that used to sit in mv3-build/file76.dat before the patched v19
+  // payload was embedded (2026-10-10); the README §4.0 keeps it as history.
+  const RETIRED_MD5 = ['6BF791F5B2D267834A52A47E8CC3C2F4'];
+  for (const p of mdFiles) {
+    const lines = fs.readFileSync(p, 'utf8').split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      for (const h of RETIRED_MD5) {
+        const form = lines[i].toUpperCase().includes(h) ? h : null;
+        if (!form) continue;
+        const ctx = [lines[i - 1] || '', lines[i], lines[i + 1] || ''].join('\n');
+        if (!MARKER.test(ctx)) {
+          bad4.push(`${path.relative(repo, p)}:${i + 1} quotes the RETIRED payload md5 ${form} as if it were current (no historical marker nearby)`);
+        }
+      }
+    }
+  }
   check('docs vs build: the claimed helper hash/size == build_native.ps1, no retired hash claimed as current (2026-10-04)',
-    bad4.length === 0, bad4.length ? bad4.join('; ') : `helper ${curHelper.slice(0, 16)}… @ ${helperSize} bytes, ${sites.length} claim sites + ${abbrevSites.length} abbreviated + ${mdFiles.length} docs scanned`);
+    bad4.length === 0, bad4.length ? bad4.join('; ') : `helper ${curHelper.slice(0, 16)}… @ ${helperSize} bytes + payload md5 ${curDat}, ${sites.length}+${datSites.length} claim sites, ${abbrevSites.length} abbreviated, ${mdFiles.length} docs scanned`);
 } catch (e) {
   check('docs vs build: the claimed helper hash/size == build_native.ps1, no retired hash claimed as current (2026-10-04)',
     false, e.message.split('\n')[0]);
@@ -3028,6 +3090,232 @@ const eIdx = bundle.indexOf('_E=_cg(');
 const eSrc = eIdx >= 0 ? bundle.slice(eIdx, eIdx + 400) : '';
 check('copyLinks: _E uses DOM-free _hB (no _Uu / querySelectorAll in the action source)',
   eSrc.includes('_hB(') && !eSrc.includes('_Uu(') && !eSrc.includes('querySelectorAll'), eSrc.slice(0, 120));
+
+// ---------- B61. bundled native payloads (file76.dat + ac_zone_helper.dat) ----------
+// The extension deploys its own engine from file76.dat and the zone helper from
+// ac_zone_helper.dat on a fresh install/repair. Since 2026-10-10 the engine
+// payload IS the patched v19 build (not the distro original): the mouse-over zone
+// gate + the zone helper only work with the patched engine, so a fresh install
+// must not depend on a manual deploy step. Pins:
+//  - decode(file76.dat) == AutoControl_native/patched/...v19.exe byte-for-byte;
+//  - decoded engine sha256 == $EXPECT_ENGINE (source: Test/build_native.ps1);
+//  - file76.dat md5 == $EXPECT_DAT_MD5;
+//  - decode(ac_zone_helper.dat) == AutoControl_native/ac_zone_helper.exe
+//    (sha256 == $EXPECT_HELPER);
+//  - encode(decode(dat)) == dat for both (the codec is reversible - the property
+//    the "replace the payload with any same-size build" claim depends on).
+// The decoder is written out HERE (not imported from Test/dat_codec.js) so a typo
+// in the tool cannot make this check agree with itself; the byte-equality against
+// the reference exes is the independent anchor.
+try {
+  const repo = path.join(__dirname, '..');
+  const buildPs1 = fs.readFileSync(path.join(__dirname, 'build_native.ps1'), 'utf8');
+  const expectEngine = (buildPs1.match(/\$EXPECT_ENGINE\s*=\s*'([0-9A-F]{64})'/) || [])[1];
+  const expectHelper = (buildPs1.match(/\$EXPECT_HELPER\s*=\s*'([0-9A-F]{64})'/) || [])[1];
+  const expectDatMd5 = (buildPs1.match(/\$EXPECT_DAT_MD5\s*=\s*'([0-9A-F]{32})'/) || [])[1];
+  const KEY = [94, 14, 77, 49, 13];
+  const decode = (dat) => {
+    const exe = Buffer.alloc(dat.length);
+    for (let i = 0; i < dat.length; i++) {
+      let b = (dat[dat.length - 1 - i] - KEY[i % 5] - i) % 256;
+      if (b < 0) b += 256;
+      exe[i] = b;
+    }
+    return exe;
+  };
+  const encode = (exe) => {
+    const dat = Buffer.alloc(exe.length);
+    for (let i = 0; i < exe.length; i++) {
+      let b = (exe[i] + KEY[i % 5] + i) % 256;
+      if (b < 0) b += 256;
+      dat[exe.length - 1 - i] = b;
+    }
+    return dat;
+  };
+  const crypto = require('crypto');
+  const sha = (b) => crypto.createHash('sha256').update(b).digest('hex').toUpperCase();
+
+  const dat = fs.readFileSync(path.join(repo, 'mv3-build', 'file76.dat'));
+  const exe = decode(dat);
+  const ref = fs.readFileSync(path.join(repo, 'AutoControl_native', 'patched', 'AutoCtrl_2025.4.22.0.v19.exe'));
+  const decodedSha = sha(exe);
+  const datMd5 = crypto.createHash('md5').update(dat).digest('hex').toUpperCase();
+
+  const hdat = fs.readFileSync(path.join(repo, 'mv3-build', 'ac_zone_helper.dat'));
+  const hlp = decode(hdat);
+  const href = fs.readFileSync(path.join(repo, 'AutoControl_native', 'ac_zone_helper.exe'));
+  const hSha = sha(hlp);
+
+  const bad5 = [];
+  if (!expectEngine || !expectHelper || !expectDatMd5) bad5.push('cannot read $EXPECT_ENGINE/$EXPECT_HELPER/$EXPECT_DAT_MD5 from build_native.ps1');
+  if (exe.length !== ref.length || !exe.equals(ref)) bad5.push('decode(file76.dat) != patched v19 build');
+  if (decodedSha !== expectEngine) bad5.push('decoded engine sha256 ' + decodedSha.slice(0, 16) + '… != $EXPECT_ENGINE');
+  if (datMd5 !== expectDatMd5) bad5.push('file76.dat md5 ' + datMd5 + ' != $EXPECT_DAT_MD5');
+  if (!encode(exe).equals(dat)) bad5.push('encode(decode(file76.dat)) is not byte-identical');
+  if (hlp.length !== href.length || !hlp.equals(href)) bad5.push('decode(ac_zone_helper.dat) != ac_zone_helper.exe');
+  if (hSha !== expectHelper) bad5.push('decoded helper sha256 ' + hSha.slice(0, 16) + '… != $EXPECT_HELPER');
+  if (!encode(hlp).equals(hdat)) bad5.push('encode(decode(ac_zone_helper.dat)) is not byte-identical');
+  check('bundled payloads: file76.dat -> patched v19 engine, ac_zone_helper.dat -> helper (2026-10-10)',
+    bad5.length === 0, bad5.length ? bad5.join('; ') : 'engine md5 ' + datMd5 + ' (sha ' + decodedSha.slice(0, 16) + '…), helper sha ' + hSha.slice(0, 16) + '…');
+} catch (e) {
+  check('bundled payloads: file76.dat -> patched v19 engine, ac_zone_helper.dat -> helper (2026-10-10)',
+    false, e.message.split('\n')[0]);
+}
+
+// ---------- B62. SW native bundle sync: patched engine + helper auto-deploy ----------
+// The extension must deploy the patched engine (file76.dat) and the zone helper
+// (ac_zone_helper.dat) itself: fresh installs get them from the payloads, an
+// existing/foreign engine is replaced (taskkill + type-250 write + reconnect),
+// the helper host is registered via cmd (type 260, HKCU) and the helper port is
+// disconnected before its exe is overwritten. The user is warned (file71 popup +
+// chrome.notifications) only when a deploy fails. Payload CONTENT is pinned by
+// B61; this check pins the sw.js wiring.
+try {
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const bad6 = [];
+  for (const needle of [
+    "ac_zone_helper.dat",
+    "__acEnsureNativeBundle",
+    "taskkill /F /IM",
+    "reg add ",
+    "__acZonePort.disconnect()",
+    "__acNativeWarn",
+    "chrome.runtime.id"
+  ]) {
+    if (!sw.includes(needle)) bad6.push('missing: ' + needle);
+  }
+  // entry point called after a successful handshake + forced on update/repair
+  if (!/setTimeout\(\(\) => \{ try \{ __acEnsureNativeBundle\(\); \}/.test(sw)) bad6.push('not called after the handshake');
+  if (!/__acNativeCheckForce = true/.test(sw)) bad6.push('onInstalled does not force the check');
+  // every known vendor branch must be registered
+  for (const v of ['Google\\\\Chrome\\\\', 'Chrome SxS', 'Microsoft\\\\Edge', 'BraveSoftware',
+                   'Opera Software', 'Vivaldi', 'Chromium', 'Yandex']) {
+    if (!sw.includes(v)) bad6.push('registry branch missing: ' + v);
+  }
+  // the old manual-copy instruction must be gone from the user-facing message
+  if (/copy AutoControl_native/.test(sw) && /patched\\\\AutoCtrl.*by hand|patched\\\\.*over it by hand/.test(sw)) {
+    bad6.push('stale manual-copy instruction still present');
+  }
+  // 2026-10-10 (user live report): the warning must point to the WORKING recovery
+  // path — "Uninstall native component" in the settings, reinstall, restart —
+  // because the settings' "Reinstall native component" button is not shown while
+  // the native is connected. The dead support forum must not come back anywhere.
+  if (!sw.includes('Uninstall native component')) bad6.push('warning text does not mention the uninstall/reinstall path');
+  if (/_4a\.support|URLS\.support|groups\.google\.com/.test(sw)) bad6.push('sw.js still references the dead support forum');
+  const deadLink = [];
+  (function walkExt(dir) {
+    for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (d.isDirectory()) { if (d.name !== 'res') walkExt(path.join(dir, d.name)); continue; }
+      if (!/\.(js|html)$/i.test(d.name)) continue;
+      const p = path.join(dir, d.name);
+      if (/groups\.google\.com|_4a\.support|URLS\.support/.test(fs.readFileSync(p, 'utf8'))) {
+        deadLink.push(path.relative(path.join(__dirname, '..'), p));
+      }
+    }
+  })(MV3);
+  if (deadLink.length) bad6.push('dead support-forum links in: ' + deadLink.join(', '));
+  // Uninstall (2026-10-10 live report): the original installer removes only the
+  // Chrome engine key and dies on a directory locked by another browser's
+  // helper/engine. The extension now performs the WHOLE cleanup itself as ONE
+  // cmd chain (sw.js __acUninstallNative): keys -> kill all helpers/engines/
+  // Zeros -> wait -> delete helper files + the component directory. file30.js
+  // asks the SW and no longer runs the installer.
+  if (!/__acZoneReleasedUntil/.test(sw)) bad6.push('uninstall release window missing in sw.js');
+  if (!/cmd === "acUninstallNative"/.test(sw)) bad6.push('uninstall message handler missing in sw.js');
+  if (!/function __acUninstallNative\(\)/.test(sw)) bad6.push('__acUninstallNative missing in sw.js');
+  for (const part of ['reg delete', 'taskkill /F /IM', 'rd /s /q', 'cd /d "%LOCALAPPDATA%"']) {
+    if (!sw.includes(part)) bad6.push('uninstall chain part missing in sw.js: ' + part);
+  }
+  const f30 = fs.readFileSync(path.join(MV3, 'file30.js'), 'utf8');
+  const relAt = f30.indexOf('acUninstallNative');
+  if (relAt < 0) bad6.push('file30.js does not call acUninstallNative');
+  if (f30.includes('noConfirm')) bad6.push('file30.js still runs the original installer');
+  // the page must reload into the install view only AFTER the native is gone:
+  // poll the SW (nativeState) instead of the old fixed 2.6 s reload that raced
+  // with the SW re-setting natHostInstalled (user report 2026-10-10)
+  const pollAt = f30.indexOf('nativeState');
+  if (pollAt < 0 || pollAt < relAt) bad6.push('file30.js does not poll nativeState after the uninstall call');
+  if (/},2600\)/.test(f30)) bad6.push('old fixed 2.6 s reload still present in file30.js');
+  if (!/cmd === "nativeState"/.test(sw)) bad6.push('nativeState handler missing in sw.js');
+  // a reinstall after the uninstall must FORCE the bundle sync: the 60 s check
+  // throttle would otherwise skip it and the zone helper would stay missing
+  // until an extension reload (user report 2026-10-10)
+  if (!/__acUninstallDone/.test(sw)) bad6.push('reinstall-after-uninstall force missing in sw.js');
+  // the helper half of the sync must NOT be behind the throttle: a missing
+  // helper self-heals on the next connect (22 KB), only the engine is throttled
+  if (!/skipEngine/.test(sw)) bad6.push('helper sync is not throttle-independent in sw.js');
+  // second-browser install (2026-10-10): BOTH hosts are auto-registered for
+  // every vendor branch (the installer only does Chrome), and a settings page
+  // that opened before the SW connected transitions out of the install pane on
+  // nativeConfigReady (mv3_native_shim.js, in the bundle)
+  if (!/__AC_ENGINE_REG_KEYS/.test(sw)) bad6.push('engine host auto-registration missing in sw.js');
+  if (!/AutoControl\.manifest/.test(sw)) bad6.push('engine manifest path missing in sw.js');
+  if (!/__AC_HOST_REG_VERSION/.test(sw)) bad6.push('registration version marker missing in sw.js');
+  const shim = fs.readFileSync(path.join(MV3, 'mv3_native_shim.js'), 'utf8');
+  if (!/__acPaneTransitioned/.test(shim)) bad6.push('install-pane transition missing in mv3_native_shim.js');
+  check('native bundle sync: helper payload + host registration + engine replace + warning UI (2026-10-10)',
+    bad6.length === 0, bad6.length ? bad6.join('; ') : 'sw.js wiring ok');
+} catch (e) {
+  check('native bundle sync: helper payload + host registration + engine replace + warning UI (2026-10-10)',
+    false, e.message.split('\n')[0]);
+}
+
+// ---------- B63. reconnect after the failure cap + dialog repair + install-pane race ----------
+// Live report 2026-10-11 (logs from browser B after a reinstall in browser A):
+//  (a) the "stop auto-retry after N failures" cap did NOT stop anything —
+//      onConnError called scheduleRetry unconditionally, so B retried every
+//      ~9 s forever (log: 90+ generations) instead of recovering quietly;
+//      now the cap switches to a SLOW 60 s retry (auto-recovery when the
+//      host returns, no endless fast loop).
+//  (b) the error dialog's "Reload extension" called _co(2) = type 55 PLUS a
+//      page-side chrome.runtime.reload() (double-reload race); it must use
+//      the Emergency Repair path _co(1) (type 55 -> SW restarts itself).
+//  (c) fresh install: the settings page opens before the SW connects, so the
+//      nativeConfigReady transition event arrives before the install pane
+//      registers its listener — the pane stayed until F5. mv3_shim.js now
+//      watches the storage flag while the pane is shown.
+try {
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const bad7 = [];
+  // (a) slow retry after the cap
+  if (!/setTimeout\(connect, 60000\)/.test(sw)) bad7.push('slow 60 s retry missing in scheduleRetry');
+  if (!/slow 60 s retry/.test(sw)) bad7.push('slow-retry log message missing in onDisc');
+  if (/stopping auto-retry/.test(sw)) bad7.push('old "stopping auto-retry" message still present');
+  if (!/errors >= __acMaxNeverConnectedFailures/.test(sw)) bad7.push('failure cap check missing');
+  // (b) dialog button = Emergency Repair path
+  const f2 = fs.readFileSync(path.join(MV3, 'file2.js'), 'utf8');
+  if (!/natHostNotFound/.test(f2)) bad7.push('natHostNotFound dialog missing in file2.js');
+  if (!/_co\(1,!0\)/.test(f2)) bad7.push('dialog Reload button does not use the repair path (_co(1))');
+  if (/_co\(2,!0\)/.test(f2)) bad7.push('dialog still uses the plain double-reload path (_co(2))');
+  // (c) install-pane watcher (mv3_shim.js, page-only — NOT in the bundle)
+  const shim = fs.readFileSync(path.join(MV3, 'mv3_shim.js'), 'utf8');
+  if (!/install pane shown but the native is up/.test(shim)) bad7.push('install-pane watcher missing in mv3_shim.js');
+  if (!/ac-install-done/.test(shim)) bad7.push('watcher does not dispatch ac-install-done');
+  // (d) stale-UI self-heal (2026-10-11, user report): a page that booted
+  //     without the native must leave the install/waiting UI on reconnect, and
+  //     the two known stale windows must close themselves
+  if (!/__acBootNoNative/.test(shim)) bad7.push('boot-state capture missing in mv3_shim.js');
+  if (!/reconnect: page booted without the native/.test(shim)) bad7.push('reconnect transition missing in mv3_shim.js');
+  if (!/closing a stale native-status window/.test(shim)) bad7.push('stale-dialog close missing in mv3_shim.js');
+  if (!/Native Component not working/.test(shim) || !/Starting Native Component/.test(shim)) {
+    bad7.push('stale-dialog text match incomplete in mv3_shim.js');
+  }
+  // the mid-uninstall reconnect must not re-open the settings UI: the marker is
+  // set by __acUninstallNative and cleared on the reinstall connect
+  if (!/__acUninstalling: 1/.test(sw)) bad7.push('__acUninstalling marker not set on uninstall');
+  if (!/__acUninstalling: 0/.test(sw)) bad7.push('__acUninstalling marker not cleared on reinstall');
+  if (!/__acUninstalling/.test(shim)) bad7.push('watcher does not honor the __acUninstalling marker');
+  // (e) zone keepalive guard (2026-10-11): no helper connects while the main
+  //     native is down (removes the 2.5 s failed connectNative + lastError noise)
+  if (!/if \(!connected\) return;\s*try \{ __acZoneAsk\(300\); \} catch \(e\) \{\}/.test(sw)) {
+    bad7.push('zone keepalive connected-guard missing in sw.js');
+  }
+  check('reconnect cap -> slow retry + dialog repair path + install-pane race (2026-10-11)',
+    bad7.length === 0, bad7.length ? bad7.join('; ') : 'sw.js + file2.js + mv3_shim.js wiring ok');
+} catch (e) {
+  check('reconnect cap -> slow retry + dialog repair path + install-pane race (2026-10-11)',
+    false, e.message.split('\n')[0]);
+}
 
 // ---------- summary ----------
 setTimeout(() => {

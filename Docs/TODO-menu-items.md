@@ -1,7 +1,7 @@
 # TODO — Menu-item zones (41-51): per-kind verification
 
 **Created:** 2026-10-05 · **Status:** ⬜ **OPEN, LOW PRIORITY** — deferred by the
-user on 2026-10-05 ("это низкоприоритетное"). Split out of
+user on 2026-10-05. Split out of
 `Docs/TODO-mouseover-zones.md`, which is otherwise complete.
 **Goal:** prove that each individual *menu item* region fires on the RIGHT kind of
 menu item — not just that "any menu item" fires.

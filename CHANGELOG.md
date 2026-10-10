@@ -138,14 +138,45 @@
   - the config is re-sent after every reconnect (hotkeys/gestures stay alive
     without an extension reload);
   - the extension connects automatically after the native is installed;
-  - with the native uninstalled, reconnect attempts stop instead of looping
-    forever and the install pane is shown.
+  - with the native uninstalled, the fast reconnect attempts stop and the
+    install pane is shown; a slow retry keeps watching for the component to
+    come back (2026-10-11 — it used to retry every ~9 s forever, and a
+    browser could reconnect only by accident).
+- **Patched engine + zone helper ship inside the extension (2026-10-10).**
+  The bundled engine payload is now the patched v19 build (the mouse-over zone
+  fix) instead of the original distro build, and the zone helper is bundled as
+  a second payload: a fresh install or repair gets working hover regions with
+  no scripts and no manual copying. The extension compares the deployed engine
+  and helper with the bundled payloads on every start and replaces an outdated
+  one automatically (an already-installed unpatched engine is migrated on the
+  fly), registers the helper host for all known browser variants and warns
+  with a popup/notification if a deployment fails. When it fails, the warning
+  points to the working recovery path — settings → **Uninstall native
+  component** → reinstall → restart the extension (the "Reinstall native
+  component" button is not shown while the native is connected). Manual deploy
+  scripts remain available for development. The dead support-forum links were
+  removed from the whole UI (popup, repair popups, help tab) the same day.
+  Uninstalling the native component is now done by the extension itself in one
+  pass: both host registrations (all browsers) are deleted, every helper,
+  engine and Zero process is stopped and the whole %LOCALAPPDATA%\AutoControl
+  folder is removed — no locked-directory error and no "remove the extension
+  from all your browser profiles". The settings page reloads into the install
+  view once the native is really gone; reinstalling brings both components back
+  (the helper check runs on every connect; the engine check is forced on the
+  first connect after the uninstall). Both native hosts (engine + helper) are now registered for every
+  browser branch, so a second browser works without the manual registry step
+  (a browser with NO key at all still needs the first manual registration —
+  the sync itself needs a connection to run; restart the browser once after the
+  key appears); a settings page that opened before the worker finished
+  connecting now transitions out of the install pane by itself (no manual
+  refresh).
 - Emergency Repair re-implemented for the worker world: the extension reloads
   itself (the MV2 equivalent of reloading the background page), the icon
   badge shows Wait → OK/Error, the context-menu item is always available and
   with no native installed it opens the install page. The engine is never
   hard-killed (a forced kill used to leave dangling input hooks that stalled
-  keyboard/mouse for ~40 s).
+  keyboard/mouse for ~40 s; re-measured 2026-10-10: engine kill → first
+  trigger < 1 s, helper kill → ~3 s).
 - Cleanup of session/tab files older than 10 days on connect, as in the
   original; native error classification: when the engine cannot install its
   input hooks (conflict with another program), the user gets a notification
@@ -520,6 +551,33 @@
   investigated — the feared dedup clash does not reproduce (unique per-call
   keys already prevent it), a residual attribution leak for multi-tab
   scripts is documented and tracked.
+- **Reconnect after the native component returns + repair button + install-pane
+  race (2026-10-11, user logs).** Follow-ups from a two-browser test
+  (reinstall in browser A, then browser B): (1) the auto-retry "stop after 8
+  failures" never actually stopped — the error path scheduled its own retry, so
+  a browser with no host retried every ~9 s forever (90+ attempts in the log);
+  the loop now switches to a slow 60-second retry after the cap, so a browser
+  picks the component back up by itself once it is reinstalled anywhere — no
+  Emergency Repair needed. (2) The error dialog's "Reload extension" button did
+  a type-55 repair AND a page-side extension reload at the same time (a
+  double-reload race); it now uses exactly the Emergency Repair path, so the
+  worker restarts cleanly. (3) After a fresh extension install the settings
+  page could open before the worker connected and stayed on the install pane
+  until a manual refresh; the page now watches the installed-flag while the
+  pane is shown and switches to the settings view as soon as the native is up
+  (a mid-uninstall reconnect no longer re-opens the settings view).
+  **(4) The settings page now heals its own state after a reconnect** — a page
+  opened while the component was missing could keep showing the install pane,
+  a "Starting Native Component…" waiting window or the stale "Native Component
+  not working" dialog even though the component was back and working (manual
+  refresh was the only way out); on every successful (re)connect the page
+  leaves that state by itself. A correction went with it: the earlier
+  transition inside the native shim never actually ran (it was checking a flag
+  the same handler had just set), which is now documented so it is not trusted
+  again. (5) While the native component is gone, the mouse-over helper is no
+  longer pinged every 2.5 seconds (it produced console noise about a missing
+  host) — the helper only matters while the engine is connected and is
+  restarted on demand.
 
 #### Settings & UI fixes
 
@@ -624,7 +682,7 @@
   all 12 regions work, so the mark was stale (it was added when the engine could
   not classify the browser chrome at all). A plain installation — the bundled
   UNPATCHED engine — still needs `Test/deploy_patched_engine.ps1`; that is
-  documented in `README.md` §4.4 instead of a suffix in the UI. Reload the
+  documented in `README.md` §4.3 instead of a suffix in the UI. Reload the
   settings page (or the extension) to pick the change up.
 - **The donation and rating prompts are removed.** The settings tab bar no longer
   shows the "Support the project" button (it opened a PayPal / Buy Me a Coffee
@@ -633,6 +691,15 @@
 
 #### Native component
 
+- **Installation is now just two steps (2026-10-11)** — the patched engine and
+  the zone helper ship inside the extension and are deployed and registered by
+  it, so installing is: load the unpacked extension → click **Install** → run
+  the installer. No manual file copying, no registry edits, no extension
+  reload; a second browser works without the manual `reg add` step (the
+  installer registers only the Chrome engine key — the extension adds the
+  helper key and every other browser branch). The README's installation section
+  was reduced to that happy path, with the registry/copy/verification/repair
+  material moved to a new Troubleshooting section (§6).
 - **Telemetry is off by default** — the original always sent anonymous usage
   data; nothing is sent until the user enables the new checkbox in Advanced
   Options.
