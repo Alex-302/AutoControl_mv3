@@ -173,8 +173,8 @@ check('z handler completeness', zRes.missing.length === 0 && zRes.hasAdd,
 // _uf + the file71.html floating popup _Lh after 5 notices in 15s, unless
 // the user disabled it), invalidExtId (install-age gate _2u), APDL
 // (anti-piracy flag `_r`), NH-error segfault 0xC0000005 (error counter).
-// The MV3 shim used to forward EVERYTHING to _Ot (telemetry only, off by
-// default → the user got no feedback when the engine could not hook).
+// The MV3 shim used to forward EVERYTHING to _Ot (telemetry — removed
+// 2026-10-11 → the user got no feedback when the engine could not hook).
 // Source checks for the ported branches + a runtime smoke: 4 no-hook-notice
 // calls must not throw (the popup fires on the 5th — NOT triggered here),
 // and unknown/segfault types must not throw either.
@@ -1290,31 +1290,31 @@ setTimeout(() => {
     ok, 'favWarm=' + ok);
 }
 
-// B31. Telemetry gate (2026-08-08, privacy — user request): appEvent POSTs
-// (`_Ot` in file13.js, IN bundle) are OFF by default; enabled ONLY via the
-// Advanced Options checkbox "Send anonymous usage data" (advOpts.telemetry),
-// live via storage.onChanged. The callback is preserved when disabled (some
-// call sites wait for it). file13.js covers BOTH the SW (via the bundle) and
-// the settings page (main.html loads it directly). file30.js `_Ls` renders
-// the checkbox + a consent paragraph.
+// B31. Telemetry REMOVED (2026-10-11, privacy): the analytics endpoint
+// (www.autocontrol.app/appEvent) no longer belongs to the original author, so
+// the sender is gone entirely — `_Ot` (file13.js, IN the bundle) is a
+// callback-only stub (~30 call sites still call it): no gate, no payload, no
+// POST, and a stored or imported `advOpts.telemetry:true` is inert. The
+// Advanced Options checkbox is gone from file30.js, and `_Zo` (the dead base)
+// is gone from file10.js — the demo player (file36.js, UI-only, NOT in the
+// bundle) builds its asset base from the mirror `_Zl`.
 {
   const f13 = fs.readFileSync(path.join(MV3, 'file13.js'), 'utf8');
   const f30 = fs.readFileSync(path.join(MV3, 'file30.js'), 'utf8');
+  const f10 = fs.readFileSync(path.join(MV3, 'file10.js'), 'utf8');
+  const f36 = fs.readFileSync(path.join(MV3, 'file36.js'), 'utf8');
   const bndl = fs.readFileSync(path.join(MV3, 'sw_core_bundle.js'), 'utf8');
-  const ok = f13.includes('let __acTel=!1') &&
-    f13.includes('!__acTel)return c&&c()') &&
-    f13.includes('advOpts.telemetry') &&
-    f13.includes('__acTel=!!((a.advOpts.newValue||{}).telemetry)') &&
-    f13.includes('[AC-TEL]') &&
-    f13.includes('(__acTel?"send":"skipped")') &&
-    f30.includes('_re("telemetry",a.telemetry,"hard")') &&
-    f30.includes('Send anonymous usage data') &&
-    f30.includes('Disabled by default') &&
-    bndl.includes('let __acTel=!1') &&
-    bndl.includes('!__acTel)return c&&c()') &&
-    bndl.includes('[AC-TEL]');
-  check('telemetry gate: _Ot off by default + advOpts.telemetry checkbox with consent (2026-08-08)',
-    ok, 'telGate=' + ok);
+  const ok = f13.includes('function _Ot(a,b={},c){c&&c()}') &&
+    !f13.includes('appEvent') && !f13.includes('__acTel') &&
+    !f13.includes('[AC-TEL]') && !f13.includes('_Zo') &&
+    !f30.includes('Send anonymous usage data') && !f30.includes('_re("telemetry"') &&
+    !f10.includes('_Zo') && !f36.includes('_Zo') &&
+    f36.includes('_Zl') && f36.includes('demos/${e}/') &&
+    bndl.includes('function _Ot(a,b={},c){c&&c()}') &&
+    !bndl.includes('appEvent') && !bndl.includes('__acTel') &&
+    !bndl.includes('[AC-TEL]') && !bndl.includes('_Zo');
+  check('telemetry removed: _Ot callback-only stub, no appEvent/gate/checkbox, _Zo gone (2026-10-11)',
+    ok, 'telRemoved=' + ok);
 }
 
 // B33. Type-40 capture watchdog (2026-08-09, staged + definitive recording

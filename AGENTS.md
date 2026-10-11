@@ -270,9 +270,13 @@ otherwise the next session starts from zero. Concretely:
    wins — keep them in sync), and the tooltip texts in
    `file28/file33/file65/file75/file80` reference `_4a.*` keys. Every mapped
    page carries `.htm` and `scrtDoc` is the mirror's `scripting/` DIRECTORY
-   (sub-page call sites append `<name>.htm`). `_Zo` (the dead base) survives for
-   exactly two non-doc endpoints — telemetry `appEvent` and the animated-demo
-   base in `file36`; never point new user-visible links at it. Two mapped pages
+   (sub-page call sites append `<name>.htm`). `_Zo` (the dead/hijacked base) was
+   REMOVED 2026-10-11 together with telemetry (`appEvent`): the demo player in
+   `file36` now builds its asset base from the mirror `_Zl` (prefix-aware join —
+   `new URL` would drop the `https@www.autocontrol.app/` prefix), so nothing in
+   the extension contacts the old domain (`_mo` remains only for the
+   `file62_mv3` hostname check); never point new user-visible links at it.
+   Two mapped pages
    needed restoring: `chromium-bugs` was downloaded from the Wayback snapshot
    (2023-09-03, raw `id_` URL — no archive toolbar) and lives in the mirror as
    `chromium-bugs.htm` with its 5 images; `files/Native-Component.exe` has NO
@@ -291,13 +295,17 @@ otherwise the next session starts from zero. Concretely:
    panel (`main.html` template `demoPanel`) lists three links to mirror guides
    instead of playing `file9.js` animations: those need the dead site's
    screenshots (`/demos/<name>/imgN.png`), which were NEVER archived (a CDX
-   prefix query on `/demos/` returns exactly 2 files). Do not re-wire them to
-   the player (`_Be`/`_Rj`/`_Yt`). The animated illustrations on the mirror
-   pages themselves (`hvrdElem*Anim.htm`, iframed by
-   `determining-hovered-element.htm`) still work — they are SVG, not
-   screenshots. Untouched on purpose (user decision): the switches tooltip demo
-   (`file65.js`, `initDemo=setSwtchs`) and the Settings-File-Editor welcome demo
-   (`file65.js`, `<demoPH demoName=SFEimport>`) — both equally broken.
+   prefix query on `/demos/` returns exactly 2 files — the mirror has only
+   `demos/actionMenu/img10.png` + `demos/bkmFldStrip/img20.png`; everything the
+   player needs 404s). Do not re-wire them to the player (`_Be`/`_Rj`/`_Yt`).
+   The animated illustrations on the mirror pages themselves
+   (`hvrdElem*Anim.htm`, iframed by `determining-hovered-element.htm`) still
+   work — they are SVG, not screenshots. Neutralized 2026-10-11 (user
+   decision): the switches tooltip demo (`file65.js`, `initDemo=setSwtchs`) and
+   the Settings-File-Editor welcome demo (`file65.js`,
+   `<demoPH demoName=SFEimport>`) still exist, but the player loads their
+   (never-archived → 404) images from the mirror `_Zl`, not from the old
+   domain.
 8. **One fact, ONE source of truth — and the copies are CHECKED, not trusted
    (2026-10-04).** Splitting the docs (rules here, details in `Docs/`) means one
    fact can live in several files and a hand-kept copy drifts. The copies are

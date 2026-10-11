@@ -25,13 +25,12 @@
   (`isLeader()` gate in `mv3_native_shim.js`).
 - Page-side shims: `mv3_shim.js` (chrome.tabs shims, SW registration),
   `mv3_native_shim.js` (native stubs delegating to SW; `_Lk`/`_Vy` → SW).
-- **Telemetry is OFF by default (2026-08-08, user request)**: the analytics is
-  OLD MV2 behavior (`_Ot` ALWAYS POSTed to appEvent; could not be disabled in
-  MV2). We added ONLY the off-switch: `_Ot` is gated by `__acTel` (default
-  false — NOTHING is sent until enabled), the flag comes from
-  `advOpts.telemetry` (live via `storage.onChanged`); the callback is
-  preserved when disabled (some call sites wait for it). UI: Advanced Options
-  → «Send anonymous usage data».
+- **Telemetry REMOVED (2026-10-11, user request)**: the MV2 analytics (`_Ot`
+  ALWAYS POSTed to `www.autocontrol.app/appEvent`; the domain no longer belongs
+  to the original author) is gone. `_Ot` stays ONLY as a callback-only stub —
+  some call sites wait for it — nothing is sent, no payload is built, and a
+  stored/imported `advOpts.telemetry:true` is inert. The 2026-08-08 default-OFF
+  gate (`__acTel`) and the Advanced Options checkbox were removed with it.
 - **Logging is OFF by default (MV2-like silence)** — publishing default.
   Options → Advanced Options → `logSw`/`logPage`/`logSettings` (applied LIVE
   via `storage.onChanged`; `console.error` always kept). Startup output is

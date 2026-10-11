@@ -1088,7 +1088,8 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
 
 - **`copyLinks` ("Copy selected URLs") — FIXED 2026-10-09 (found live 2026-10-06).** Symptom was:
   the action starts (`[AC-ACT] ACT action=copyLinks`), then dies silently - no clipboard write, no
-  `OK`, only a telemetry `[AC-TEL] event=error` (invisible while telemetry is off). Reproduced with
+  `OK`, only a telemetry `[AC-TEL] event=error` (invisible while telemetry was off; the sender was
+  removed 2026-10-11). Reproduced with
   a PHYSICAL hotkey on Canary 156, on a `data:` page AND on `https://example.org` - so it is NOT
   about non-site tabs. Root cause (CONFIRMED by a direct SW probe 2026-10-09): `_E` (file95.js) read
   the selection-as-HTML through `_Uu` (file67.js), whose FIRST statement is
@@ -1146,7 +1147,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   `nhCount` resets when shown; short message text — Windows toasts truncate
   ~130 chars); invalidExtId → install-age gate; APDL → `_r` flag (idle
   type-790 ping stops); NH-error 0xC0000005 → `_uf("segFault")`; default →
-  telemetry. GOTCHAS: the monitor map `_Zw` MUST be populated at SW startup
+  `_Ot` (telemetry — sender removed 2026-10-11). GOTCHAS: the monitor map `_Zw` MUST be populated at SW startup
   (`sendMonitorInfo` → `_Sf(() => {})`) or ALL popups/monitor-based actions
   crash ("workArea of undefined"); `_Fo` falls back to a default rect;
   `nhBusy` resets on button/close/failure; `noHookConflictMsg` lives in
@@ -1285,7 +1286,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
 - **False "Native Component not working" dialog after the first import
   (FIXED 2026-08-30, take 7 — ping fast-path)** — after the forced-visible
   fix, the fresh settings tab (first import after an extension reload)
-  showed the `natHostNotFound` dialog (`NH-noConnex` telemetry) although
+  showed the `natHostNotFound` dialog (`NH-noConnex` telemetry marker — the sender was removed 2026-10-11) although
   the native WAS working (the import just read the file through it).
   ROOT CAUSE: page boot `p()` runs `m(3,500)` (file2) — a native ping
   `_9j._Vy(_xp=920,"",500)` → `_Lk(920,"",cb,500)` with a **500ms timeout**.

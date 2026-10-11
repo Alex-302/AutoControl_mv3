@@ -336,9 +336,9 @@ _no():
 // no-hook-notice popup (_Lh, file71.html via windows.create) works from the
 // SW; noHookConflictMsg lives in localStorage (in-memory in the SW → can
 // re-arm after an SW restart). mh_test A2b + 75 pass / 0 gaps / 0 FAIL.
-// NOTE: _Ot is NOT a native call — it is the HTTP telemetry sender
-// (appEvent POST to www.autocontrol.app/appEvent, see DECODE.md). In MV3 it
-// is gated by __acTel (advOpts.telemetry, off by default, 2026-08-08).
+// NOTE: _Ot is NOT a native call — it was the HTTP telemetry sender
+// (appEvent POST to www.autocontrol.app/appEvent, see DECODE.md).
+// REMOVED 2026-10-11: _Ot is now a callback-only stub — nothing is sent.
 ```
 
 ---
