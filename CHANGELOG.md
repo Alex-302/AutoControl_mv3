@@ -614,6 +614,20 @@
 
 ### Changed
 
+#### Privacy
+
+- **Telemetry removed entirely (2026-10-11).** The original extension always
+  sent anonymous usage data to `www.autocontrol.app`; the MV3 port had made it
+  opt-in (off by default) on 2026-08-08. Because the domain no longer belongs
+  to the original author, the sender is now gone completely: no usage data,
+  error reports or diagnostics are sent under any setting, and the "Send
+  anonymous usage data" checkbox was removed from Advanced Options. A telemetry
+  flag that survives in an imported settings file is ignored.
+- **The demo player no longer contacts the old site.** Its demonstration
+  images now load from the project's GitHub Pages mirror (the originals were
+  never archived, so the demos remain incomplete), and the dead domain was
+  removed from the extension's code.
+
 #### Repository layout (native side)
 
 - `AutoControl_native/` is now split by *role* instead of being one flat pile of
@@ -702,7 +716,8 @@
   material moved to a new Troubleshooting section (§6).
 - **Telemetry is off by default** — the original always sent anonymous usage
   data; nothing is sent until the user enables the new checkbox in Advanced
-  Options.
+  Options. (Superseded 2026-10-11: the sender was removed entirely — see the
+  Privacy subsection above.)
 - **Logging is off by default** (MV2-like silent console) and controlled
   from the settings page (separate toggles for the worker, page and settings
   consoles, applied live); startup output is buffered until preferences

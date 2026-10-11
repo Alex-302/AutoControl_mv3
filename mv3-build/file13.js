@@ -5,15 +5,14 @@ let _Ou=a=>b=>{_Yk.tabs.create({url:a,active:!0},c=>{_Yk.tabs.onUpdated.addListe
 "#"+a)}),_0s=_we(function*(){var a=yield _Qo("none");a=_Yk.extension.getViews({tabId:a.id})[0];yield _Xp(a)._Hu.wait();return a}),_0j=_we(function*(){return window==_9j||_Uy?window.frameElement&&!_Xp(window.parent)._Uy?window.parent:yield _0s():window}),_id,_es=/^ /;_Yk.extension.isAllowedFileSchemeAccess(a=>{_id=a;_es=new RegExp(`^(chrome|edge|about:|data:|view-source:|https:\/\/chrome.google.com\/webstore\/${a?"":"|file:"})`,"i")});const _As=a=>_es.test(a);
 function _Ah(a){return a.charCodeAt(0)}function _Lj(a){return String.fromCharCode(a)}function _Gt(a,b,c=!0){return RegExp((b.in("equals","starts")?"^":"")+_3a(a)+(b.in("equals","ends")?"$":""),c?"i":"")}function _3a(a){return _Bi(a,"^$\\.*+?()[]{}|")}function _wh(a){return a.split(":")}function _hf(a){return!(!a||!_wh(a)[1])}function _gh(a,b=null){if(!a)return{};const c=_wh(a),d=1<c.length;d&&([b,a]=c);return _ji(d?_9j._if:_9j._Du,b,a)||{}}
 function _w(a,b){a=_gh(a,"action").value;a.gener&&(a=a.gener(b));return a}function _1e(a,b,c,d){a=_Ii(a);let f=_wh(a.shift());_Mi(["customEntities"].concat(f,a),b,c,d)}function*_Xy(a,b=!1){const c=_9j._if[a]||{};let d=Object.keys(c).filter(f=>c[f].name&&c[f].value);b&&d.sort((f,e)=>_Vo(c[f].name,c[e].name));for(let f of d)yield a+":"+f}let _7o={};var _Zs=a=>b=>{var c=a.match(/^data:[^;]*;base64,(.+)$/);if(c)return b(c[1]);if(c=_7o[a])return b(c);_1p(a,"binary")(d=>b(_7o[a]=btoa(d)))};
-/* AC-MV3 FIX (2026-08-08): telemetry OFF by default (privacy, user request) —
-   enabled ONLY via Options → Advanced Options → "Send anonymous usage data"
-   (advOpts.telemetry); live via storage.onChanged (no reload). The callback
-   is still invoked when disabled (some call sites wait for it). */
-let __acTel=!1;try{chrome.storage.local.get("advOpts",a=>{__acTel=!!(a&&a.advOpts&&a.advOpts.telemetry)});chrome.storage.onChanged.addListener((a,b)=>{if("local"==b&&a.advOpts)__acTel=!!((a.advOpts.newValue||{}).telemetry)})}catch(e){}function _Ot(a,b={},c){/* AC-MV3 (2026-08-08): log analytics actions — NOT a flood (rare events:
-   install/update/error/diagnostics), and they follow the AC_LOG_* gate
-   (console.warn is silenced when the SW/settings logging is unchecked). */
-try{console.warn("[AC-TEL] "+(__acTel?"send":"skipped")+" event="+a)}catch(_e){}if(!__acTel)return c&&c();if(_9j._2u()&&a.in("error","NH-error","NH-except","userReload"))return c&&c();const d=navigator;var f=(d.userAgent.match(/\((.+?)\)/)||[,""])[1].split(/\s*;\s*/);const e=[..._9j._Zw].map(([,g])=>100*g.dpiX/96);f={uri:location.pathname+location.search+location.hash,natHostVer:"2025.4.22.0",brwrLang:d.language,brwrVariant:_ul(_fr)?void 0:_fr,osExtra:f[1]||d.platform,scaleFctr:1==e.length&&100==e[0]?void 0:e};_9j._dh&&(f.connectTime=Date.now()-_9j._dh);_1p(_Zo+"appEvent","json",
-"POST",_yp({extName:"AutoCtrl",extVer:"2025.4.22",eventType:a,instID:_9j._7y,timeOffset:Math.floor((Date.now()-_9j._Ct)/1E3),opSys:_Ie?d.platform+" "+_Ie:d.platform.match(/^win/i)?"Windows":d.platform,brwrName:_9j._Jh||_fr[0]||"",brwrVer:_rs,ctxData:JSON.stringify(f),evtData:JSON.stringify(b),domain:location.hostname}))(c)}function _Cr(a,b){null!=b&&_Yk.browserAction.setBadgeBackgroundColor({color:b});null!=a&&_Yk.browserAction.setBadgeText({text:a})}
+/* AC-MV3 (2026-10-11): telemetry REMOVED entirely (privacy - the analytics
+   endpoint www.autocontrol.app no longer belongs to the original author).
+   _Ot stays ONLY as a callback-only stub because ~30 call sites still call
+   it; nothing is sent, no payload is built. The 2026-08-08 default-OFF gate
+   (advOpts.telemetry) is gone with it - a stored or imported
+   telemetry:true is inert. */
+function _Ot(a,b={},c){c&&c()}
+function _Cr(a,b){null!=b&&_Yk.browserAction.setBadgeBackgroundColor({color:b});null!=a&&_Yk.browserAction.setBadgeText({text:a})}
 function _7g(a,b=!1){const c=[94,14,77,49,13];let d=b?new Uint8Array(a.length):"";for(let f=a.length;0<=--f;){let e=a.length-f-1,g=(a.charCodeAt(f)-c[e%c.length]-e)%256;0>g&&(g+=256);b?d[e]=g:d+=String.fromCharCode(g)}return d}
 let _3t=_we(function*(a,b){const c="B64"==b,d="blob"==b,f=/\.dat$/.test(a);if(d&&f||c)b="binary";b=yield _1p(a,b);f&&(b=_7g(b,d),/\.gz\./.test(a)&&(b=d?yield _tu(new Blob([b]),"gzip"):yield _Ro(b,"gzip")),!d||b instanceof Blob||(b=new Blob([b])));c?b=btoa(b):b instanceof Blob&&(b=new Blob([b],{type:"application/vnd.microsoft.portable-executable"}));return b});
 function _ly(a,b,c=document){"string"==typeof c&&(c=document.querySelector(c));a=c.querySelector("#"+a).innerHTML.trim();b={URLS:_4a,EXT:_Bj}.add(b);return a=a.replace(/\$\{([\w.#]+)\}/g,(d,f)=>"#"==f[0]?_ly(f.substr(1),b,c):_ji(b,...f.split(".")))}let _Xp=a=>a;

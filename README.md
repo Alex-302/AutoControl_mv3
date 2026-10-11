@@ -750,8 +750,12 @@ enable the checkboxes to see logs):
 - `console.error` is **always kept** — real failures stay visible regardless
   of the checkboxes.
 
-**Telemetry** — the extension sends NO usage data by default (privacy) since
-the extension is no longer maintained. You can enable it in **Options → Advanced Options → "Send anonymous usage data"**. The flag applies live, no reload needed.
+**Telemetry** — the extension sends NO usage data at all. The original always
+sent anonymous usage data to `www.autocontrol.app`; the MV3 port made it
+opt-in on 2026-08-08, and on 2026-10-11 the sender was removed completely
+(the domain no longer belongs to the original author). There is no option to
+enable it and no data is sent under any setting; a telemetry flag that
+survives in an imported settings file is ignored.
 
 Where to look for each console:
 
