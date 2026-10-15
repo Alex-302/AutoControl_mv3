@@ -848,6 +848,23 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   direction: a prototype native engine of our own that interacts with
   Chrome window elements directly.
 
+- **Gesture display HUD never shown (FIXED 2026-10-15, sw.js)** — the native
+  draws the direction preview from the type 90 icon set; the SW `_6t` patch
+  gated with `if (!b.enabled)`, so a setting that has NEVER been saved — which
+  the UI shows as a TICKED checkbox (file30 `_ga`: `null == a.enabled ? true :
+  a.enabled`) — sent `icons: []` and nothing was drawn, while the gesture
+  itself still worked (its action fired). MV2/file3 clears the icons only on
+  `0 == b.enabled`. Reproduced live (Canary 156, real profile): delete
+  `mouseGest` from `chrome.storage.local`, reload the extension → the engine
+  receives `icons: 0`; with the fix it receives 10 icons. The settings page
+  cannot generate the icons itself in MV3 (its `_6t` needs the `gestureDirs`
+  @font-face, which MV2 kept on the background page `file63.html` only), so
+  the SW re-pushes type 90 after the config chain (async generation raced the
+  native port) and on `mouseGest` storage changes. Every send logs
+  `[AC-MV3] _6t type 90 enabled=… icons=… size=…` — the fastest live check.
+  Do NOT revert to `!b.enabled`. mh_test A7c + B64; `Docs/FEATURES-MV3.md`
+  §7-18.
+
 ### UI / settings
 
 - **"Hovered tab" target was broken on Chrome 148+ (FIXED 2026-09-20, sw.js + helper)** —

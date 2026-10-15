@@ -244,6 +244,14 @@
 
 #### Triggers & actions
 
+- **The gesture direction preview works again (2026-10-15).** The on-screen
+  indicator that follows the mouse while a gesture is drawn never appeared
+  when the option had never been saved: the settings page showed the checkbox
+  as ticked, but the worker treated the missing value as "off" and told the
+  native component to draw nothing — the gesture itself still worked, only
+  the preview stayed invisible. The preview is now on by default (as in the
+  original extension), appears without an extension restart after the option
+  is changed, and the direction font is available on the settings pages again.
 - **"Copy selected URLs" works again (2026-10-09).** The action that copies the
   URLs of the links (and optionally images/videos/audio) inside the selected
   text did nothing in the MV3 port: it started, then failed silently — no
