@@ -429,6 +429,31 @@ setTimeout(() => {
       'vxAlpha=' + ok);
   }
 
+  // A7c. Gesture display HUD: a MISSING `enabled` must mean ON (2026-10-15).
+  // The SW `_6t` patch gated with `!b.enabled`, so a setting that has never
+  // been saved — which the settings UI shows as a TICKED checkbox (file30
+  // `_ga`: `null == a.enabled ? true : a.enabled`) — sent type 90 with
+  // `icons: []` and the native had nothing to draw the direction HUD with.
+  // MV2/file3 only clears the icons on `0 == b.enabled` (0/false = off); the
+  // fix uses that gate, always sends `enabled` explicitly, re-pushes type 90
+  // when the setting changes (the page cannot generate the icons itself in
+  // MV3) and adds the gestureDirs @font-face to the page CSS (MV2 kept it on
+  // the background page file63.html only). Do NOT revert to `!b.enabled`.
+  {
+    const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+    const css = fs.readFileSync(path.join(MV3, 'file46.css'), 'utf8');
+    const gateOk = sw.includes('if (0 == b.enabled) { send([]); return; }') &&
+      !sw.includes('if (!b.enabled) { send([]); return; }');
+    const payloadOk = sw.includes('payload.enabled = !(0 == b.enabled)');
+    const pushOk = sw.includes('function __acPushGestureDisplay') &&
+      sw.includes('changes.mouseGest') &&
+      sw.includes('chrome.storage.onChanged.addListener');
+    const cssOk = css.includes('@font-face {font-family: gestureDirs; src: url(/res/gestureDirs.woff2)}');
+    check('gesture display: missing enabled is ON (MV2 gate) + storage re-push + page font (2026-10-15)',
+      gateOk && payloadOk && pushOk && cssOk,
+      'gate=' + gateOk + ' payload=' + payloadOk + ' push=' + pushOk + ' css=' + cssOk);
+  }
+
   // A8. Zero-proxy chain invariant (verified 2026-08-03): the host manifest
   // MUST point at AutoControlZero.exe (proxy/launcher) - the full engine
   // AutoCtrl_2025.4.22.0.exe crashes with a C++ exception when launched
@@ -3315,6 +3340,21 @@ try {
 } catch (e) {
   check('reconnect cap -> slow retry + dialog repair path + install-pane race (2026-10-11)',
     false, e.message.split('\n')[0]);
+}
+
+// ---------- B64. Gesture display: type 90 re-pushed after the config chain (2026-10-15) ----------
+// The first type-90 push of a session races the native port (the icon
+// generation is async and can finish before the handshake), so the in-SW
+// configLoaded handler — the end of the `_lr`/`_Gf` chain, when the native is
+// up — must re-push the icons. The send also logs its icon count, so a live
+// session can be diagnosed from the SW console alone
+// (`[AC-MV3] _6t type 90 enabled=… icons=… size=…`).
+{
+  const sw = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const repushOk = sw.includes("if (typeof __acPushGestureDisplay === 'function') { try { __acPushGestureDisplay(); } catch (e) {} }");
+  const logOk = sw.includes('[AC-MV3] _6t type 90 enabled=');
+  check('gesture display: type 90 re-pushed after the config chain + send logged (2026-10-15)',
+    repushOk && logOk, 'repush=' + repushOk + ' log=' + logOk);
 }
 
 // ---------- summary ----------

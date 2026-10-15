@@ -878,16 +878,31 @@
 
   // Display-config icons (type _Xa) — re-implemented for the SW (see above).
   // Original protocol preserved: {icons: [...base64...], ...display, colors}.
+  // AC-MV3 FIX (2026-10-15): the gate was `if (!b.enabled)`, so a MISSING
+  // `enabled` key — the setting has never been saved — was treated as OFF and
+  // type 90 went out with `icons: []`, leaving the native nothing to draw the
+  // gesture-direction HUD with. The settings UI renders such a checkbox as ON
+  // (file30 `_ga`: `null == a.enabled ? true : a.enabled`), and MV2/file3 only
+  // clears the icons on `0 == b.enabled` (0/false = off). Use the MV2 gate and
+  // always send `enabled` explicitly, so the engine cannot read a missing key
+  // as "disabled". Do NOT revert to `!b.enabled`.
   if (typeof _6t === 'function') {
     _6t = (b = {}) => {
+      b = b || {};
       const colors = b.colors === 'dark'
         ? { color: 'white', bgColor: 2130706432 }
         : { color: '#555555', bgColor: 2147483647 };
       const send = icons => {
-        try { _Lk(_Xa, Object.assign({ icons }, b, colors)); }
+        try {
+          const payload = Object.assign({ icons }, b, colors);
+          payload.enabled = !(0 == b.enabled);
+          _Lk(_Xa, payload);
+          console.log("[AC-MV3] _6t type 90 enabled=" + payload.enabled +
+            " icons=" + ((icons && icons.length) || 0) + " size=" + (b.size || 30));
+        }
         catch(e) { console.warn("[AC-MV3] _6t send error:", e); }
       };
-      if (!b.enabled) { send([]); return; }
+      if (0 == b.enabled) { send([]); return; }
       swGenGestureIcons(b.size || 30, colors.color)
         .then(send)
         .catch(e => {
@@ -896,6 +911,32 @@
         });
     };
   }
+
+  /**
+   * AC-MV3 FIX (2026-10-15): re-read `mouseGest.display` and push type 90.
+   * Two gaps it closes:
+   *  (a) icon generation is async — the first push of a session can finish
+   *      before the native port is ready and be lost (re-pushed after the
+   *      config chain, when the handshake is done);
+   *  (b) in MV3 the settings page cannot generate the icons itself — its own
+   *      `_6t` (file3, canvas) needs the `gestureDirs` @font-face that lived
+   *      on the MV2 background page (`file63.html`) — so a checkbox change
+   *      must be answered from here.
+   * Both paths are idempotent.
+   */
+  function __acPushGestureDisplay() {
+    try {
+      chrome.storage.local.get({ mouseGest: {} }, r => {
+        try { if (typeof _6t === 'function') _6t(((r && r.mouseGest) || {}).display || {}); } catch (e) {}
+      });
+    } catch (e) {}
+  }
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes.mouseGest) return;
+      try { if (typeof _6t === 'function') _6t(((changes.mouseGest.newValue || {}).display) || {}); } catch (e) {}
+    });
+  } catch (e) {}
 
   // ======== RUN SCRIPT (background mode) — OFFSCREEN SANDBOX ========
   // file48.js `_A`/`_xj(0)` → `e()` creates `<iframe id=BGScript src="file23.html">`
@@ -3505,6 +3546,10 @@
       // window enum → fill the _7o cache for all known tabs (first menu
       // open shows icons).
       if (typeof __acFavSweep === 'function') { try { __acFavSweep(); } catch (e) {} }
+      // Gesture display (type 90): the chain already called _6t via _lr, but
+      // icon generation is async and the first push can race the native port
+      // becoming ready — re-push now that the handshake is done (idempotent).
+      if (typeof __acPushGestureDisplay === 'function') { try { __acPushGestureDisplay(); } catch (e) {} }
       finishStartup();
       cb && cb({ ok: true });
     },
