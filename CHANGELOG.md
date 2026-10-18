@@ -778,6 +778,19 @@
   image. The three entries now open the matching pages of the site mirror
   (triggers, hover-sensitive shortcuts, determining the hovered element).
 
+#### Diagnostics
+
+- **The zone helper's diagnostic log is now opt-in** (2026-10-18). The helper
+  refreshes the engine's zone table every ~1.2 s (faster while the cursor
+  moves) and logged every write, so `%TEMP%\ac_zone_helper.log` filled with
+  thousands of identical `table write: alive=1 zones=[]` lines in normal use.
+  The log is written only while a marker file `ac_zone_helper.debug` sits next
+  to `ac_zone_helper.exe` (`%LOCALAPPDATA%\AutoControl\` for the deployed
+  helper; the marker is checked on every write, so it can be added or removed
+  while the browser runs). With the marker every write is logged exactly as
+  before, repeats included — they show the table-refresh timing; without it the
+  log stays silent. Enable/disable commands: `Docs/BUILD-NATIVE.md` §A.5.
+
 ### Known limitations
 
 - Hover regions need the **patched engine + the zone helper** (see the

@@ -609,7 +609,7 @@ is bound to wheel rotation without a modifier key"**.
 > definition) was wrong. The helper now answers 4 for the tab strip
 > (chain-based: `stripNear || isTabBtn`) plus the window-frame PANE outside
 > the toolbar (`roles[0]==16 && !inToolbar`); the toolbar and the omnibox are
-> excluded. Helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+> excluded. Helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
 
 The 2026-09-12 implementation was chain-based: `inToolbar || stripNear ||
 isTabBtn` → zone 4, plus the unnamed-PANE rule for the frame. Points
@@ -744,7 +744,7 @@ accepts 60 so the empty strip keeps its title-area coverage. The tab's own
 buttons were already excluded (a 43-button under a PAGETAB is handled by
 `TabButtonZone` → 15/17). Same day as the title-area narrowing (§2f(a)) and
 the "+"-exclusion fix; helper
-`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
 
 ### (h) Bookmark zone (33) — a button inside the omnibox GROUP, or the heart BY NAME (2026-09-20)
 
@@ -785,7 +785,7 @@ first; user correction the same day). The heart itself was always there.
 **Verified (probe against the deployed helper):** heart `[33,20,1]`, the five
 neighbour buttons `[20,1]`, address field `[21,20,1]`, tabs `[12,4,1]`
 (no regression). Helper
-`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
 
 ⚠ **Known edge (unchanged by this fix):** the rule cannot tell one
 omnibox-group button from another by structure, so in Chrome every `43` inside
@@ -822,7 +822,7 @@ them is it the browser menu.
 **Verified (probe against the deployed helper):** the extensions button
 `[20,1]` (was `[30,20,1]`), the Opera menu (110/130,553) `[30,4,1]` ✅, the
 heart `[33,20,1]` ✅, the extension icons `[20,1]` ✅. Helper
-`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
 
 ### (j) Tab's close button (15) in Opera — a square PANE, not a button (2026-09-20)
 
@@ -894,7 +894,7 @@ case, so no chrome rule can fire.
 **Verified (probe):** with the menu open — the close button and the tab
 `[1]` (no false 4), the page outside the menu still `[3,1]`; menu closed —
 close `[15,4,1]`, tab `[12,4,1]` ✅. Helper
-`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
 
 ⚠ **Testing note:** do NOT use `zone_fg_wheel.ps1`'s Alt foreground trick
 when a stray Opera menu would confuse the measurement — close it with Esc
@@ -937,7 +937,7 @@ widens the window.)
 cursor SETTLES (position unchanged between two polls) and a continuous move is
 throttled to 80 ms. Measured: write latency ~0 ms; CPU during a continuous drag
 22.7% → 11.6% of one core. Helper
-`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
 
 ⚠ The engine-side cache remains (it is the original engine's logic) — the fix
 only shrinks the window in which the table can be stale. If a report of a
@@ -979,7 +979,7 @@ the cursor was moved onto tab 2 while `_ys()` still returned tab 1's id.
 1. The zone helper reports the tab under the cursor — `TabIndexOf` counts the
    PAGETAB siblings to the left of the hovered one, `TabUnderCursorJson`
    returns `,"hWnd":N,"index":I,"title":"…"` for a request with `"tab":1`
-   (helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`).
+   (helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`).
 2. `sw.js` wraps `window._Vy` (the bundle's callback-native bridge): type 485
    is answered from the helper instead of the engine (falling back to the
    native when the helper is down or the cursor is not over a tab).
@@ -1177,7 +1177,7 @@ single-threaded, so the walks QUEUED and the answers arrived 180-360 ms late
 longer calls the original when it has an answer (see 1) — measured after the
 change: **one** tab request per event.
 
-**Verified (Canary 156, helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`):**
+**Verified (Canary 156, helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`):**
 `_ys()` returns the helper's tab even with a deliberately poisoned `_kg`
 (`_ys() -> [61304275]` while `_kg=[61304272]`); the log shows
 `_ys ret=[61304458] kg=[61304464]` (stale cache overridden) and the reload always
@@ -1219,7 +1219,7 @@ Chrome: `PAGETAB(37) → body PANE(16) → button(43)`. Neither rule matched:
 * `IsPaneCloseButton(chain[0], chain[1], pt)` — that rule expects the hovered
   element to BE a square PANE, but the hovered element is the 43 button.
 
-**Fix (helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`, 22528 bytes):**
+**Fix (helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`, 22528 bytes):**
 1. the tab-button rule now accepts a PAGETAB at ANY depth within d0..d3
    (`isTabBtn = ui && roles[0] == 43 && tabDepth >= 1`) and calls
    `TabButtonZone(chain[tabDepth], …)`. It still cannot catch the "+" (a 43 under
@@ -1359,7 +1359,9 @@ SW RELOAD hWnd=527974158 tab=1344229314 idx=4
    configured target before hunting the code.**
 2. **A SW→helper note channel replaces CDP in a browser without a debug port.**
    The SW cannot be inspected there, but the helper CAN (it appends to
-   `%TEMP%\ac_zone_helper.log`). The SW posts `{__id, note:"…"}` on the helper
+   `%TEMP%\ac_zone_helper.log` — opt-in since 2026-10-18: the marker
+   `ac_zone_helper.debug` must sit next to the helper exe,
+   `Docs/BUILD-NATIVE.md` §A.5). The SW posts `{__id, note:"…"}` on the helper
    port; the helper writes the text into its log. That is how the timeout race
    above was found. The channel was REMOVED from `mv3-build/sw.js` after the fix
    (the shipped folder stays clean) — re-add it the same way when needed.
@@ -1409,7 +1411,7 @@ heartbeat classification, which starved the zone query (60-104 ms answers,
 real cases (`currentTab` → no, `hoveredTabs` → yes, `eventTabs` → yes,
 `disabled` → no) and the gate test asserts that NO dispatch pays for the refresh
 when the map says it is not needed (both eval the REAL sw.js source). Helper
-`C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (22528 bytes),
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (22528 bytes),
 `build_native.ps1` reproduces both components bit-for-bit.
 
 ⚠ **The first version of the check was wrong and the test caught it:** the
@@ -1637,7 +1639,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | File | Role | state (2026-09-13) |
 |---|---|---|
 | `Test/ac_zone_helper.cs` | helper source (`Classify()`, `WriteZoneTable`) | ✅ 11 zones + DPI + `zones[]` + pill→30 rule + a11y heartbeat + own-browser gate |
-| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (deterministic Roslyn build, 2026-09-20) |
+| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (deterministic Roslyn build, 2026-10-18) |
 | `%LOCALAPPDATA%\AutoControl\ac_zone_helper.exe` | **the deployed binary Chrome runs** | ✅ same hash (Chrome picks it up without an extension reload) |
 | `AutoControl_native/patches/patch_zones_v19.js` | engine patch builder (zone table) | ✅ **CURRENT** — see `patches/README.md` |
 | `AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe` | repo copy of the built engine | ✅ `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |

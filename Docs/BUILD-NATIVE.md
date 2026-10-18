@@ -5,9 +5,9 @@ components** of this port from their inputs:
 
 | Component | Input | Output (deployed) |
 |---|---|---|
-| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **22528**, sha256 `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (deterministic build, 2026-09-21) |
+| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **22528**, sha256 `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (deterministic build, 2026-10-18) |
 | **Patched engine** (`AutoCtrl_2025.4.22.0.v19.exe`) | `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` (untouched upstream) | size **695296**, sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
-| **Bundled payloads** (what the extension actually deploys) | the two builds above, encoded with the `.dat` codec | `mv3-build/file76.dat` (695296, md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`) + `mv3-build/ac_zone_helper.dat` (22528, sha256 `E79EF3F80365BD6C8C7655D58BE9C13B9B798063463978E80C1597A5E8A97629`) |
+| **Bundled payloads** (what the extension actually deploys) | the two builds above, encoded with the `.dat` codec | `mv3-build/file76.dat` (695296, md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`) + `mv3-build/ac_zone_helper.dat` (22528, sha256 `A478AE2AA029C7A497460D88B5321945306F846294B19977A9F24FCF8F2B4312`) |
 
 Everything below was verified on 2026-09-12 by rebuilding and comparing hashes
 (the engine: **bit-identical**; the helper: bit-identical with the Roslyn recipe
@@ -62,7 +62,7 @@ dotnet $csc /nologo /optimize+ /deterministic+ /nostdlib+ `
   /r:"$fw\mscorlib.dll" /r:"$fw\System.dll" /r:"$fw\Accessibility.dll" `
   /out:"$out" Test\ac_zone_helper.cs
 
-Get-FileHash $out -Algorithm SHA256      # must print C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF (see the table above)
+Get-FileHash $out -Algorithm SHA256      # must print 2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F (see the table above)
 ```
 
 Notes:
@@ -203,12 +203,35 @@ Then **reload the extension** (chrome://extensions → Reload): Chrome kills the
 old helper together with the native port and the SW starts a fresh one. Live
 checks:
 
-* `%TEMP%\ac_zone_helper.log` starts growing again with
-  `table write: alive=1 zones=[...]` lines (written every ~1.2 s, faster while
-  the cursor moves);
+* the helper's diagnostic log is **opt-in** since 2026-10-18 — see
+  "Enable the helper debug log" below;
 * the SW pings the helper every 2.5 s from boot (`__acZoneAsk(300)` in `sw.js`);
 * the engine's zone table becomes non-zero (see §B.5 –
   `powershell -File Test/engine_zone_write.ps1 -Dump`).
+
+**Enable the helper debug log.** The helper writes
+`%TEMP%\ac_zone_helper.log` only while a marker file sits NEXT TO the helper
+EXE (the deployed copy is `%LOCALAPPDATA%\AutoControl\ac_zone_helper.exe`; a
+standalone build made by `Test/build_native.ps1` looks in its own folder):
+
+```powershell
+# enable — takes effect on the next write, no restart / extension reload
+New-Item -ItemType File -Force `
+  -Path "$env:LOCALAPPDATA\AutoControl\ac_zone_helper.debug"
+
+# watch (the heartbeat appends "table write: alive=1 zones=[...]" every
+# ~1.2 s while the cursor rests, faster while it moves; duplicates are kept
+# on purpose — they show the table-refresh timing)
+Get-Content "$env:TEMP\ac_zone_helper.log" -Wait -Tail 30
+
+# disable — delete the marker; the log then stays silent (the file is kept)
+Remove-Item "$env:LOCALAPPDATA\AutoControl\ac_zone_helper.debug"
+```
+
+The marker is checked on EVERY `Log()` call, so it can be created/removed
+while the browser runs; the log rotates itself at 200 KB. A standalone helper
+started without a browser ancestor answers zones with the "own window" gate
+off — use the SW path for real answers (see `Test/README.md`).
 
 ### A.6 Source invariants (do not "clean up" these)
 
@@ -473,7 +496,7 @@ found. The requirement is therefore enforced, not trusted.
 
 ```powershell
 $EXPECT_ENGINE  = '1A10EDD1…2C3E'   # engine, 695296 bytes
-$EXPECT_HELPER  = 'C8466CF7…ABAF'   # helper, 22528 bytes
+$EXPECT_HELPER  = '2ADF3898…FA4F'   # helper, 22528 bytes
 $EXPECT_DAT_MD5 = '2F878E9E…AB5D'   # mv3-build/file76.dat (encoded engine payload)
 ```
 
@@ -541,7 +564,7 @@ payloads and deploys them itself; no manual copying is part of the user flow.
 | Payload | Decodes to | Verification |
 |---|---|---|
 | `mv3-build/file76.dat` (695296 B, md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`) | the patched engine (v19) | `node Test/dat_codec.js verify mv3-build/file76.dat --exe AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe --sha256 1A10EDD1…2C3E --dat-md5 2F878E9E…AB5D` |
-| `mv3-build/ac_zone_helper.dat` (22528 B, sha256 `E79EF3F80365BD6C8C7655D58BE9C13B9B798063463978E80C1597A5E8A97629`) | the zone helper | `node Test/dat_codec.js verify mv3-build/ac_zone_helper.dat --exe AutoControl_native/ac_zone_helper.exe --sha256 C8466CF7…ABAF` |
+| `mv3-build/ac_zone_helper.dat` (22528 B, sha256 `A478AE2AA029C7A497460D88B5321945306F846294B19977A9F24FCF8F2B4312`) | the zone helper | `node Test/dat_codec.js verify mv3-build/ac_zone_helper.dat --exe AutoControl_native/ac_zone_helper.exe --sha256 2ADF3898…FA4F` |
 
 The codec is `file13.js` `_7g` (reversible, size-preserving); `Test/dat_codec.js`
 is its standalone implementation. `ext-mv2/` keeps the ORIGINAL distro blob

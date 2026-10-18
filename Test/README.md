@@ -63,6 +63,10 @@ bottom; these are the rules that make the data trustworthy:
   LevelDB (`Local Extension Settings\<ext-id>\000003.log`, open it with
   `FileShare::ReadWrite`), and the SW can report to the helper, which appends to
   `%TEMP%\ac_zone_helper.log` (see `Docs/GOTCHAS.md`, the note-channel entry).
+  ⚠ That log is opt-in since 2026-10-18: create the marker
+  `ac_zone_helper.debug` next to the helper exe
+  (`%LOCALAPPDATA%\AutoControl\`) before a run — commands in
+  `Docs/BUILD-NATIVE.md` §A.5 "Enable the helper debug log".
 - **Ask the browser-spawned helper, not a standalone one.** A standalone
   `zone_probe.ps1` / `zone_helper_smoke.js` run has no browser in its parent
   chain, so its "own window" gate is inert and it answers `[1]` for points over

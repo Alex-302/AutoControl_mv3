@@ -52,7 +52,12 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # the toolbar, so every Opera toolbar button used to answer 33; Opera's own
 # bookmark button (the heart) is matched BY NAME ('Add to bookmarks' /
 # 'Edit bookmark', Russian via a unicode escape).
-$EXPECT_HELPER = 'C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF'
+# 2026-10-18: the helper's diagnostic log is now OPT-IN - nothing is written
+# unless a marker file `ac_zone_helper.debug` sits next to the exe (the
+# deployed copy is in %LOCALAPPDATA%\AutoControl\). With the marker every
+# write is logged unchanged, repeats included. Zone/protocol behaviour is
+# unchanged; only the %TEMP%\ac_zone_helper.log output differs.
+$EXPECT_HELPER = '2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.

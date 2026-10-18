@@ -151,7 +151,7 @@ AutoControl-Keyboard-shortcuts-Mouse-gestures-Chrome/
 │   ├── README.md           #   ← structure explained (original / patched / patches)
 │   ├── AutoControl.manifest                  # engine host manifest (path = Zero)
 │   ├── com.autocontrol.zonehelper.json       # zone-helper host manifest template
-│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF)
+│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, 2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F)
 │   ├── original/           #   untouched upstream files — NEVER edited
 │   │   ├── AutoControlZero.exe        # proxy/launcher (= installer)  994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38
 │   │   └── AutoCtrl_2025.4.22.0.exe   # engine (global hooks)         8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09
@@ -431,7 +431,7 @@ component and is installed automatically (§4.2).
 ```
 powershell -ExecutionPolicy Bypass -File Test/build_native.ps1
 # === 1/3  ENGINE (original + byte patch)  ... 695296 bytes  1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E  OK
-# === 2/3  HELPER (our C# source)         ...  22528 bytes  C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF  OK
+# === 2/3  HELPER (our C# source)         ...  22528 bytes  2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F  OK
 # === 3/3  BUNDLE (file76.dat + ac_zone_helper.dat) ... both payloads verify OK
 # (add -UpdatePatched to refresh AutoControl_native/patched/, -UpdateBundle for the .dat payloads)
 ```

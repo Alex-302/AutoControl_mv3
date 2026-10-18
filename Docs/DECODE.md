@@ -132,7 +132,7 @@ The extension ships its two native payloads as **obfuscated blobs**, not as
 | file | size | decodes to |
 |---|---|---|
 | `mv3-build/file76.dat` | 695296 | `AutoCtrl_2025.4.22.0.exe` — **patched v19** (sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`; blob md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`). Deployed and kept in sync by the extension itself |
-| `mv3-build/ac_zone_helper.dat` | 22528 | `ac_zone_helper.exe` — sha256 `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (blob sha256 `E79EF3F80365BD6C8C7655D58BE9C13B9B798063463978E80C1597A5E8A97629`); deployed + registered by the extension |
+| `mv3-build/ac_zone_helper.dat` | 22528 | `ac_zone_helper.exe` — sha256 `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (blob sha256 `A478AE2AA029C7A497460D88B5321945306F846294B19977A9F24FCF8F2B4312`); deployed + registered by the extension |
 | `mv3-build/file69.dat` | 332800 | `AutoControlZero.exe` — sha256 `994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38`; the same binary doubles as the installer (`Native-Component.exe`, `/noConfirm`) |
 
 Historical (before 2026-10-10): `file76.dat` decoded to the pristine distro

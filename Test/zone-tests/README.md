@@ -30,13 +30,15 @@ zone.
      v18 behaviour (helper-down) while you run it. For zone work use the v19
      build above.
    - original pristine: `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` = sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09`.
-1b. **Helper build**: deployed since 2026-09-21 is `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF` (22528 bytes,
+1b. **Helper build**: deployed since 2026-10-18 is `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (22528 bytes,
     deterministic Roslyn build). Two things about it matter for testing:
     * with **several browsers** running there are several engines, and the
       helper writes only into the engine that tracks **its own** browser's
       windows (do NOT expect `pids[0]`); if it cannot tell, it logs
       `waiting: none of the N engines belongs to browser <pid>` and writes
-      nothing — check `%TEMP%\ac_zone_helper.log` before blaming a zone.
+      nothing — check `%TEMP%\ac_zone_helper.log` before blaming a zone (the
+      log is opt-in: put the marker `ac_zone_helper.debug` next to the helper
+      exe first — `Docs/BUILD-NATIVE.md` §A.5).
     * the engine **ignores injected input** (`LLMHF_INJECTED`) for its hover
       cache, so a synthesized wheel may be judged against the previous hover
       position. Prefer the physical mouse + `node Test/ac_swlog_act.js`.

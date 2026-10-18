@@ -423,7 +423,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   is used by the MRU triggers. The earlier "18 never fires" result was measured
   with `keybd_event`/`mouse_event`, which the engine does not treat like real
   input. Bundle's name table: `[[18,"Alt"],[164,"Left Alt"],[165,"Right Alt"]]`.
-- **Zone classification in Chromium FORKS (2026-09-15, helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`)**:
+- **Zone classification in Chromium FORKS (2026-09-15, helper build `C8466CF7…ABAF`)**:
   Chrome/Canary/Brave expose the same a11y tree — all zones work. Opera and
   Vivaldi differ, and the helper now handles them:
   * **Vivaldi**: (a) its whole UI lives INSIDE the page DOCUMENT in the a11y
@@ -614,7 +614,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   the engine's own logic (menu regions). The build itself ships the
   "always match" prefix (variant A) so an engine started without the helper
   behaves like v18; the helper rewrites bytes `0x00..0x1B` within ~1 s of the
-  first classification. Deployed engine hash `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`
+  first classification. Deployed engine hash `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `C8466CF7…ABAF`
   (deterministic build; the previous non-reproducible legacy build is kept as
   `ac_zone_helper.exe.bak-493A7276` in the data dir).
   (rebuild: `powershell -File Test/build_native.ps1 -UpdatePatched`, deploy with
@@ -648,7 +648,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   extension its engine LOCKS the file: kill the engines and copy in the same
   loop (the deploy script stops only Chrome SxS by design).
   ⚠ **SEVERAL BROWSERS RUNNING = SEVERAL ENGINES — the helper MUST bind to
-  ITS OWN (FIXED 2026-09-13, helper `091627630DA4DFD9C289126ED6620459287E2D44BC3080B35C045A9D6ECBF3E2`, now `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`).** Every browser spawns its
+  ITS OWN (FIXED 2026-09-13, helper `09162763…F3E2`, now `C8466CF7…ABAF`).** Every browser spawns its
   own `AutoControlZero`→engine pair and each engine keeps its OWN zone table.
   The helper used to take `FindEnginePids()[0]` ("the first engine"), so with
   two browsers open BOTH helpers wrote into the SAME engine while the other one
@@ -876,7 +876,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   tab). **Second half:** `_kg` is only cleared by `_wd()` (runs when the TAB LIST
   changed), so even a resolved tab STUCK — the user's "it sticks on the tabs where I
   scrolled". Fix: the helper answers the tab under the cursor
-  (`TabIndexOf`/`TabUnderCursorJson`, request `"tab":1`, helper `C8466CF7CE1AC40C3A56AAD175B0F545B914E670679B495C2199E469A483ABAF`),
+  (`TabIndexOf`/`TabUnderCursorJson`, request `"tab":1`, helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`),
   `sw.js` wraps `window._Vy` so 485 is answered from the helper, and
   `__acSetHoveredTab()` refreshes `_kg` before EVERY dispatch. Do not remove either
   half — the wrapper alone still leaves the stale cache, the cache refresh alone has
@@ -964,6 +964,12 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
 - **A SW→helper NOTE CHANNEL replaces CDP in a browser without a debug port** — the
   SW posts `{__id, note:"…"}` on the helper port and the helper appends the text to
   `%TEMP%\ac_zone_helper.log` (`Test/ac_zone_helper.cs`, the `"note":"` branch).
+  ⚠ The log is OPT-IN since 2026-10-18: nothing is written unless the marker
+  `ac_zone_helper.debug` sits next to the helper exe
+  (`%LOCALAPPDATA%\AutoControl\`); enable/disable commands: `Docs/BUILD-NATIVE.md`
+  §A.5 "Enable the helper debug log". With the marker every write — including the
+  repeated `table write` heartbeat lines — is logged unchanged (duplicates are
+  wanted: they show the refresh timing).
   Useful when the user must NOT relaunch the browser with `--remote-debugging-port`
   (Chrome 136+ ignores that flag on a default profile anyway). The channel is NOT in
   the shipped `mv3-build/sw.js` — re-add it the same way when needed, then remove it

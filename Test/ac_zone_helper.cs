@@ -43,6 +43,13 @@
 //    (the hovered window's root process == the helper's parent process):
 //    the original engine never fired over foreign applications.
 //
+// 2026-10-18 (user request): the diagnostic log is OPT-IN. Log() writes
+// nothing unless a marker file "ac_zone_helper.debug" sits next to this exe
+// (the deployed helper lives in %LOCALAPPDATA%\AutoControl\). With the marker
+// every write is logged unchanged, repeats included - during debugging those
+// repeated "table write" lines show the table-refresh timing. How to enable /
+// disable it: Docs/BUILD-NATIVE.md section A.5.
+//
 // 2026-09-20 fixes (Opera end-to-end run, user reports):
 //  * TAB (12) requires a real PAGETAB (37) - the empty strip area (60 alone)
 //    and the "+" do not answer 12 (the engine's own FUN_00415570 did the
@@ -854,9 +861,22 @@ public static class ZoneHelper {
     IntPtr w;
     return WriteProcessMemory(h, (IntPtr)addr, buf, (IntPtr)buf.Length, out w);
   }
-  // Diagnostic log (kept small: only the table-writer path writes here).
+  // Diagnostic log: %TEMP%\ac_zone_helper.log. OPT-IN (2026-10-18): nothing is
+  // written unless a marker file sits next to this exe -
+  //     <folder of ac_zone_helper.exe>\ac_zone_helper.debug
+  // (the deployed helper lives in %LOCALAPPDATA%\AutoControl\; a scratch build
+  // looks in its own folder). The heartbeat refreshes the engine table every
+  // ~1.2 s - faster while the cursor moves - so an always-on log would append
+  // thousands of identical lines per minute in normal use; during debugging
+  // those repeats are exactly what shows the table-refresh timing, so WITH the
+  // marker the old behaviour is kept unchanged (duplicates included).
+  // The marker is checked on EVERY call: create/delete it live, no restart.
   private static void Log(string s) {
     try {
+      string dir = Path.GetDirectoryName(
+        System.Reflection.Assembly.GetExecutingAssembly().Location);
+      if (string.IsNullOrEmpty(dir) ||
+          !File.Exists(Path.Combine(dir, "ac_zone_helper.debug"))) return;
       string p = Path.Combine(Path.GetTempPath(), "ac_zone_helper.log");
       if (File.Exists(p) && new FileInfo(p).Length > 200000) File.Delete(p);
       File.AppendAllText(p, DateTime.Now.ToString("HH:mm:ss.fff") + " " + s + "\r\n");
