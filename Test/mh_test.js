@@ -2189,10 +2189,15 @@ vm.runInContext(`
 //      native menu, so those triggers MUST fall through to the engine's own
 //      verdict (`if (!check.length) { doDispatch(); return; }`). Before that
 //      pass-through every menu-item trigger was silently skipped.
-//  (b) `__AC_ZONE_CACHE_MS` shares ONE helper answer per input burst — one
-//      physical wheel makes the engine emit a 750 per matching trigger and
-//      Chrome can scroll the tab strip in between (the burst used to see
-//      zone 15 then zone 12 → "wheel over the close button does nothing").
+//  (b) the zone answer is SHARED across the several 750s of ONE physical wheel
+//      — one wheel makes the engine emit a 750 per matching trigger and Chrome
+//      can scroll the tab strip in between (the burst used to see zone 15 then
+//      zone 12 → "wheel over the close button does nothing"). Since 2026-10-25
+//      the share is bounded by the REQUEST START time and only a few ms: the
+//      old 120 ms time-only TTL also froze the answer across a CURSOR MOVE, so
+//      the gate could see the old zone (user report: a wheel action bound to
+//      "Browser tab" fired while the cursor was already over the page). The
+//      keepalive must never seed that share (`noShare`).
 //  (c) the decision is a SET INTERSECTION (the engine evaluated every region
 //      independently, so one point matches several zones: the omnibox is
 //      inside the toolbar band, the page inside the window).
@@ -2217,8 +2222,18 @@ vm.runInContext(`
   const noMenuRegions = known.every(z => z < 40);          // 40-51 = menu items
   const passThroughOk = sw.includes('if (!check.length) { doDispatch(); return; }');
   const intersectOk = /check\.some\(z => zs\.indexOf\(z\) !== -1\)|zs\.some\(z => check\.indexOf\(z\) !== -1\)/.test(sw);
-  const cacheMs = sw.match(/const __AC_ZONE_CACHE_MS = (\d+)/);
-  const cacheOk = !!cacheMs && parseInt(cacheMs[1], 10) > 0 && parseInt(cacheMs[1], 10) <= 500;
+  // 2026-10-25: NO time-only TTL cache any more (it froze the answer across a
+  // cursor move). Instead: a SHORT burst share bounded by the REQUEST START
+  // time (one physical wheel = several 750s), a generation guard so an older
+  // promise cannot clear a newer one, and a `noShare` bypass for the keepalive.
+  const noTtlCache = !/__AC_ZONE_CACHE_MS|__acZoneCacheZones|__acZoneCacheAt|__acZoneCachePend/.test(sw);
+  const burstMs = sw.match(/const __AC_ZONE_BURST_MS = (\d+)/);
+  const burstMsOk = !!burstMs && parseInt(burstMs[1], 10) > 0 && parseInt(burstMs[1], 10) <= 50;
+  const burstStartOk = /if \(!noShare && __acZoneShared && \(now - __acZoneSharedAt\) <= __AC_ZONE_BURST_MS\)/.test(sw) &&
+    /if \(!noShare\) \{ gen = \+\+__acZoneSharedGen; __acZoneSharedAt = now; \}/.test(sw);
+  const burstGenOk = /if \(!noShare && gen === __acZoneSharedGen\) \{/.test(sw);
+  const noShareSigOk = /function __acZoneAsk\(timeoutMs, noShare\)/.test(sw);
+  const keepaliveNoShareOk = /if \(!connected\) return;\s*try \{ __acZoneAsk\(300, true\); \} catch \(e\) \{\}/.test(sw);
 
   // helper rules (see Docs/TODO-mouseover-zones.md §2d/§2e)
   const hPlus = helper.includes('PAGETABLIST');
@@ -2287,14 +2302,46 @@ vm.runInContext(`
   // TABLE is still stale when the engine reads it, the first wheel notch after
   // a move caches a wrong 0 and the next ones (within 300 ms) reuse it. The
   // write latency used to be ~170 ms (a 120 ms poll + classification); it is
-  // now ~0 ms: the poll is 30 ms, a settled cursor is classified at once and a
-  // CONTINUOUS move is throttled (the classification cost was 22.7% of a core
-  // without the throttle, 11.6% with it).
-  const hFastTable = /Thread\.Sleep\(30\)/.test(helper) &&
+  // now ~0 ms: a settled cursor is classified at once and a CONTINUOUS move is
+  // throttled (the classification cost was 22.7% of a core without the
+  // throttle, 11.6% with it).
+  // 2026-10-25 (user report: a "Browser tab" wheel action fired while the
+  // cursor was already over the page): the throttled classification left the
+  // table claiming zone 12 for a point the cursor had LEFT, and the engine
+  // consumed the wheel. The heartbeat now invalidates the table with a
+  // PROVISIONAL write as soon as the cursor is >3 px from the point the table
+  // was built for — through a FAST path that reuses the bound engine handle
+  // (no process scan), [1] over our own browser / empty elsewhere — and that
+  // write must happen even while `servingRequest` is true (a long tab walk
+  // must not keep a stale table alive), so it sits BEFORE the
+  // `!servingRequest && (settled || movingGate || keepTreeAwake)` gate. The
+  // poll dropped to 10 ms.
+  const hFastTable = /Thread\.Sleep\(10\)/.test(helper) &&
     /lastPollPt/.test(helper) &&
     /lastClassifyAt/.test(helper) &&
     /settled \|\| movingGate \|\| keepTreeAwake/.test(helper) &&
+    !/Thread\.Sleep\(30\)/.test(helper) &&
     !/Thread\.Sleep\(120\)/.test(helper);
+  const hFastWrite = /private static bool WriteZoneFlagsFast\(int\[\] zones\)/.test(helper) &&
+    /if \(engPid == 0 \|\| engTable == 0\) return false;/.test(helper) &&
+    /engHandle = OpenProcess\(0x438/.test(helper) &&
+    /CloseEngHandle\(\)/.test(helper);
+  const hProvisional = (() => {
+    const i0 = helper.indexOf('private static void Heartbeat()');
+    if (i0 < 0) return false;
+    const hb = helper.slice(i0);
+    const iProv = hb.indexOf('WriteZoneFlagsFast(prov)');
+    const iGate = hb.indexOf('!servingRequest && (settled || movingGate || keepTreeAwake)');
+    // the movement check is against the point the TABLE was built for (cachePt)
+    // and the provisional set is [1] over our own browser / empty elsewhere
+    return iProv > 0 && iGate > 0 && iProv < iGate &&
+      /Math\.Abs\(pt\.X - builtPt\.X\) > 3 \|\| Math\.Abs\(pt\.Y - builtPt\.Y\) > 3/.test(hb) &&
+      /OverOwnBrowser\(pt\) \? new int\[\] \{ Z_WINDOW \} : new int\[0\]/.test(hb) &&
+      /provOk/.test(hb);
+  })();
+  // a real classification writes the REAL set, so the next move must write a
+  // fresh provisional table (the flag is reset in ClassifyAndCache)
+  const hProvReset = /WriteZoneTable\(z == null \? new int\[0\] : z\);[\s\S]{0,200}provOk = false;/.test(helper);
   // the tab-zone rule must require a PAGETAB (37) and exclude the tab's own
   // BUTTONS (a 43-button under a PAGETAB is not "the tab"). The engine's own
   // region-12 check (FUN_00415570) matched ONLY a PAGETAB or an element whose
@@ -2350,15 +2397,20 @@ vm.runInContext(`
   // comment (no helper connects while the main native is down), so the gap
   // between `setInterval(() => {` and the ask grew — keep the window generous
   // and pin the guard itself as well.
-  const keepaliveOk = /setInterval\(\(\) => \{[\s\S]{0,700}__acZoneAsk\(300\)/.test(sw) &&
-    /if \(!connected\) return;\s*try \{ __acZoneAsk\(300\); \} catch \(e\) \{\}/.test(sw);
+  const keepaliveOk = /setInterval\(\(\) => \{[\s\S]{0,700}__acZoneAsk\(300, true\)/.test(sw) &&
+    keepaliveNoShareOk;
 
   const bad = [];
   if (!knownOk) bad.push('known=' + JSON.stringify(known));
   if (!noMenuRegions) bad.push('menu region in known set');
   if (!passThroughOk) bad.push('no menu pass-through');
   if (!intersectOk) bad.push('no set intersection');
-  if (!cacheOk) bad.push('cacheMs=' + (cacheMs && cacheMs[1]));
+  if (!noTtlCache) bad.push('a time-only zone cache is back (__AC_ZONE_CACHE_MS/__acZoneCacheZones)');
+  if (!burstMsOk) bad.push('burstMs=' + (burstMs && burstMs[1]));
+  if (!burstStartOk) bad.push('sw.js burst share is not bounded by the request START time');
+  if (!burstGenOk) bad.push('sw.js burst share has no generation guard (an older .then could clear a newer promise)');
+  if (!noShareSigOk) bad.push('sw.js __acZoneAsk lost its noShare argument');
+  if (!keepaliveNoShareOk) bad.push('sw.js keepalive does not bypass the burst share (noShare)');
   if (!hPlus) bad.push('helper: + rule');
   if (!hRightEdge) bad.push('helper: right-edge (menu pill) rule — Chromium only + never the Extensions button');
   if (!hDpi) bad.push('helper: DPI awareness');
@@ -2370,7 +2422,10 @@ vm.runInContext(`
   if (!hPageSafe) bad.push('helper: page-safety gate');
   if (!hOwnWindow) bad.push('helper: own-browser gate');
   if (!hHeartbeat) bad.push('helper: a11y heartbeat');
-  if (!hFastTable) bad.push('helper: fast zone-table write (30 ms poll + settle detection)');
+  if (!hFastTable) bad.push('helper: fast zone-table write (10 ms poll + settle detection)');
+  if (!hFastWrite) bad.push('helper: fast table writer (cached engine handle, no process scan)');
+  if (!hProvisional) bad.push('helper: provisional zone-table invalidation on cursor movement (outside the servingRequest gate)');
+  if (!hProvReset) bad.push('helper: provisional flag is not reset by a real classification');
   if (!hSpeakerNoTab) bad.push('helper: speaker excludes zone 12');
   if (!hPaneClose) bad.push('helper: Opera/Vivaldi tab close button (square PANE, right part)');
   if (!hPopupGate) bad.push('helper: browser popup gate (menu/dropdown is not browser chrome)');
@@ -2416,7 +2471,7 @@ vm.runInContext(`
   if (!helperTable) bad.push('v19 helper table writer layout');
   if (!helperClaims) bad.push('helper claims the cave page');
   if (!keepaliveOk) bad.push('sw.js zone keepalive');
-  check('zone gate: 11 known regions (no menu), menu pass-through, set intersection, 120ms burst cache, helper rules (band/speaker/own-window/heartbeat/table cave), v19 patch + keepalive (2026-09-12)',
+  check('zone gate: 11 known regions (no menu), menu pass-through, set intersection, 15ms burst share (start-time bounded, keepalive noShare), helper rules (band/speaker/own-window/heartbeat/provisional table invalidation/table cave), v19 patch + keepalive (2026-09-12, burst 2026-10-25)',
     bad.length === 0, bad.length ? 'missing: ' + bad.join('; ') : 'all ok');
 
   // B53b. The patch builder must actually RUN and be deterministic, and its
@@ -2643,6 +2698,126 @@ vm.runInContext(`
   } catch(e) {
     check('patch proof: the Ghidra listing == the current build, byte for byte (2026-09-13)',
       false, e.message.split('\n')[0]);
+  }
+}
+
+// ---------- B53h. Zone answers are NOT reused across a cursor move (2026-10-25) ----------
+// USER REPORT: a wheel action bound to "Browser tab" (region 12) fired while the
+// cursor was already over the page. Two causes:
+//  (1) the HELPER's engine zone table still said "zone 12" for a point the
+//      cursor had left (the classification is throttled during a move) - fixed
+//      in the helper by the provisional table write, pinned in B53;
+//  (2) the SW's `__acZoneAsk` cached ONE helper answer for 120 ms by TIME ONLY
+//      (`__AC_ZONE_CACHE_MS`), and the cache was seeded by the previous wheel
+//      and by the 2.5 s keepalive - so the gate could judge a new wheel by the
+//      zone of a point the cursor had already left.
+// The replacement: a SHORT burst share (one physical wheel = several 750s)
+// bounded by the REQUEST START time, and a `noShare` bypass for pings.
+// This runs the REAL `__acZoneAsk` (sliced out of sw.js) against a fake port and
+// a controllable clock - a regex would not notice the share spanning a move.
+{
+  const swSrc = fs.readFileSync(path.join(MV3, 'sw.js'), 'utf8');
+  const i0 = swSrc.indexOf('  function __acZoneAsk(timeoutMs, noShare) {');
+  const i1 = swSrc.indexOf('  // --- native type 485', i0);
+  const burstMs = Number((swSrc.match(/const __AC_ZONE_BURST_MS = (\d+)/) || [])[1]);
+  const bad = [];
+  if (i0 < 0 || i1 < 0) bad.push('__acZoneAsk not found in sw.js');
+  if (!(burstMs > 0 && burstMs <= 50)) bad.push('__AC_ZONE_BURST_MS=' + burstMs + ' (expected 1..50)');
+  if (/__AC_ZONE_CACHE_MS|__acZoneCacheZones|__acZoneCacheAt/.test(swSrc)) {
+    bad.push('the time-only zone TTL cache is back');
+  }
+  if (!/if \(!connected\) return;\s*try \{ __acZoneAsk\(300, true\); \} catch \(e\) \{\}/.test(swSrc)) {
+    bad.push('the keepalive does not pass noShare');
+  }
+  if (bad.length) {
+    check('zone gate: a zone answer is NOT reused across a cursor move (burst share, keepalive noShare) (2026-10-25)',
+      false, bad.join('; '));
+  } else {
+    const src = swSrc.slice(i0, i1);
+    const mk = () => {
+      const listeners = [];
+      const clock = { now: 1000, timers: [] };
+      const port = {
+        sent: [],
+        postMessage(m) { port.sent.push(m); },
+        onMessage: { addListener: f => listeners.push(f) },
+        onDisconnect: { addListener: () => {} },
+        reply(m) { for (const f of listeners.slice()) f(m); }
+      };
+      const api = new Function('chrome', 'ZONE_HOST', '__AC_ZONE_BURST_MS', 'Date', 'setTimeout', `
+        let __acZoneReleasedUntil = 0;
+        let __acZoneShared = null;
+        let __acZoneSharedAt = 0;
+        let __acZoneSharedGen = 0;
+        let __acZonePort = null;
+        let __acZonePend = {};
+        let __acZoneTabPend = {};
+        let __acZoneSeq = 0;
+        ${src}
+        return { ask: __acZoneAsk, port: () => __acZonePort,
+                 shared: () => ({ on: !!__acZoneShared, at: __acZoneSharedAt, gen: __acZoneSharedGen }) };
+      `)({ runtime: { connectNative: () => port } }, 'com.autocontrol.zonehelper', burstMs,
+        { now: () => clock.now }, (fn, ms) => clock.timers.push({ fn, ms }));
+      return { clock, port, api };
+    };
+    Promise.resolve().then(async () => {
+      const bad2 = [];
+      // (1) one physical wheel: two 750s a few ms apart share ONE helper request
+      {
+        const t = mk();
+        const p1 = t.api.ask(500);
+        t.clock.now += 5;
+        const p2 = t.api.ask(500);
+        if (t.port.sent.length !== 1) bad2.push('two 750s of one wheel made ' + t.port.sent.length + ' helper requests');
+        if (p1 !== p2) bad2.push('the burst did not share the SAME promise');
+        t.port.reply({ __id: 1, zones: [12, 4, 1] });
+        const z1 = await p1;
+        if (JSON.stringify(z1) !== '[12,4,1]') bad2.push('burst answer=' + JSON.stringify(z1));
+      }
+      // (2) a NEW wheel notch (after the burst window) must ask again - this is
+      //     the reported bug: the cursor moved to the page between the notches
+      {
+        const t = mk();
+        const p1 = t.api.ask(500);
+        t.clock.now += burstMs + 1;
+        const p2 = t.api.ask(500);
+        if (t.port.sent.length !== 2) bad2.push('a new wheel notch reused the old answer (' + t.port.sent.length + ' requests)');
+        t.port.reply({ __id: 1, zones: [12, 4, 1] });       // the tab strip
+        t.port.reply({ __id: 2, zones: [3, 1] });           // the page
+        const [a, b] = await Promise.all([p1, p2]);
+        if (JSON.stringify(a) === JSON.stringify(b)) bad2.push('the second notch still saw the OLD zone ' + JSON.stringify(b));
+        if (JSON.stringify(b) !== '[3,1]') bad2.push('page answer=' + JSON.stringify(b));
+      }
+      // (3) the keepalive (noShare) neither reuses nor seeds the dispatch answer
+      {
+        const t = mk();
+        const pk = t.api.ask(300, true);
+        if (t.api.shared().on) bad2.push('the keepalive seeded the burst share');
+        t.clock.now += 1;
+        const pd = t.api.ask(500);
+        if (t.port.sent.length !== 2) bad2.push('the dispatch reused the keepalive request');
+        if (!t.api.shared().on) bad2.push('the dispatch did not open its own burst share');
+        if (pk === pd) bad2.push('the dispatch promise IS the keepalive promise');
+      }
+      // (4) an older promise's .then must not clear a NEWER share
+      {
+        const t = mk();
+        const pA = t.api.ask(500);
+        t.clock.now += burstMs + 1;
+        const pB = t.api.ask(500);
+        t.port.reply({ __id: 1, zones: [3, 1] });
+        await pA;
+        if (!t.api.shared().on) bad2.push('the older answer cleared the newer burst share');
+        t.port.reply({ __id: 2, zones: [12, 4, 1] });
+        const zb = await pB;
+        if (JSON.stringify(zb) !== '[12,4,1]') bad2.push('newer answer=' + JSON.stringify(zb));
+        if (t.api.shared().on) bad2.push('the burst share was not cleared after its own answer');
+      }
+      check('zone gate: a zone answer is NOT reused across a cursor move (burst share, keepalive noShare) (2026-10-25)',
+        bad2.length === 0, bad2.length ? bad2.join('; ') :
+        'burst of one wheel shares, a new notch asks again, keepalive bypasses, generation guard holds');
+    }).catch(e => check('zone gate: a zone answer is NOT reused across a cursor move (burst share, keepalive noShare) (2026-10-25)',
+      false, e.message.split('\n')[0]));
   }
 }
 
@@ -3333,7 +3508,9 @@ try {
   if (!/__acUninstalling/.test(shim)) bad7.push('watcher does not honor the __acUninstalling marker');
   // (e) zone keepalive guard (2026-10-11): no helper connects while the main
   //     native is down (removes the 2.5 s failed connectNative + lastError noise)
-  if (!/if \(!connected\) return;\s*try \{ __acZoneAsk\(300\); \} catch \(e\) \{\}/.test(sw)) {
+  //     2026-10-25: the keepalive pings with `noShare` - its answer must never
+  //     become the zone gate's answer for a wheel.
+  if (!/if \(!connected\) return;\s*try \{ __acZoneAsk\(300, true\); \} catch \(e\) \{\}/.test(sw)) {
     bad7.push('zone keepalive connected-guard missing in sw.js');
   }
   check('reconnect cap -> slow retry + dialog repair path + install-pane race (2026-10-11)',
