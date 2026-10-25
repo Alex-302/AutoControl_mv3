@@ -57,7 +57,14 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # deployed copy is in %LOCALAPPDATA%\AutoControl\). With the marker every
 # write is logged unchanged, repeats included. Zone/protocol behaviour is
 # unchanged; only the %TEMP%\ac_zone_helper.log output differs.
-$EXPECT_HELPER = '2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F'
+# 2026-10-25: the engine zone table is INVALIDATED while the cursor moves - the
+# heartbeat writes a provisional set ([1] over our own browser, empty
+# elsewhere) through a fast path (cached engine handle, no process scan) as
+# soon as the cursor is >3 px from the point the table was built for, and the
+# poll dropped from 30 ms to 10 ms. Fixes "a wheel action bound to Browser tab
+# fired when the cursor was already over the page" (the engine read a table
+# that still said zone 12). Engine patch, cave bytes and file76.dat unchanged.
+$EXPECT_HELPER = '485C9EE9CAAFCB3E5DC1EC967484661A09DD34BDD2AA6BA805DE529C1485931C'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.

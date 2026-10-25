@@ -50,6 +50,19 @@
 // repeated "table write" lines show the table-refresh timing. How to enable /
 // disable it: Docs/BUILD-NATIVE.md section A.5.
 //
+// 2026-10-25 (user report: a wheel action bound to "Browser tab" fired while
+// the cursor was already over the page):
+//  * the engine reads the zone table when the wheel arrives, but the real
+//    classification is THROTTLED while the cursor moves (80 ms) - so the table
+//    still said "zone 12" for a point the cursor had left. The heartbeat now
+//    invalidates the table as soon as the cursor is >3 px from the point the
+//    table was built for: a PROVISIONAL write ([1] over our own browser, empty
+//    elsewhere) through a fast path that reuses the bound engine handle
+//    (WriteZoneFlagsFast - no process scan). The real zone set follows on the
+//    settle / 80 ms classification.
+//  * the poll dropped from 30 ms to 10 ms: an idle helper costs one
+//    GetCursorPos per poll; the provisional write runs only on a move.
+//
 // 2026-09-20 fixes (Opera end-to-end run, user reports):
 //  * TAB (12) requires a real PAGETAB (37) - the empty strip area (60 alone)
 //    and the "+" do not answer 12 (the engine's own FUN_00415570 did the
@@ -751,7 +764,7 @@ public static class ZoneHelper {
   // {"zone":-1,...} = cursor/AOP error (the SW treats it as "no match").
   // {"zone":0,"zones":[]} = the cursor is not over this browser's window.
   // ⚠ NO tab walk here: `TabUnderCursorJson` costs 60-104 ms (measured) and this
-  // runs on the 30 ms heartbeat - adding it made the helper unable to answer the
+  // runs on the 10 ms heartbeat - adding it made the helper unable to answer the
   // SW's zone query in time (250 ms), so the first wheel notch after a fast move
   // was SKIPPED (`zones=[-2]`, user report 2026-09-21). The tab is walked on
   // demand by the request path, which stores it for the very point it was
@@ -759,6 +772,9 @@ public static class ZoneHelper {
   private static int[] ClassifyAndCache(POINT pt) {
     int[] z = OverOwnBrowser(pt) ? ZonesForPoint(pt) : new int[0];
     WriteZoneTable(z == null ? new int[0] : z);
+    // The table now holds the REAL zone set for this point: the next move must
+    // write a fresh provisional set (see Heartbeat).
+    provOk = false;
     CacheStore(pt, JsonOfZones(z));
     return z;
   }
@@ -782,6 +798,16 @@ public static class ZoneHelper {
   private static uint engPid = 0;
   private static long engTable = 0;
   private static long engCave = 0;
+  // Cached write handle for the FAST table path (WriteZoneFlagsFast). The fast
+  // path runs on every heartbeat poll while the cursor moves, so it must not
+  // re-scan the process list / open a handle each time. The handle is dropped
+  // whenever WriteZoneTable re-binds to another engine (a restarted engine must
+  // never be written through a stale handle) and on a failed fast write.
+  private static IntPtr engHandle = IntPtr.Zero;
+  // Serialises every access to the engine table state above: the heartbeat
+  // thread and the request path both write the table, and a handle closed by a
+  // re-bind must never be used by the other thread.
+  private static readonly object engLock = new object();
 
   // Which engine belongs to MY browser? 2026-09-13, user report "wheel over the
   // page switches tabs": with SEVERAL browsers running there are SEVERAL engines
@@ -891,10 +917,16 @@ public static class ZoneHelper {
   // zones: the regions that currently match; empty = "the cursor is not over
   // this browser" (nothing matches -> all input passes through, like MV2 over
   // a foreign window). Silent on any failure (an unpatched engine is skipped).
+  // The SLOW bind/refresh path: it re-scans the process list, re-validates the
+  // binding and (re)writes the cave prefix. Called from a classification only.
   private static void WriteZoneTable(int[] zones) {
+    lock (engLock) { WriteZoneTableLocked(zones); }
+  }
+
+  private static void WriteZoneTableLocked(int[] zones) {
    try {
     int[] pids = FindEnginePids();
-    if (pids.Length == 0) { Log("no engine process"); engPid = 0; engTable = 0; engCave = 0; return; }
+    if (pids.Length == 0) { Log("no engine process"); CloseEngHandle(); engPid = 0; engTable = 0; engCave = 0; return; }
     // Pick MY engine (2026-09-13). Rule order:
     //  1. an engine already bound to me stays bound (only MY engine can pass
     //     the window test, so the binding is trustworthy - but re-check it when
@@ -927,6 +959,9 @@ public static class ZoneHelper {
     // (re)initialise when the engine restarted
     if (pid != engPid || engCave == 0) {
       Log("init for pid " + pid + " of my browser " + browserPid + " (engines: " + pids.Length + ")");
+      // A re-bind means a DIFFERENT process (or a restarted one): the cached
+      // fast-path handle belongs to the old process and must never be reused.
+      CloseEngHandle();
       engPid = pid; engTable = 0; engCave = 0;
       IntPtr h0 = OpenProcess(0x438 /* QUERY|VM_OP|VM_READ|VM_WRITE */, false, pid);
       if (h0 == IntPtr.Zero) { Log("OpenProcess failed: " + Marshal.GetLastWin32Error()); return; }
@@ -977,7 +1012,7 @@ public static class ZoneHelper {
     }
     if (engTable == 0) return;
     IntPtr h = OpenProcess(0x438, false, pid);
-    if (h == IntPtr.Zero) { engTable = 0; engCave = 0; return; }
+    if (h == IntPtr.Zero) { CloseEngHandle(); engTable = 0; engCave = 0; return; }
     try {
       byte[] data = new byte[16 + TABLE_SLOTS * 4];
       BitConverter.GetBytes(1).CopyTo(data, 0);                       // alive = 1
@@ -991,6 +1026,60 @@ public static class ZoneHelper {
       Log("table write: alive=1 zones=[" + (zones == null ? "" : string.Join(",", Array.ConvertAll(zones, x => x.ToString()))) + "]");
     } finally { CloseHandle(h); }
    } catch (Exception ex) { Log("EXCEPTION " + ex.GetType().Name + ": " + ex.Message); }
+  }
+
+  // Drop the cached fast-path handle (no-op when there is none). Called from
+  // WriteZoneTable (re-bind / lost process) and from a failed fast write.
+  private static void CloseEngHandle() {
+    if (engHandle == IntPtr.Zero) return;
+    try { CloseHandle(engHandle); } catch { }
+    engHandle = IntPtr.Zero;
+  }
+
+  // FAST table write (2026-10-25). The heartbeat calls this while the cursor is
+  // MOVING: a full WriteZoneTable costs a process snapshot + a module scan +
+  // a handle, far too much for a 10 ms poll - and the point of the fast write is
+  // exactly that it can run on EVERY poll of a fast move, so the engine never
+  // reads a table built for a point the cursor has already left.
+  //
+  // WHY IT MATTERS (user report 2026-10-25): a wheel action bound to "Browser
+  // tab" (region 12) fired while the cursor was already over the page. The
+  // engine decides "does this trigger's region match?" by reading THIS table,
+  // and it reads it the moment the wheel event arrives - the helper's real
+  // classification is throttled during a move, so the table still said
+  // "zone 12" and the engine consumed the wheel.
+  //
+  // Same page layout as WriteZoneTable: alive=1 at +0, 64 zeroed dword slots at
+  // +16, then 1 for each zone in `zones`. Returns false when no engine is bound
+  // or the write failed; a failed write drops the cached handle so the next
+  // WriteZoneTable re-binds (and re-claims the cave page if the engine died).
+  private static bool WriteZoneFlagsFast(int[] zones) {
+    lock (engLock) {
+      if (engPid == 0 || engTable == 0) return false;
+      if (engHandle == IntPtr.Zero) {
+        engHandle = OpenProcess(0x438 /* QUERY|VM_OP|VM_READ|VM_WRITE */, false, engPid);
+        if (engHandle == IntPtr.Zero) {
+          Log("fast write: OpenProcess failed: " + Marshal.GetLastWin32Error());
+          return false;
+        }
+      }
+      byte[] data = new byte[16 + TABLE_SLOTS * 4];
+      BitConverter.GetBytes(1).CopyTo(data, 0);                       // alive = 1
+      if (zones != null) {
+        for (int i = 0; i < zones.Length; i++) {
+          int z = zones[i];
+          if (z >= 0 && z < TABLE_SLOTS) BitConverter.GetBytes(1).CopyTo(data, 16 + z * 4);
+        }
+      }
+      if (!WriteMem(engHandle, engTable, data)) {
+        Log("fast write failed: " + Marshal.GetLastWin32Error() + " - dropping the cached handle");
+        CloseEngHandle();
+        return false;
+      }
+      Log("table write (fast): alive=1 zones=[" +
+          (zones == null ? "" : string.Join(",", Array.ConvertAll(zones, x => x.ToString()))) + "]");
+      return true;
+    }
   }
 
   // ---- zone cache + heartbeat -------------------------------------------
@@ -1011,6 +1100,11 @@ public static class ZoneHelper {
   private static POINT lastPollPt = new POINT();   // cursor position at the previous poll
   private static int lastClassifyAt = 0;           // throttle for classifications during a move
   private static int lastTabWarmAt = 0;            // throttle for the tab-cache warm-up (see Heartbeat)
+  // The PROVISIONAL table write (see Heartbeat): the point it was written for
+  // and whether it happened. Reset whenever a REAL classification writes the
+  // table, so the next move starts a fresh provisional write.
+  private static POINT provPt = new POINT();
+  private static volatile bool provOk = false;
   // Set while a request is being served. The heartbeat SKIPS its own
   // classification then: two accessibility walks (the heartbeat's zone walk and
   // the request's tab walk) compete for the same tree and both get slower -
@@ -1068,22 +1162,49 @@ public static class ZoneHelper {
   // sync. Runs on a background thread; the answers the SW gets are at most one
   // heartbeat apart.
   //
-  // POLL RATE (2026-09-20): the engine CACHES the region verdict and only
-  // recomputes it when >300 ms passed or the cursor moved >3 px since the last
-  // computation (FUN_00415bf0), and it reads the table at that moment. With a
-  // 120 ms poll the table could still hold the PREVIOUS zone when the user
-  // moved onto a zone and scrolled immediately: the first notch then read a
-  // stale 0 for that region, the cache kept it for up to 300 ms and every
-  // following notch was skipped too (user report: "works, but sometimes
-  // stops"). Measured write latency was ~170 ms; the poll is now 30 ms, so
-  // the stale-table window shrinks to one classification (~1-3 ms) plus the
-  // poll. The classification itself runs only when the cursor MOVED, so an
-  // idle helper costs one GetCursorPos per 30 ms and nothing else.
+  // POLL RATE (2026-09-20, tightened 2026-10-25): the engine CACHES the region
+  // verdict and only recomputes it when >300 ms passed or the cursor moved
+  // >3 px since the last computation (FUN_00415bf0), and it reads the table at
+  // that moment. With a 120 ms poll the table could still hold the PREVIOUS
+  // zone when the user moved onto a zone and scrolled immediately: the first
+  // notch then read a stale 0 for that region, the cache kept it for up to
+  // 300 ms and every following notch was skipped too (user report: "works, but
+  // sometimes stops"). Measured write latency was ~170 ms. The poll is now
+  // 10 ms and a cursor move INVALIDATES the table at once (see the provisional
+  // write below), so the stale-table window is one poll, not one
+  // classification. The classification itself still runs only when the cursor
+  // MOVED (80 ms throttle + settle detection), so an idle helper costs one
+  // GetCursorPos per 10 ms and nothing else.
   private static void Heartbeat() {
     while (true) {
       try {
         POINT pt;
         if (GetCursorPos(out pt)) {
+          POINT builtPt;
+          bool builtOk;
+          lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }
+          // PROVISIONAL INVALIDATION (2026-10-25, user report: a wheel action
+          // bound to "Browser tab" fired while the cursor was already over the
+          // page). The engine reads THIS table when the wheel arrives, and the
+          // real classification below is throttled during a move - so as soon
+          // as the cursor leaves the point the table was built for, the table
+          // must stop claiming the old zones. This is a plain memory write (no
+          // MSAA), so it runs even while a request is served: a long tab walk
+          // must not keep a stale table alive.
+          // The provisional set keeps zone 1 (Browser window) while the cursor
+          // is over OUR browser - a window-scoped trigger keeps working during
+          // the move - and is empty elsewhere (nothing matches, like MV2 over a
+          // foreign window). The real zone set follows from the classification
+          // below (settle detection / 80 ms throttle).
+          if (!builtOk || Math.Abs(pt.X - builtPt.X) > 3 || Math.Abs(pt.Y - builtPt.Y) > 3) {
+            // Do not repeat the same provisional write on every poll of a slow
+            // move: only a further >3 px counts (reset when a real
+            // classification writes the table, see ClassifyAndCache).
+            if (!provOk || Math.Abs(pt.X - provPt.X) > 3 || Math.Abs(pt.Y - provPt.Y) > 3) {
+              int[] prov = OverOwnBrowser(pt) ? new int[] { Z_WINDOW } : new int[0];
+              if (WriteZoneFlagsFast(prov)) { provPt = pt; provOk = true; }
+            }
+          }
           bool stale;
           lock (zoneLock) {
             stale = !cacheOk || cachePt.X != pt.X || cachePt.Y != pt.Y ||
@@ -1135,7 +1256,7 @@ public static class ZoneHelper {
           lastPollPt = pt;
         }
       } catch { /* never kill the heartbeat */ }
-      System.Threading.Thread.Sleep(30);
+      System.Threading.Thread.Sleep(10);
     }
   }
 
