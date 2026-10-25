@@ -89,6 +89,13 @@
 //    [12,4,1] at 43.652, the next fast write only at 44.372, seven 750s in
 //    between). The watcher does no MSAA, no classification and no tab walk; the
 //    heartbeat only classifies.
+//  * (live test, fourth round) the invalidation is ZONE-AWARE: a TAB-related
+//    classification (12/15/17) is discarded/invalidated only when the cursor
+//    leaves the strip VERTICALLY (>24 px in Y). A wheel along the strip moves
+//    the cursor horizontally by tens of px (that is how tabs are switched), and
+//    the 3 px rule cleared the table to [1] so the next notch missed zone 12
+//    ("tab switching with the wheel sometimes does not fire"). A move onto the
+//    page changes Y by ~100 px, so the false positive stays fixed.
 //
 // 2026-09-20 fixes (Opera end-to-end run, user reports):
 //  * TAB (12) requires a real PAGETAB (37) - the empty strip area (60 alone)
@@ -789,6 +796,28 @@ public static class ZoneHelper {
     return Math.Abs(a.X - b.X) > px || Math.Abs(a.Y - b.Y) > px;
   }
 
+  // Does this zone set touch the tab strip? (Browser tab 12, close 15, speaker
+  // 17 - the zones a wheel along the strip keeps matching.)
+  private static bool HasTabZone(int[] z) {
+    if (z == null) return false;
+    return Array.IndexOf(z, Z_TAB) >= 0 || Array.IndexOf(z, Z_CLOSE) >= 0 ||
+           Array.IndexOf(z, Z_SPEAKER) >= 0;
+  }
+
+  // How far a REAL classification may drift before it is discarded (and the
+  // table invalidated). A TAB-related classification only cares about the
+  // cursor leaving the strip VERTICALLY: a wheel along the strip moves the
+  // cursor horizontally by tens of px (that is how tabs are switched), and
+  // invalidating on that made the next notch miss zone 12 - "tab switching with
+  // the wheel sometimes does not fire" (2026-10-25 live test, fourth round).
+  // A move onto the page changes Y by ~100 px, so the false positive stays
+  // fixed. Every other zone keeps the engine's own 3 px rule.
+  private const int TAB_STRIP_Y_PX = 24;
+  private static bool StaleFor(POINT sampled, POINT now, bool hasTab) {
+    return hasTab ? Math.Abs(now.Y - sampled.Y) > TAB_STRIP_Y_PX
+                  : MovedFrom(sampled, now, 3);
+  }
+
   // The PROVISIONAL zone set for a point: zone 1 (Browser window) while the
   // cursor is over OUR browser - a window-scoped trigger keeps working during a
   // move - and empty elsewhere (nothing matches, like MV2 over a foreign
@@ -835,7 +864,8 @@ public static class ZoneHelper {
     // only for the point it was sampled at; otherwise the CURRENT point gets a
     // provisional table and the caller answers with that set.
     POINT now;
-    bool stale = GetCursorPos(out now) && MovedFrom(pt, now, 3);
+    bool hasTab = HasTabZone(z);
+    bool stale = GetCursorPos(out now) && StaleFor(pt, now, hasTab);
     bool wrote = false;
     if (!stale) {
       // PublishReal keeps the REAL table write + the provisional reset + the
@@ -857,7 +887,7 @@ public static class ZoneHelper {
     // The engine is not writable right now (no engine process / not bound /
     // the write failed): the MSAA answer is still the correct zone set for the
     // SW - no 750 can arrive without an engine - so cache and return it.
-    CacheStore(pt, JsonOfZones(z));
+    CacheStore(pt, JsonOfZones(z), hasTab);
     return z;
   }
 
@@ -1049,7 +1079,7 @@ public static class ZoneHelper {
     if (engPid == 0 || engTable == 0) return false;
     if ((Environment.TickCount - lastBindAt) >= REBIND_MS) return false;   // re-bind due
     POINT now;
-    if (haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)) {
+    if (haveExpected && GetCursorPos(out now) && StaleFor(expected, now, HasTabZone(zones))) {
       stale = true;
       Log("table write skipped (fast): sampled=" + expected.X + "," + expected.Y +
           " now=" + now.X + "," + now.Y);
@@ -1079,7 +1109,7 @@ public static class ZoneHelper {
     // LEFT would overwrite the provisional invalidation the heartbeat published
     // meanwhile - the engine then fires a scoped combo over the wrong point.
     POINT now;
-    if (haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)) {
+    if (haveExpected && GetCursorPos(out now) && StaleFor(expected, now, HasTabZone(zones))) {
       stale = true;
       Log("table write skipped: sampled=" + expected.X + "," + expected.Y +
           " now=" + now.X + "," + now.Y);
@@ -1107,7 +1137,7 @@ public static class ZoneHelper {
   // triggers dead until the next move / the 1.2 s tree refresh).
   private static void CommitClassificationLocked(POINT pt, int[] zones) {
     provOk = false;
-    CacheStore(pt, JsonOfZones(zones));
+    CacheStore(pt, JsonOfZones(zones), HasTabZone(zones));
   }
 
   // Publish a REAL classification for `pt` (`haveExpected` = write the table only
@@ -1362,6 +1392,11 @@ public static class ZoneHelper {
   private static POINT cachePt = new POINT();
   private static int cacheAt = 0;
   private static bool cacheOk = false;
+  // The LAST REAL classification's zone set was tab-related (12/15/17). Guarded
+  // by zoneLock, set together with cachePt by CacheStore. PROVISIONAL writes do
+  // NOT change it - it always describes the point cachePt was built for, which
+  // is exactly what the invalidation decision needs (2026-10-25 live test).
+  private static bool cacheHasTab = false;
   private static POINT lastPollPt = new POINT();   // cursor position at the previous poll
   private static int lastClassifyAt = 0;           // throttle for classifications during a move
   private static int lastTabWarmAt = 0;            // throttle for the tab-cache warm-up (see Heartbeat)
@@ -1392,12 +1427,13 @@ public static class ZoneHelper {
   // fast (user report 2026-09-21): the fresh zone classification updated
   // cachePt while cacheTabBody still held the tab of the previous wheel, and
   // GetCachedTab - matching on the point alone - returned it.
-  private static void CacheStore(POINT pt, string body) {
+  private static void CacheStore(POINT pt, string body, bool hasTab) {
     lock (zoneLock) {
       cacheBody = body;
       cacheTabBody = "";
       cacheTabOk = false;
       cachePt = pt; cacheAt = Environment.TickCount; cacheOk = true;
+      cacheHasTab = hasTab;
     }
   }
   // The tab-under-cursor answer for the SAME point the zone cache was built for
@@ -1455,20 +1491,20 @@ public static class ZoneHelper {
         POINT pt;
         if (GetCursorPos(out pt)) {
           POINT builtPt;
-          bool builtOk;
-          lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }
-          if (!builtOk || MovedFrom(builtPt, pt, 3)) {
+          bool builtOk, builtHasTab;
+          lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; builtHasTab = cacheHasTab; }
+          if (!builtOk || StaleFor(builtPt, pt, builtHasTab)) {
             int[] prov = ProvisionalZones(pt);
             lock (engLock) {
               // Re-read under engLock: a classification may have completed
               // between the read above and this lock.
               POINT built2;
-              bool builtOk2;
-              lock (zoneLock) { built2 = cachePt; builtOk2 = cacheOk; }
+              bool builtOk2, builtHasTab2;
+              lock (zoneLock) { built2 = cachePt; builtOk2 = cacheOk; builtHasTab2 = cacheHasTab; }
               // Do not repeat the same provisional write on every poll of a slow
               // move: only a further >3 px counts (reset when a real
               // classification writes the table, see ClassifyAndCache).
-              if ((!builtOk2 || MovedFrom(built2, pt, 3)) &&
+              if ((!builtOk2 || StaleFor(built2, pt, builtHasTab2)) &&
                   (!provOk || MovedFrom(provPt, pt, 3))) {
                 if (WriteZoneFlagsFast(prov)) { provPt = pt; provOk = true; }
               }

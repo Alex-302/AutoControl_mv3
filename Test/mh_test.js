@@ -2355,10 +2355,10 @@ vm.runInContext(`
     const i1 = helper.indexOf('\n  }\n', i0);
     if (i1 < 0) return false;
     const fn = helper.slice(i0, i1);
-    const iRead = fn.indexOf('lock (zoneLock) { built2 = cachePt; builtOk2 = cacheOk; }');
+    const iRead = fn.indexOf('lock (zoneLock) { built2 = cachePt; builtOk2 = cacheOk; builtHasTab2 = cacheHasTab; }');
     const iWrite = fn.indexOf('WriteZoneFlagsFast(prov)');
     return /int\[\] prov = ProvisionalZones\(pt\);/.test(fn) &&
-      /MovedFrom\(built2, pt, 3\)/.test(fn) && /MovedFrom\(provPt, pt, 3\)/.test(fn) &&
+      /StaleFor\(built2, pt, builtHasTab2\)/.test(fn) && /MovedFrom\(provPt, pt, 3\)/.test(fn) &&
       iRead > 0 && iWrite > iRead;
   })();
   const hHeartbeatNoProv = (() => {
@@ -2368,6 +2368,50 @@ vm.runInContext(`
     if (i1 < 0) return false;
     const fn = helper.slice(i0, i1);
     return !/WriteZoneFlagsFast/.test(fn) && !/ProvisionalZones/.test(fn) && /ClassifyAndCache\(pt\)/.test(fn);
+  })();
+  // 2026-10-25 LIVE TEST (fourth round) - the invalidation is ZONE-AWARE. A
+  // TAB-related classification (12/15/17) must survive a HORIZONTAL move along
+  // the strip: the 3 px rule cleared the table to [1] and the next notch missed
+  // zone 12 ("tab switching with the wheel sometimes does not fire"), while a
+  // move to the page (~100 px in Y) still has to invalidate. Pins:
+  //  (a) cacheHasTab is set from zones 12/15/17 by the REAL classification
+  //      (CacheStore), and a provisional write never touches it;
+  //  (b) StaleFor uses the Y-only 24 px rule when the flag is set, MovedFrom
+  //      otherwise;
+  //  (c) the watcher and both write paths use StaleFor (not MovedFrom).
+  const hCacheHasTab = (() => {
+    const i0 = helper.indexOf('private static bool HasTabZone(int[] z)');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const tab = helper.slice(i0, i1);
+    return /private static bool cacheHasTab = false;/.test(helper) &&
+      /Array\.IndexOf\(z, Z_TAB\) >= 0/.test(tab) &&
+      /Array\.IndexOf\(z, Z_CLOSE\) >= 0/.test(tab) &&
+      /Array\.IndexOf\(z, Z_SPEAKER\) >= 0/.test(tab) &&
+      /cacheHasTab = hasTab;/.test(helper) &&
+      /CacheStore\(pt, JsonOfZones\(z\), hasTab\);/.test(helper) &&
+      /CacheStore\(pt, JsonOfZones\(zones\), HasTabZone\(zones\)\);/.test(helper);
+  })();
+  const hTabStripStale = (() => {
+    const i0 = helper.indexOf('private static bool StaleFor(');
+    const j0 = helper.indexOf('private static void ProvisionalWatcher()');
+    if (i0 < 0 || j0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    const j1 = helper.indexOf('\n  }\n', j0);
+    if (i1 < 0 || j1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    const watcher = helper.slice(j0, j1);
+    const fast = helper.slice(helper.indexOf('private static bool TryFastRealWriteLocked('));
+    const pub = helper.slice(helper.indexOf('private static bool PublishBindLocked('));
+    return /private const int TAB_STRIP_Y_PX = 24;/.test(helper) &&
+      /Math\.Abs\(now\.Y - sampled\.Y\) > TAB_STRIP_Y_PX/.test(fn) &&
+      /MovedFrom\(sampled, now, 3\)/.test(fn) &&
+      /StaleFor\(builtPt, pt, builtHasTab\)/.test(watcher) &&
+      /StaleFor\(built2, pt, builtHasTab2\)/.test(watcher) &&
+      /StaleFor\(expected, now, HasTabZone\(zones\)\)/.test(fast) &&
+      /StaleFor\(expected, now, HasTabZone\(zones\)\)/.test(pub) &&
+      !/MovedFrom\(builtPt, pt, 3\)/.test(watcher);
   })();
   // 2026-10-25 REVIEW - the provisional write must be SERIALISED with a real
   // classification. Without the lock this interleaving shipped: the heartbeat
@@ -2404,7 +2448,7 @@ vm.runInContext(`
     const iCommit = slowFn.indexOf('CommitClassificationLocked(pt, zones)');
     return /TryFastRealWriteLocked\(/.test(fast) && /CommitClassificationLocked\(pt, zones\)/.test(fast) &&
       iBindLock > 0 && iSlowLock > iBindLock && iPublish > iSlowLock && iCommit > iPublish &&
-      /provOk = false;/.test(commit) && /CacheStore\(pt, JsonOfZones\(zones\)\)/.test(commit);
+      /provOk = false;/.test(commit) && /CacheStore\(pt, JsonOfZones\(zones\), HasTabZone\(zones\)\)/.test(commit);
   })();
   // 2026-10-25 LIVE TEST - a classification that outlived the point it was
   // sampled at must be DISCARDED. The user log showed a real `[12,4,1]` write
@@ -2430,9 +2474,9 @@ vm.runInContext(`
     if (i1 < 0 || j1 < 0 || k1 < 0) return false;
     const fn = helper.slice(i0, i1);
     const iWalk = fn.indexOf('ZonesForPoint(pt)');
-    const iOuter = fn.indexOf('GetCursorPos(out now) && MovedFrom(pt, now, 3)');
+    const iOuter = fn.indexOf('GetCursorPos(out now) && StaleFor(pt, now, hasTab)');
     const iPublish = fn.indexOf('PublishReal(');
-    const inner = /GetCursorPos\(out now\) && MovedFrom\(expected, now, 3\)/;
+    const inner = /StaleFor\(expected, now, HasTabZone\(zones\)\)/;
     return iWalk > 0 && iOuter > iWalk && iPublish > iOuter &&
       inner.test(helper.slice(j0, j1)) && inner.test(helper.slice(k0, k1));
   })();
@@ -2464,7 +2508,7 @@ vm.runInContext(`
     const i1 = helper.indexOf('\n  }\n', i0);
     if (i1 < 0) return false;
     const fn = helper.slice(i0, i1);
-    const iCheck = fn.indexOf('haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)');
+    const iCheck = fn.indexOf('haveExpected && GetCursorPos(out now) && StaleFor(expected, now, HasTabZone(zones))');
     const iWrite = fn.indexOf('WriteTablePage(engHandle, zones, "table write")');
     return iCheck > 0 && iWrite > iCheck && /stale = true;/.test(fn) &&
       /table write skipped: sampled=/.test(fn);
@@ -2610,6 +2654,8 @@ vm.runInContext(`
   if (!hWatcherNoMsaa) bad.push('helper: the provisional watcher does MSAA / classification / a tab walk / waits for servingRequest');
   if (!hWatcherWrites) bad.push('helper: the provisional watcher does not write the provisional set (with cachePt re-read under engLock)');
   if (!hHeartbeatNoProv) bad.push('helper: Heartbeat still writes provisional tables (the watcher must own the invalidation)');
+  if (!hCacheHasTab) bad.push('helper: no cacheHasTab flag set from zones 12/15/17 by the real classification');
+  if (!hTabStripStale) bad.push('helper: the stale/invalidation rule is not zone-aware (tab strip allows horizontal movement, 24 px in Y)');
   if (!hPublishSection) bad.push('helper: PublishReal does not keep the real table write + provOk reset + cache store in one engLock section (or publishes outside it)');
   if (!hStaleResample) bad.push('helper: a classification is not discarded when the cursor left the sampled point (re-sample after the walk + inside engLock)');
   if (!hStalePath) bad.push('helper: the stale path does not publish a provisional set / caches the stale point');

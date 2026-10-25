@@ -93,7 +93,13 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # MSAA walk and cannot poll for cursor movement (user log: real [12,4,1] at
 # 43.652, the next fast write at 44.372, seven 750s in between). The watcher does
 # no MSAA, no classification and no tab walk; the heartbeat only classifies.
-$EXPECT_HELPER = 'B442078DA38EC952E353C5EEA6BDBBC4424593C3E9C51BBEB99E3C2CDF56CB86'
+# Live test, fourth round (same day): the invalidation is ZONE-AWARE - a
+# TAB-related classification (12/15/17) is only discarded/invalidated when the
+# cursor leaves the strip VERTICALLY (>24 px in Y), because a wheel along the
+# strip moves the cursor horizontally (that is how tabs are switched) and the
+# 3 px rule cleared the table to [1] so the next notch missed zone 12. A move to
+# the page changes Y by ~100 px, so the tab -> page false positive stays fixed.
+$EXPECT_HELPER = '199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.
