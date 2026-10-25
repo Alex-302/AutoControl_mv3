@@ -1025,6 +1025,8 @@ public static class ZoneHelper {
   // live-test log: 300-700 ms gaps between fast writes). A FAILED fast write
   // still drops the handle and falls through to the slow path, so an engine
   // restart is detected at once, not only at the next re-bind.
+  // ⚠ Only a successful SLOW bind/refresh moves `lastBindAt` - otherwise this
+  // window would never expire (2026-10-25 review).
   private const int REBIND_MS = 1000;
 
   private static bool WriteZoneTableLocked(int[] zones, bool haveExpected, POINT expected, out bool stale) {
@@ -1033,6 +1035,12 @@ public static class ZoneHelper {
     // FAST REAL WRITE (2026-10-25 live test): the binding is fresh, so the
     // write itself is the whole job - and it is what keeps engLock free for the
     // heartbeat's provisional write.
+    // ⚠ `lastBindAt` is deliberately NOT touched here (2026-10-25 review):
+    // resetting it in this branch made `(TickCount - lastBindAt) < REBIND_MS`
+    // always true, so the periodic re-bind NEVER ran - a cached handle could
+    // keep writing into an OLD engine process while a new engine instance is the
+    // one the browser actually uses. Only a successful SLOW bind/refresh moves
+    // the window, so it really expires after REBIND_MS.
     if (engPid != 0 && engTable != 0 && (Environment.TickCount - lastBindAt) < REBIND_MS) {
       POINT nowF;
       if (haveExpected && GetCursorPos(out nowF) && MovedFrom(expected, nowF, 3)) {
@@ -1042,10 +1050,7 @@ public static class ZoneHelper {
         return false;
       }
       if (EnsureEngHandle()) {
-        if (WriteTablePage(engHandle, zones, "table write")) {
-          lastBindAt = Environment.TickCount;
-          return true;
-        }
+        if (WriteTablePage(engHandle, zones, "table write")) return true;
         // A failed page write means the cached handle/table is gone (engine
         // restarted): drop it so the slow path below re-binds.
         CloseEngHandle();

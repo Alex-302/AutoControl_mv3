@@ -77,7 +77,11 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # CURRENT point, the slow write re-samples the cursor right before WriteMem,
 # and the steady-state real write uses the cached engine handle (re-bind every
 # 1000 ms) so engLock is no longer held during the process/module scan.
-$EXPECT_HELPER = '933A8C13CABB586F4C7C6E06C55BEC958FA73DBCD8C137160672E267995599CA'
+# Review follow-up (same day): only a successful SLOW bind/refresh moves
+# lastBindAt - resetting it in the fast branch made the re-bind window never
+# expire, so the periodic re-bind (and with it the engine-restart / multi-engine
+# re-validation) never ran.
+$EXPECT_HELPER = 'F53E7301245CC6B14B8907F837E1926D2F328B4C8EC841E92C6DDC7E91910377'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.

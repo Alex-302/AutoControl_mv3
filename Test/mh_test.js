@@ -2445,6 +2445,26 @@ vm.runInContext(`
     /\(Environment\.TickCount - lastBindAt\) < REBIND_MS/.test(helper) &&
     /if \(EnsureEngHandle\(\)\) \{[\s\S]{0,260}WriteTablePage\(engHandle, zones, "table write"\)[\s\S]{0,400}?CloseEngHandle\(\);\n      \}/.test(helper) &&
     /WriteTablePage\(engHandle, zones, "table write \(fast\)"\)/.test(helper);
+  // 2026-10-25 REVIEW: `lastBindAt` may be moved ONLY by a successful SLOW
+  // bind/refresh. Resetting it in the fast branch made
+  // `(TickCount - lastBindAt) < REBIND_MS` always true, so the periodic re-bind
+  // never ran - a cached handle could keep writing into an OLD engine process
+  // while a new engine instance is the one the browser actually uses.
+  const hRebindWindow = (() => {
+    const i0 = helper.indexOf('private static bool WriteZoneTableLocked(');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    const iFast = fn.indexOf('(Environment.TickCount - lastBindAt) < REBIND_MS');
+    const iSlow = fn.indexOf('// handle gone / write failed: fall through to the slow path');
+    const iAssign = fn.lastIndexOf('lastBindAt = Environment.TickCount;');
+    if (iFast < 0 || iSlow < 0 || iAssign < 0) return false;
+    // (a) no assignment inside the fast branch ...
+    if (/lastBindAt\s*=/.test(fn.slice(iFast, iSlow))) return false;
+    // (b) ... and the slow path DOES move the window, right after its write
+    return iAssign > iSlow && /return true;/.test(fn.slice(iAssign, iAssign + 80));
+  })();
   // the tab-zone rule must require a PAGETAB (37) and exclude the tab's own
   // BUTTONS (a 43-button under a PAGETAB is not "the tab"). The engine's own
   // region-12 check (FUN_00415570) matched ONLY a PAGETAB or an element whose
@@ -2535,6 +2555,7 @@ vm.runInContext(`
   if (!hGetZoneJson) bad.push('helper: GetZoneJson still answers from cacheBody instead of the classification result');
   if (!hWritePreCheck) bad.push('helper: the slow table write has no pre-WriteMem cursor check');
   if (!hFastReal) bad.push('helper: the steady-state real write still runs the slow process scan');
+  if (!hRebindWindow) bad.push('helper: the fast branch moves lastBindAt (the periodic re-bind never runs) or the slow path does not');
   if (!hSpeakerNoTab) bad.push('helper: speaker excludes zone 12');
   if (!hPaneClose) bad.push('helper: Opera/Vivaldi tab close button (square PANE, right part)');
   if (!hPopupGate) bad.push('helper: browser popup gate (menu/dropdown is not browser chrome)');
