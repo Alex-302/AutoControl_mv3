@@ -81,7 +81,14 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # lastBindAt - resetting it in the fast branch made the re-bind window never
 # expire, so the periodic re-bind (and with it the engine-restart / multi-engine
 # re-validation) never ran.
-$EXPECT_HELPER = 'F53E7301245CC6B14B8907F837E1926D2F328B4C8EC841E92C6DDC7E91910377'
+# Live test, second round (same day): the SLOW DISCOVERY (FindEnginePids /
+# EngineIsMine / ModuleBaseOf / cave claim) no longer holds engLock - it took
+# ~928 ms under load and blocked the heartbeat's provisional invalidation for
+# that long (user log: real [12,4,1] at 42.343, provisional [1] at 43.271).
+# Discovery + publish are one bindLock sequence (order bindLock -> engLock) and
+# the publish takes engLock only for the install + page write. A fresh page is
+# initialised to alive=1/empty before the cave points at it.
+$EXPECT_HELPER = '30D11271066F2BFF19237A10DDC89DB6E9C84CB627DC719E8DABBE8E2834961F'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.

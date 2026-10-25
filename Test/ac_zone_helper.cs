@@ -75,6 +75,14 @@
 //    write re-samples the cursor immediately before WriteMem. The steady-state
 //    real write no longer runs the process/module scan (cached handle, re-bind
 //    every 1000 ms), so engLock is not held for hundreds of ms any more.
+//  * (live test, second round) the SLOW DISCOVERY itself must not hold engLock:
+//    FindEnginePids / EngineIsMine / ModuleBaseOf / the cave claim took ~928 ms
+//    under load (user log: real [12,4,1] at 42.343, provisional [1] at 43.271)
+//    and blocked the heartbeat's invalidation for that long. The discovery now
+//    runs under bindLock ONLY (order bindLock -> engLock) and the short publish
+//    installs the binding + writes the page under engLock. A fresh page is
+//    initialised to alive=1/empty BEFORE the cave points at it, so a failed or
+//    skipped publish can never expose the v18 "always match" fallback.
 //
 // 2026-09-20 fixes (Opera end-to-end run, user reports):
 //  * TAB (12) requires a real PAGETAB (37) - the empty strip area (60 alone)
@@ -824,23 +832,11 @@ public static class ZoneHelper {
     bool stale = GetCursorPos(out now) && MovedFrom(pt, now, 3);
     bool wrote = false;
     if (!stale) {
-      // The REAL table write, the provisional reset and the cache update are ONE
-      // critical section against the heartbeat (2026-10-25 review). Lock order:
-      // engLock -> zoneLock (CacheStore takes zoneLock).
-      lock (engLock) {
-        // The cursor can move between the re-sample above and this lock (it may
-        // be contended by the request path or a slow discovery): check again.
-        POINT now2;
-        if (GetCursorPos(out now2) && MovedFrom(pt, now2, 3)) {
-          stale = true;
-        } else {
-          wrote = WriteZoneTableLocked(z == null ? new int[0] : z, true, pt, out stale);
-          if (wrote) {
-            provOk = false;
-            CacheStore(pt, JsonOfZones(z));
-          }
-        }
-      }
+      // PublishReal keeps the REAL table write + the provisional reset + the
+      // cache store in ONE short engLock section (it re-checks the cursor
+      // inside that section), and runs the slow discovery WITHOUT engLock so
+      // the heartbeat's provisional write is never blocked for hundreds of ms.
+      wrote = PublishReal(z == null ? new int[0] : z, pt, true, out stale);
     }
     if (stale) {
       // NOTHING is cached for `pt`: cacheBody/cachePt still describe an older
@@ -1001,64 +997,156 @@ public static class ZoneHelper {
   // zones: the regions that currently match; empty = "the cursor is not over
   // this browser" (nothing matches -> all input passes through, like MV2 over
   // a foreign window). Silent on any failure (an unpatched engine is skipped).
-  // Returns TRUE only when the table was actually written. `stale` is set when
-  // the write was SKIPPED because the cursor left `expected` (haveExpected) -
-  // the caller must then publish a provisional table for the current point.
   //
-  // The SLOW bind/refresh path: it re-scans the process list, re-validates the
-  // binding and (re)claims the cave page. It holds engLock, so the steady state
-  // does NOT run it: when the binding is fresh and the cached handle works, the
-  // page write alone is the whole job (the fast real write below). Callers that
-  // do not already hold engLock use the WriteZoneTable wrapper;
-  // ClassifyAndCache calls this directly so its table write + provOk reset +
-  // cache store form ONE critical section against the heartbeat
-  // (lock order: engLock -> zoneLock).
+  // The SLOW bind/refresh path. The STEADY state does not run it: when the
+  // binding is fresh and the cached handle works, the page write alone is the
+  // whole job (TryFastRealWriteLocked). Everything that touches the engine
+  // binding goes through PublishReal, which keeps the REAL table write, the
+  // provisional reset and the cache store in ONE short engLock section.
   private static void WriteZoneTable(int[] zones) {
     bool stale;
-    lock (engLock) { WriteZoneTableLocked(zones, false, new POINT(), out stale); }
+    PublishReal(zones, new POINT(), false, out stale);
   }
 
   // How often the SLOW path re-validates the binding. Between two re-binds the
-  // real write uses the cached handle: the discovery (process snapshot + module
-  // scan + cave claim) held engLock for hundreds of ms under load and blocked
-  // the heartbeat's provisional invalidation for that long (2026-10-25
-  // live-test log: 300-700 ms gaps between fast writes). A FAILED fast write
-  // still drops the handle and falls through to the slow path, so an engine
-  // restart is detected at once, not only at the next re-bind.
-  // ⚠ Only a successful SLOW bind/refresh moves `lastBindAt` - otherwise this
-  // window would never expire (2026-10-25 review).
+  // real write uses the cached handle; a FAILED fast write drops the handle and
+  // falls through to the discovery, so an engine restart is detected at once,
+  // not only at the next re-bind.
+  // ⚠ Only a successful slow bind/refresh (PublishBindLocked) moves
+  // `lastBindAt` - otherwise this window would never expire (2026-10-25 review).
   private const int REBIND_MS = 1000;
 
-  private static bool WriteZoneTableLocked(int[] zones, bool haveExpected, POINT expected, out bool stale) {
-   stale = false;
-   try {
-    // FAST REAL WRITE (2026-10-25 live test): the binding is fresh, so the
-    // write itself is the whole job - and it is what keeps engLock free for the
-    // heartbeat's provisional write.
-    // ⚠ `lastBindAt` is deliberately NOT touched here (2026-10-25 review):
-    // resetting it in this branch made `(TickCount - lastBindAt) < REBIND_MS`
-    // always true, so the periodic re-bind NEVER ran - a cached handle could
-    // keep writing into an OLD engine process while a new engine instance is the
-    // one the browser actually uses. Only a successful SLOW bind/refresh moves
-    // the window, so it really expires after REBIND_MS.
-    if (engPid != 0 && engTable != 0 && (Environment.TickCount - lastBindAt) < REBIND_MS) {
-      POINT nowF;
-      if (haveExpected && GetCursorPos(out nowF) && MovedFrom(expected, nowF, 3)) {
-        stale = true;
-        Log("table write skipped (fast): sampled=" + expected.X + "," + expected.Y +
-            " now=" + nowF.X + "," + nowF.Y);
-        return false;
-      }
-      if (EnsureEngHandle()) {
-        if (WriteTablePage(engHandle, zones, "table write")) return true;
-        // A failed page write means the cached handle/table is gone (engine
-        // restarted): drop it so the slow path below re-binds.
-        CloseEngHandle();
-      }
-      // handle gone / write failed: fall through to the slow path (rebind)
+  // What the slow DISCOVERY found: the engine to write, where its table page and
+  // cave live, whether a NEW page was allocated (a re-bind), or that no engine
+  // process exists at all (`NoEngine` -> the publish drops the dead binding).
+  private sealed class EngineBind {
+    public bool NoEngine;
+    public uint Pid;
+    public long Table;
+    public long Cave;
+    public bool Rebound;
+  }
+
+  // Serialises DISCOVERY only (process/module scans + cave claim). Two
+  // concurrent discoveries would allocate two pages and claim the cave twice,
+  // leaving the cave pointing at one page while engTable names the other.
+  // Lock order: bindLock -> engLock. Nothing takes engLock and then bindLock.
+  private static readonly object bindLock = new object();
+
+  // FAST REAL WRITE - caller holds engLock. The binding is fresh, so the page
+  // write is the whole job: no process/module scan, no discovery.
+  // ⚠ `lastBindAt` is deliberately NOT touched here (2026-10-25 review):
+  // resetting it here made the window never expire, so the periodic re-bind
+  // never ran - a cached handle could keep writing into an OLD engine process
+  // while a new engine instance is the one the browser actually uses.
+  private static bool TryFastRealWriteLocked(int[] zones, bool haveExpected, POINT expected, ref bool stale) {
+    if (engPid == 0 || engTable == 0) return false;
+    if ((Environment.TickCount - lastBindAt) >= REBIND_MS) return false;   // re-bind due
+    POINT now;
+    if (haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)) {
+      stale = true;
+      Log("table write skipped (fast): sampled=" + expected.X + "," + expected.Y +
+          " now=" + now.X + "," + now.Y);
+      return false;
     }
+    if (EnsureEngHandle()) {
+      if (WriteTablePage(engHandle, zones, "table write")) return true;
+      // A failed page write means the cached handle/table is gone (engine
+      // restarted): drop it so the next discovery re-binds.
+      CloseEngHandle();
+    }
+    return false;
+  }
+
+  // PUBLISH - caller holds engLock; no process/module scan happens here.
+  // Installs a discovered binding (closing the handle of the OLD process),
+  // re-checks the cursor immediately before the write and writes the page.
+  private static bool PublishBindLocked(EngineBind b, int[] zones, bool haveExpected, POINT expected, ref bool stale) {
+    if (b.Rebound) {
+      // A new process (or a restarted one): the cached handle belongs to the
+      // old one and must never be reused.
+      CloseEngHandle();
+      engPid = b.Pid; engTable = b.Table; engCave = b.Cave;
+    }
+    if (engTable == 0) return false;
+    // STALE GUARD (2026-10-25 live test): a table for a point the cursor has
+    // LEFT would overwrite the provisional invalidation the heartbeat published
+    // meanwhile - the engine then fires a scoped combo over the wrong point.
+    POINT now;
+    if (haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)) {
+      stale = true;
+      Log("table write skipped: sampled=" + expected.X + "," + expected.Y +
+          " now=" + now.X + "," + now.Y);
+      return false;
+    }
+    if (!EnsureEngHandle()) {
+      Log("publish: OpenProcess failed: " + Marshal.GetLastWin32Error());
+      return false;
+    }
+    if (!WriteTablePage(engHandle, zones, "table write")) {
+      Log("table write failed: " + Marshal.GetLastWin32Error());
+      CloseEngHandle();
+      return false;
+    }
+    // The slow bind/refresh completed: this is what starts the 1000 ms window
+    // again - and ONLY this (see TryFastRealWriteLocked).
+    lastBindAt = Environment.TickCount;
+    return true;
+  }
+
+  // Commit a REAL classification. Caller holds engLock, and it must be the SAME
+  // section as the table write: otherwise the heartbeat can publish a
+  // provisional set for the previous point right after the real write, leaving
+  // the table provisional while cachePt already says "classified" (zone
+  // triggers dead until the next move / the 1.2 s tree refresh).
+  private static void CommitClassificationLocked(POINT pt, int[] zones) {
+    provOk = false;
+    CacheStore(pt, JsonOfZones(zones));
+  }
+
+  // Publish a REAL classification for `pt` (`haveExpected` = write the table only
+  // while the cursor is still at `pt`).
+  //  - fast path: one short engLock section (page write + commit);
+  //  - slow path: DISCOVERY with NO engLock (SlowRealWrite -> DiscoverBindLocked),
+  //    then one short engLock section (publish + page write + commit).
+  // Returns true when the real table was written; `stale` = the cursor left the
+  // sampled point (the caller must publish a provisional table instead).
+  private static bool PublishReal(int[] zones, POINT pt, bool haveExpected, out bool stale) {
+    stale = false;
+    try {
+      lock (engLock) {
+        if (TryFastRealWriteLocked(zones, haveExpected, pt, ref stale)) {
+          CommitClassificationLocked(pt, zones);
+          return true;
+        }
+      }
+      if (stale) return false;
+      return SlowRealWrite(zones, pt, haveExpected, out stale);
+    } catch (Exception ex) { Log("EXCEPTION " + ex.GetType().Name + ": " + ex.Message); return false; }
+  }
+
+  // SLOW DISCOVERY - caller holds bindLock; deliberately WITHOUT engLock.
+  // FindEnginePids / EngineIsMine / ModuleBaseOf / the cave claim take hundreds
+  // of ms under load, and holding engLock across them blocked the heartbeat's
+  // provisional invalidation for that long (2026-10-25 live-test log: a real
+  // [12,4,1] write at 42.343 and the provisional [1] only at 43.271 - 928 ms
+  // later - while the engine kept firing the scoped combo). The heartbeat's
+  // WriteZoneFlagsFast therefore keeps running DURING a discovery: if the engine
+  // is the same it writes the correct table, and if the engine restarted its
+  // write fails, drops the handle, and this discovery's publish installs the
+  // new binding.
+  // Only the initial read of the binding state takes engLock (short); everything
+  // after it runs unlocked. Returns null when the discovery could not complete.
+  private static EngineBind DiscoverBindLocked() {
+    uint curPid; long curCave, curTable;
+    lock (engLock) { curPid = engPid; curCave = engCave; curTable = engTable; }
     int[] pids = FindEnginePids();
-    if (pids.Length == 0) { Log("no engine process"); CloseEngHandle(); engPid = 0; engTable = 0; engCave = 0; return false; }
+    if (pids.Length == 0) {
+      Log("no engine process");
+      EngineBind none = new EngineBind();
+      none.NoEngine = true;
+      return none;
+    }
     // Pick MY engine (2026-09-13). Rule order:
     //  1. an engine already bound to me stays bound (only MY engine can pass
     //     the window test, so the binding is trustworthy - but re-check it when
@@ -1068,12 +1156,12 @@ public static class ZoneHelper {
     //  4. never write into an engine that provably belongs to another browser -
     //     wait for the next request instead (the SW pings every 2.5 s).
     uint pid = 0;
-    if (engPid != 0 && engCave != 0) {
+    if (curPid != 0 && curCave != 0) {
       for (int i = 0; i < pids.Length; i++) {
-        if ((uint)pids[i] != engPid) continue;
+        if ((uint)pids[i] != curPid) continue;
         bool known;
-        if (EngineIsMine(engPid, out known) || !known) pid = engPid;
-        else Log("DROP binding to pid " + engPid + ": its windows belong to a different browser");
+        if (EngineIsMine(curPid, out known) || !known) pid = curPid;
+        else Log("DROP binding to pid " + curPid + ": its windows belong to a different browser");
       }
     }
     if (pid == 0) {
@@ -1086,92 +1174,102 @@ public static class ZoneHelper {
     if (pid == 0) {
       Log("waiting: none of the " + pids.Length + " engines belongs to browser " + browserPid +
           " (or the list is not ready yet) - not writing a foreign engine");
-      return false;
+      return null;
+    }
+    // Same process and the page is ours: no re-bind, just publish + write.
+    if (pid == curPid && curCave != 0 && curTable != 0) {
+      EngineBind same = new EngineBind();
+      same.Pid = pid; same.Table = curTable; same.Cave = curCave; same.Rebound = false;
+      return same;
     }
     // (re)initialise when the engine restarted
-    if (pid != engPid || engCave == 0) {
-      Log("init for pid " + pid + " of my browser " + browserPid + " (engines: " + pids.Length + ")");
-      // A re-bind means a DIFFERENT process (or a restarted one): the cached
-      // fast-path handle belongs to the old process and must never be reused.
-      CloseEngHandle();
-      engPid = pid; engTable = 0; engCave = 0;
-      IntPtr h0 = OpenProcess(0x438 /* QUERY|VM_OP|VM_READ|VM_WRITE */, false, pid);
-      if (h0 == IntPtr.Zero) { Log("OpenProcess failed: " + Marshal.GetLastWin32Error()); return false; }
-      try {
-        long baseAddr = ModuleBaseOf(pid);
-        if (baseAddr == 0) { Log("ModuleBaseOf failed"); return false; }
-        long cave = baseAddr + CAVE_RVA;
-        Log("base=0x" + baseAddr.ToString("X") + " cave=0x" + cave.ToString("X"));
-        byte[] sig = ReadMem(h0, cave, 5);
-        if (sig == null) { Log("ReadMem(cave) failed: " + Marshal.GetLastWin32Error()); return false; }
-        if (sig[0] != 0x83 || sig[1] != 0xFA || sig[2] != 0x28 || sig[3] != 0x73 || sig[4] != (byte)(ORIG_BLOCK - 5)) {
-          Log("cave signature mismatch: " + BitConverter.ToString(sig));
-          return false; // not a v19 engine
-        }
-        long tab = 0;
-        // NOTE (2026-09-12): the previous version reused whatever table address
-        // was already in the cave. That broke as soon as ANYTHING else had
-        // written the cave (the manual test tool allocates its own page): the
-        // cave pointed at that foreign page while this helper kept updating its
-        // own one, so the engine read a stale/empty table and nothing matched.
-        // Always claim the cave for OUR page.
-        {
-          IntPtr page = VirtualAllocEx(h0, IntPtr.Zero, (IntPtr)4096, 0x3000 /* COMMIT|RESERVE */, 0x04 /* PAGE_READWRITE */);
-          if (page == IntPtr.Zero) return false;
-          tab = page.ToInt64();
-          // table version of the cave prefix
-          byte[] npre = new byte[ORIG_BLOCK];
-          npre[0] = 0x83; npre[1] = 0xFA; npre[2] = 0x28;                 // cmp edx, 28h
-          npre[3] = 0x73; npre[4] = (byte)(ORIG_BLOCK - 5);               // jae ORIG
-          npre[5] = 0x80; npre[6] = 0x3D;                                 // cmp byte [alive], 0
-          BitConverter.GetBytes((int)tab).CopyTo(npre, 7);
-          npre[11] = 0x00;
-          npre[12] = 0x74; npre[13] = 0x08;                               // je notalive (0x16)
-          npre[14] = 0x8B; npre[15] = 0x04; npre[16] = 0x95;              // mov eax, [edx*4+tab]
-          BitConverter.GetBytes((int)(tab + 16)).CopyTo(npre, 17);
-          npre[21] = 0xC3;                                                // ret      (0x15)
-          npre[22] = 0xB8; npre[23] = 1;                                  // notalive: mov eax,1 (0x16)
-          npre[27] = 0xC3;                                                // ret      (0x1b)
-          uint old;
-          VirtualProtectEx(h0, (IntPtr)cave, (IntPtr)64, 0x40 /* PAGE_EXECUTE_READWRITE */, out old);
-          bool ok = WriteMem(h0, cave, npre);
-          VirtualProtectEx(h0, (IntPtr)cave, (IntPtr)64, old, out old);
-          if (!ok) { Log("write cave failed: " + Marshal.GetLastWin32Error()); return false; }
-          Log("page=0x" + tab.ToString("X") + " cave written");
-        }
-        engTable = tab; engCave = cave;
-      } finally { CloseHandle(h0); }
-    }
-    if (engTable == 0) return false;
-    IntPtr h = OpenProcess(0x438, false, pid);
-    if (h == IntPtr.Zero) { CloseEngHandle(); engTable = 0; engCave = 0; return false; }
+    Log("init for pid " + pid + " of my browser " + browserPid + " (engines: " + pids.Length + ")");
+    IntPtr h0 = OpenProcess(0x438 /* QUERY|VM_OP|VM_READ|VM_WRITE */, false, pid);
+    if (h0 == IntPtr.Zero) { Log("OpenProcess failed: " + Marshal.GetLastWin32Error()); return null; }
     try {
-      // STALE GUARD (2026-10-25 live test): the discovery above can take
-      // hundreds of ms (process snapshot, module scan, cave claim). A table for
-      // a point the cursor has LEFT would overwrite the provisional
-      // invalidation the heartbeat published meanwhile - the engine then fires
-      // a scoped combo over the wrong point (user log: a real [12,4,1] landing
-      // AFTER the provisional [1]). Sample the cursor once more, immediately
-      // before the write.
-      POINT now;
-      if (haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)) {
-        stale = true;
-        Log("table write skipped: sampled=" + expected.X + "," + expected.Y +
-            " now=" + now.X + "," + now.Y);
-        return false;
+      long baseAddr = ModuleBaseOf(pid);
+      if (baseAddr == 0) { Log("ModuleBaseOf failed"); return null; }
+      long cave = baseAddr + CAVE_RVA;
+      Log("base=0x" + baseAddr.ToString("X") + " cave=0x" + cave.ToString("X"));
+      byte[] sig = ReadMem(h0, cave, 5);
+      if (sig == null) { Log("ReadMem(cave) failed: " + Marshal.GetLastWin32Error()); return null; }
+      if (sig[0] != 0x83 || sig[1] != 0xFA || sig[2] != 0x28 || sig[3] != 0x73 || sig[4] != (byte)(ORIG_BLOCK - 5)) {
+        Log("cave signature mismatch: " + BitConverter.ToString(sig));
+        return null; // not a v19 engine
       }
-      if (!WriteTablePage(h, zones, "table write")) {
-        Log("table write failed: " + Marshal.GetLastWin32Error());
-        return false;
+      long tab = 0;
+      // NOTE (2026-09-12): the previous version reused whatever table address
+      // was already in the cave. That broke as soon as ANYTHING else had
+      // written the cave (the manual test tool allocates its own page): the
+      // cave pointed at that foreign page while this helper kept updating its
+      // own one, so the engine read a stale/empty table and nothing matched.
+      // Always claim the cave for OUR page.
+      {
+        IntPtr page = VirtualAllocEx(h0, IntPtr.Zero, (IntPtr)4096, 0x3000 /* COMMIT|RESERVE */, 0x04 /* PAGE_READWRITE */);
+        if (page == IntPtr.Zero) return null;
+        tab = page.ToInt64();
+        // The page must never be left at alive=0: the engine's cave treats
+        // alive=0 as the v18 "always match" fallback (every region < 60
+        // matches -> every wheel is consumed). Publish an EMPTY table before
+        // the cave starts pointing at it.
+        if (!WriteMem(h0, tab, TableBytes(null))) {
+          Log("table init failed: " + Marshal.GetLastWin32Error());
+          return null;
+        }
+        // table version of the cave prefix
+        byte[] npre = new byte[ORIG_BLOCK];
+        npre[0] = 0x83; npre[1] = 0xFA; npre[2] = 0x28;                 // cmp edx, 28h
+        npre[3] = 0x73; npre[4] = (byte)(ORIG_BLOCK - 5);               // jae ORIG
+        npre[5] = 0x80; npre[6] = 0x3D;                                 // cmp byte [alive], 0
+        BitConverter.GetBytes((int)tab).CopyTo(npre, 7);
+        npre[11] = 0x00;
+        npre[12] = 0x74; npre[13] = 0x08;                               // je notalive (0x16)
+        npre[14] = 0x8B; npre[15] = 0x04; npre[16] = 0x95;              // mov eax, [edx*4+tab]
+        BitConverter.GetBytes((int)(tab + 16)).CopyTo(npre, 17);
+        npre[21] = 0xC3;                                                // ret      (0x15)
+        npre[22] = 0xB8; npre[23] = 1;                                  // notalive: mov eax,1 (0x16)
+        npre[27] = 0xC3;                                                // ret      (0x1b)
+        uint old;
+        VirtualProtectEx(h0, (IntPtr)cave, (IntPtr)64, 0x40 /* PAGE_EXECUTE_READWRITE */, out old);
+        bool ok = WriteMem(h0, cave, npre);
+        VirtualProtectEx(h0, (IntPtr)cave, (IntPtr)64, old, out old);
+        if (!ok) { Log("write cave failed: " + Marshal.GetLastWin32Error()); return null; }
+        Log("page=0x" + tab.ToString("X") + " cave written");
       }
-      lastBindAt = Environment.TickCount;
-      return true;
-    } finally { CloseHandle(h); }
-   } catch (Exception ex) { Log("EXCEPTION " + ex.GetType().Name + ": " + ex.Message); return false; }
+      EngineBind b = new EngineBind();
+      b.Pid = pid; b.Table = tab; b.Cave = cave; b.Rebound = true;
+      return b;
+    } finally { CloseHandle(h0); }
   }
 
-  // Drop the cached fast-path handle (no-op when there is none). Called from
-  // WriteZoneTable (re-bind / lost process) and from a failed fast write.
+  // The SLOW real write: discovery + publish are ONE bindLock sequence. A second
+  // discovery must not allocate another page while this one sits between "cave
+  // claimed" and "binding installed" - the cave would then point at the newer
+  // page while engTable named the older one, and the engine would read a page
+  // nobody updates. The publish itself takes engLock only for the short install
+  // + page write, so the heartbeat's provisional write is never blocked by the
+  // discovery (the whole point of the split).
+  private static bool SlowRealWrite(int[] zones, POINT pt, bool haveExpected, out bool stale) {
+    stale = false;
+    lock (bindLock) {
+      EngineBind b = DiscoverBindLocked();
+      if (b == null) return false;
+      lock (engLock) {
+        if (b.NoEngine) {
+          // No engine process at all: drop the dead binding and handle.
+          CloseEngHandle(); engPid = 0; engTable = 0; engCave = 0;
+          return false;
+        }
+        if (!PublishBindLocked(b, zones, haveExpected, pt, ref stale)) return false;
+        CommitClassificationLocked(pt, zones);
+        return true;
+      }
+    }
+  }
+
+  // Drop the cached fast-path handle (no-op when there is none). Called when a
+  // re-bind installs another process (PublishBindLocked), when the discovery
+  // finds no engine, and after a failed page write.
   private static void CloseEngHandle() {
     if (engHandle == IntPtr.Zero) return;
     try { CloseHandle(engHandle); } catch { }
@@ -1191,6 +1289,15 @@ public static class ZoneHelper {
   // live-test log keeps telling the PROVISIONAL fast path ("table write
   // (fast)") from a REAL classification ("table write").
   private static bool WriteTablePage(IntPtr h, int[] zones, string what) {
+    if (!WriteMem(h, engTable, TableBytes(zones))) return false;
+    Log(what + ": alive=1 zones=[" +
+        (zones == null ? "" : string.Join(",", Array.ConvertAll(zones, x => x.ToString()))) + "]");
+    return true;
+  }
+
+  // The table page bytes (shared by the real/provisional writes and by the
+  // discovery, which publishes an EMPTY table into a freshly allocated page).
+  private static byte[] TableBytes(int[] zones) {
     byte[] data = new byte[16 + TABLE_SLOTS * 4];
     BitConverter.GetBytes(1).CopyTo(data, 0);                       // alive = 1
     if (zones != null) {
@@ -1199,10 +1306,7 @@ public static class ZoneHelper {
         if (z >= 0 && z < TABLE_SLOTS) BitConverter.GetBytes(1).CopyTo(data, 16 + z * 4);
       }
     }
-    if (!WriteMem(h, engTable, data)) return false;
-    Log(what + ": alive=1 zones=[" +
-        (zones == null ? "" : string.Join(",", Array.ConvertAll(zones, x => x.ToString()))) + "]");
-    return true;
+    return data;
   }
 
   // FAST table write (2026-10-25). The heartbeat calls this while the cursor is

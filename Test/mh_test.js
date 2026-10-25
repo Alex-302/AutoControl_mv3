@@ -2350,26 +2350,35 @@ vm.runInContext(`
   // over the real set - its `stale` check then sees the fresh cachePt, skips the
   // classification and zone triggers over the current point are dead until the
   // next move / the 1.2 s tree refresh. Pins:
-  //  (a) ClassifyAndCache: WriteZoneTableLocked + `provOk = false` + CacheStore
-  //      in the SAME `lock (engLock)` block, and NO zoneLock taken before it;
+  //  (a) the REAL table write + `provOk = false` + CacheStore form ONE engLock
+  //      section (PublishReal -> CommitClassificationLocked), and no zoneLock is
+  //      taken before that section;
   //  (b) Heartbeat: the provisional block re-reads cachePt/cacheOk INSIDE
   //      `lock (engLock)` and writes after that read.
-  const hClassifyLock = (() => {
-    const i0 = helper.indexOf('private static int[] ClassifyAndCache(POINT pt)');
-    if (i0 < 0) return false;
+  const hPublishSection = (() => {
+    const i0 = helper.indexOf('private static bool PublishReal(');
+    const j0 = helper.indexOf('private static bool SlowRealWrite(');
+    const k0 = helper.indexOf('private static void CommitClassificationLocked(');
+    if (i0 < 0 || j0 < 0 || k0 < 0) return false;
     const i1 = helper.indexOf('\n  }\n', i0);
-    if (i1 < 0) return false;
+    const j1 = helper.indexOf('\n  }\n', j0);
+    const k1 = helper.indexOf('\n  }\n', k0);
+    if (i1 < 0 || j1 < 0 || k1 < 0) return false;
     const fn = helper.slice(i0, i1);
-    const m = fn.match(/lock \(engLock\) \{([\s\S]*?)\n    \}/);
-    if (!m) return false;
-    const body = m[1];
-    // the zoneLock may only be taken INSIDE the engLock block (via CacheStore)
-    const outside = fn.replace(body, '');
-    return /WriteZoneTableLocked\(/.test(body) &&
-      /provOk = false;/.test(body) &&
-      /CacheStore\(pt, JsonOfZones\(z\)\)/.test(body) &&
-      !/lock \(zoneLock\)/.test(outside) &&
-      !/WriteZoneTable\(/.test(fn);            // must not use the locking wrapper
+    const slowFn = helper.slice(j0, j1);
+    const commit = helper.slice(k0, k1);
+    const iFast = fn.indexOf('lock (engLock) {');
+    if (iFast < 0) return false;
+    const fast = fn.slice(iFast);
+    // slow path: discovery + publish under bindLock, publish + commit in ONE
+    // engLock section
+    const iBindLock = slowFn.indexOf('lock (bindLock) {');
+    const iSlowLock = slowFn.indexOf('lock (engLock) {');
+    const iPublish = slowFn.indexOf('PublishBindLocked(');
+    const iCommit = slowFn.indexOf('CommitClassificationLocked(pt, zones)');
+    return /TryFastRealWriteLocked\(/.test(fast) && /CommitClassificationLocked\(pt, zones\)/.test(fast) &&
+      iBindLock > 0 && iSlowLock > iBindLock && iPublish > iSlowLock && iCommit > iPublish &&
+      /provOk = false;/.test(commit) && /CacheStore\(pt, JsonOfZones\(zones\)\)/.test(commit);
   })();
   const hProvLock = (() => {
     const i0 = helper.indexOf('private static void Heartbeat()');
@@ -2387,26 +2396,31 @@ vm.runInContext(`
   // sampled at must be DISCARDED. The user log showed a real `[12,4,1]` write
   // landing AFTER the provisional `[1]` (42.007 / 42.024), so the engine fired
   // the scoped "Browser tab" combo while the cursor was over the page. Pins:
-  //  (a) ClassifyAndCache re-samples the cursor after the MSAA walk AND again
-  //      inside engLock, both BEFORE the real write;
+  //  (a) ClassifyAndCache re-samples the cursor after the MSAA walk, and both
+  //      write paths (fast + publish) re-sample again INSIDE engLock;
   //  (b) the stale branch publishes a provisional table for the CURRENT point
   //      and does NOT CacheStore for the stale point;
   //  (c) GetZoneJson answers from the RETURNED set (cacheBody still belongs to
   //      the older point), while the CacheFresh fast path keeps cacheBody;
-  //  (d) the slow table writer re-samples the cursor immediately before
-  //      WriteTablePage and skips the write;
+  //  (d) the publish re-samples the cursor immediately before WriteTablePage
+  //      and skips the write;
   //  (e) the steady-state real write does not run the process/module scan.
   const hStaleResample = (() => {
     const i0 = helper.indexOf('private static int[] ClassifyAndCache(POINT pt)');
-    if (i0 < 0) return false;
+    const j0 = helper.indexOf('private static bool TryFastRealWriteLocked(');
+    const k0 = helper.indexOf('private static bool PublishBindLocked(');
+    if (i0 < 0 || j0 < 0 || k0 < 0) return false;
     const i1 = helper.indexOf('\n  }\n', i0);
-    if (i1 < 0) return false;
+    const j1 = helper.indexOf('\n  }\n', j0);
+    const k1 = helper.indexOf('\n  }\n', k0);
+    if (i1 < 0 || j1 < 0 || k1 < 0) return false;
     const fn = helper.slice(i0, i1);
     const iWalk = fn.indexOf('ZonesForPoint(pt)');
     const iOuter = fn.indexOf('GetCursorPos(out now) && MovedFrom(pt, now, 3)');
-    const iInner = fn.indexOf('GetCursorPos(out now2) && MovedFrom(pt, now2, 3)');
-    const iWrite = fn.indexOf('WriteZoneTableLocked(');
-    return iWalk > 0 && iOuter > iWalk && iInner > iOuter && iWrite > iInner;
+    const iPublish = fn.indexOf('PublishReal(');
+    const inner = /GetCursorPos\(out now\) && MovedFrom\(expected, now, 3\)/;
+    return iWalk > 0 && iOuter > iWalk && iPublish > iOuter &&
+      inner.test(helper.slice(j0, j1)) && inner.test(helper.slice(k0, k1));
   })();
   const hStalePath = (() => {
     const i0 = helper.indexOf('private static int[] ClassifyAndCache(POINT pt)');
@@ -2431,19 +2445,20 @@ vm.runInContext(`
       !/ClassifyAndCache\(pt\);\s*lock \(zoneLock\) \{ return cacheBody; \}/.test(fn);
   })();
   const hWritePreCheck = (() => {
-    const i0 = helper.indexOf('private static bool WriteZoneTableLocked(');
+    const i0 = helper.indexOf('private static bool PublishBindLocked(');
     if (i0 < 0) return false;
     const i1 = helper.indexOf('\n  }\n', i0);
     if (i1 < 0) return false;
     const fn = helper.slice(i0, i1);
     const iCheck = fn.indexOf('haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)');
-    const iWrite = fn.indexOf('WriteTablePage(h, zones, "table write")');
+    const iWrite = fn.indexOf('WriteTablePage(engHandle, zones, "table write")');
     return iCheck > 0 && iWrite > iCheck && /stale = true;/.test(fn) &&
       /table write skipped: sampled=/.test(fn);
   })();
   const hFastReal = /REBIND_MS = 1000/.test(helper) &&
-    /\(Environment\.TickCount - lastBindAt\) < REBIND_MS/.test(helper) &&
-    /if \(EnsureEngHandle\(\)\) \{[\s\S]{0,260}WriteTablePage\(engHandle, zones, "table write"\)[\s\S]{0,400}?CloseEngHandle\(\);\n      \}/.test(helper) &&
+    /\(Environment\.TickCount - lastBindAt\) >= REBIND_MS/.test(helper) &&
+    /private static bool TryFastRealWriteLocked\(int\[\] zones, bool haveExpected, POINT expected, ref bool stale\)/.test(helper) &&
+    /if \(EnsureEngHandle\(\)\) \{[\s\S]{0,260}WriteTablePage\(engHandle, zones, "table write"\)[\s\S]{0,400}?CloseEngHandle\(\);\n    \}/.test(helper) &&
     /WriteTablePage\(engHandle, zones, "table write \(fast\)"\)/.test(helper);
   // 2026-10-25 REVIEW: `lastBindAt` may be moved ONLY by a successful SLOW
   // bind/refresh. Resetting it in the fast branch made
@@ -2451,19 +2466,49 @@ vm.runInContext(`
   // never ran - a cached handle could keep writing into an OLD engine process
   // while a new engine instance is the one the browser actually uses.
   const hRebindWindow = (() => {
-    const i0 = helper.indexOf('private static bool WriteZoneTableLocked(');
-    if (i0 < 0) return false;
+    const i0 = helper.indexOf('private static bool TryFastRealWriteLocked(');
+    const j0 = helper.indexOf('private static bool PublishBindLocked(');
+    if (i0 < 0 || j0 < 0) return false;
     const i1 = helper.indexOf('\n  }\n', i0);
-    if (i1 < 0) return false;
+    const j1 = helper.indexOf('\n  }\n', j0);
+    if (i1 < 0 || j1 < 0) return false;
+    const fast = helper.slice(i0, i1);
+    const pub = helper.slice(j0, j1);
+    const iAssign = pub.indexOf('lastBindAt = Environment.TickCount;');
+    return !/lastBindAt\s*=/.test(fast) && iAssign > 0 &&
+      /return true;/.test(pub.slice(iAssign, iAssign + 80));
+  })();
+  // 2026-10-25 LIVE TEST (second round) - the slow DISCOVERY must NOT hold
+  // engLock: FindEnginePids / EngineIsMine / ModuleBaseOf / the cave claim took
+  // ~928 ms under load and blocked the heartbeat's provisional invalidation for
+  // that long (user log: real [12,4,1] at 42.343, provisional [1] at 43.271).
+  // Pins: the discovery takes engLock ONCE, for the short read BEFORE the scans;
+  // it is serialised by bindLock; and the publish that installs the binding runs
+  // under engLock (see hPublishSection).
+  const hDiscoveryUnlocked = (() => {
+    const i0 = helper.indexOf('private static EngineBind DiscoverBindLocked()');
+    const j0 = helper.indexOf('private static bool SlowRealWrite(');
+    if (i0 < 0 || j0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    const j1 = helper.indexOf('\n  }\n', j0);
+    if (i1 < 0 || j1 < 0) return false;
     const fn = helper.slice(i0, i1);
-    const iFast = fn.indexOf('(Environment.TickCount - lastBindAt) < REBIND_MS');
-    const iSlow = fn.indexOf('// handle gone / write failed: fall through to the slow path');
-    const iAssign = fn.lastIndexOf('lastBindAt = Environment.TickCount;');
-    if (iFast < 0 || iSlow < 0 || iAssign < 0) return false;
-    // (a) no assignment inside the fast branch ...
-    if (/lastBindAt\s*=/.test(fn.slice(iFast, iSlow))) return false;
-    // (b) ... and the slow path DOES move the window, right after its write
-    return iAssign > iSlow && /return true;/.test(fn.slice(iAssign, iAssign + 80));
+    const slowFn = helper.slice(j0, j1);
+    const iEng = fn.indexOf('lock (engLock) {');
+    const iFind = fn.indexOf('FindEnginePids()');
+    const iMine = fn.indexOf('EngineIsMine(');
+    const iMod = fn.indexOf('ModuleBaseOf(pid)');
+    const iAlloc = fn.indexOf('VirtualAllocEx(');
+    const nEng = (fn.match(/lock \(engLock\)/g) || []).length;
+    // discovery: ONE engLock, the short read BEFORE the scans, and no bindLock
+    // (the caller holds it); the slow write holds bindLock across discovery +
+    // publish so two discoveries cannot claim the cave for different pages.
+    const iBindLock = slowFn.indexOf('lock (bindLock) {');
+    const iDisc = slowFn.indexOf('DiscoverBindLocked(');
+    const iPub = slowFn.indexOf('PublishBindLocked(');
+    return nEng === 1 && iEng > 0 && iFind > iEng && iMine > iFind && iMod > iMine && iAlloc > iMod &&
+      !/lock \(bindLock\)/.test(fn) &&
+      iBindLock > 0 && iDisc > iBindLock && iPub > iDisc;
   })();
   // the tab-zone rule must require a PAGETAB (37) and exclude the tab's own
   // BUTTONS (a 43-button under a PAGETAB is not "the tab"). The engine's own
@@ -2548,7 +2593,7 @@ vm.runInContext(`
   if (!hFastTable) bad.push('helper: fast zone-table write (10 ms poll + settle detection)');
   if (!hFastWrite) bad.push('helper: fast table writer (cached engine handle, no process scan)');
   if (!hProvisional) bad.push('helper: provisional zone-table invalidation on cursor movement (outside the servingRequest gate)');
-  if (!hClassifyLock) bad.push('helper: ClassifyAndCache does not serialise the real table write + provOk reset + cache store under engLock');
+  if (!hPublishSection) bad.push('helper: PublishReal does not keep the real table write + provOk reset + cache store in one engLock section (or publishes outside it)');
   if (!hProvLock) bad.push('helper: the provisional block does not re-read cachePt under engLock before writing');
   if (!hStaleResample) bad.push('helper: a classification is not discarded when the cursor left the sampled point (re-sample after the walk + inside engLock)');
   if (!hStalePath) bad.push('helper: the stale path does not publish a provisional set / caches the stale point');
@@ -2556,6 +2601,7 @@ vm.runInContext(`
   if (!hWritePreCheck) bad.push('helper: the slow table write has no pre-WriteMem cursor check');
   if (!hFastReal) bad.push('helper: the steady-state real write still runs the slow process scan');
   if (!hRebindWindow) bad.push('helper: the fast branch moves lastBindAt (the periodic re-bind never runs) or the slow path does not');
+  if (!hDiscoveryUnlocked) bad.push('helper: the slow discovery holds engLock across the process/module scan');
   if (!hSpeakerNoTab) bad.push('helper: speaker excludes zone 12');
   if (!hPaneClose) bad.push('helper: Opera/Vivaldi tab close button (square PANE, right part)');
   if (!hPopupGate) bad.push('helper: browser popup gate (menu/dropdown is not browser chrome)');
