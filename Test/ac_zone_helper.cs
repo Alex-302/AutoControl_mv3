@@ -83,6 +83,12 @@
 //    installs the binding + writes the page under engLock. A fresh page is
 //    initialised to alive=1/empty BEFORE the cave points at it, so a failed or
 //    skipped publish can never expose the v18 "always match" fallback.
+//  * (live test, third round) the invalidation runs on its OWN thread
+//    (ProvisionalWatcher). The heartbeat blocks for hundreds of ms inside the
+//    MSAA walk, and while it did the table kept the old zones (user log: real
+//    [12,4,1] at 43.652, the next fast write only at 44.372, seven 750s in
+//    between). The watcher does no MSAA, no classification and no tab walk; the
+//    heartbeat only classifies.
 //
 // 2026-09-20 fixes (Opera end-to-end run, user reports):
 //  * TAB (12) requires a real PAGETAB (37) - the empty strip area (60 alone)
@@ -1421,11 +1427,64 @@ public static class ZoneHelper {
     // for, which is exactly the stale answer this change removes.
     return JsonOfZones(ClassifyAndCache(pt));
   }
+  // PROVISIONAL WATCHER (2026-10-25, live test third round). The invalidation
+  // must not share a thread with the MSAA work: the heartbeat's classification
+  // (and the request path's tab walk) run for hundreds of ms, and while they did
+  // the provisional write could not run at all - user log: a real [12,4,1] write
+  // at 43.652 and the next (fast) write only at 44.372 (720 ms later), with
+  // seven 750s fired from the stale table in between. This thread does ONE thing:
+  // poll the cursor and, as soon as it left the point the table was built for,
+  // write the PROVISIONAL set. No MSAA, no classification, no tab walk - and it
+  // never waits for servingRequest or for the classification throttle.
+  // The provisional set keeps zone 1 (Browser window) while the cursor is over
+  // OUR browser - a window-scoped trigger keeps working during the move - and is
+  // empty elsewhere (nothing matches, like MV2 over a foreign window). The real
+  // zone set follows from the heartbeat's classification.
+  //
+  // The decision + write are ONE engLock section (2026-10-25 review): a real
+  // classification holds engLock while it writes the REAL set, resets provOk and
+  // stores the new cachePt; reading cachePt without the lock let that
+  // classification complete in between, after which this block wrote the
+  // provisional [1] OVER the real set (zone triggers dead until the next move).
+  // Lock order: engLock -> zoneLock (WriteZoneFlagsFast re-locks engLock
+  // reentrantly, which is fine). It never takes bindLock, so a discovery - which
+  // holds bindLock but NOT engLock - cannot block the invalidation.
+  private static void ProvisionalWatcher() {
+    while (true) {
+      try {
+        POINT pt;
+        if (GetCursorPos(out pt)) {
+          POINT builtPt;
+          bool builtOk;
+          lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }
+          if (!builtOk || MovedFrom(builtPt, pt, 3)) {
+            int[] prov = ProvisionalZones(pt);
+            lock (engLock) {
+              // Re-read under engLock: a classification may have completed
+              // between the read above and this lock.
+              POINT built2;
+              bool builtOk2;
+              lock (zoneLock) { built2 = cachePt; builtOk2 = cacheOk; }
+              // Do not repeat the same provisional write on every poll of a slow
+              // move: only a further >3 px counts (reset when a real
+              // classification writes the table, see ClassifyAndCache).
+              if ((!builtOk2 || MovedFrom(built2, pt, 3)) &&
+                  (!provOk || MovedFrom(provPt, pt, 3))) {
+                if (WriteZoneFlagsFast(prov)) { provPt = pt; provOk = true; }
+              }
+            }
+          }
+        }
+      } catch { /* never kill the watcher */ }
+      System.Threading.Thread.Sleep(10);
+    }
+  }
+
   // Keeps Chrome's accessibility tree awake (the tree is what makes the
-  // classification possible), refreshes the cache whenever the cursor moved
-  // or the cache got old, and keeps the ENGINE's zone table (patch v19) in
-  // sync. Runs on a background thread; the answers the SW gets are at most one
-  // heartbeat apart.
+  // classification possible) and refreshes the zone cache when the cursor moved
+  // or the cache got old. Runs on a background thread; the answers the SW gets
+  // are at most one heartbeat apart. It does NOT invalidate the engine table any
+  // more - that is the ProvisionalWatcher's job (see there).
   //
   // POLL RATE (2026-09-20, tightened 2026-10-25): the engine CACHES the region
   // verdict and only recomputes it when >300 ms passed or the cursor moved
@@ -1435,8 +1494,8 @@ public static class ZoneHelper {
   // notch then read a stale 0 for that region, the cache kept it for up to
   // 300 ms and every following notch was skipped too (user report: "works, but
   // sometimes stops"). Measured write latency was ~170 ms. The poll is now
-  // 10 ms and a cursor move INVALIDATES the table at once (see the provisional
-  // write below), so the stale-table window is one poll, not one
+  // 10 ms and a cursor move INVALIDATES the table at once (the ProvisionalWatcher
+  // thread - see above), so the stale-table window is one poll, not one
   // classification. The classification itself still runs only when the cursor
   // MOVED (80 ms throttle + settle detection), so an idle helper costs one
   // GetCursorPos per 10 ms and nothing else.
@@ -1445,42 +1504,13 @@ public static class ZoneHelper {
       try {
         POINT pt;
         if (GetCursorPos(out pt)) {
-          // PROVISIONAL INVALIDATION (2026-10-25, user report: a wheel action
-          // bound to "Browser tab" fired while the cursor was already over the
-          // page). The engine reads THIS table when the wheel arrives, and the
-          // real classification below is throttled during a move - so as soon
-          // as the cursor leaves the point the table was built for, the table
-          // must stop claiming the old zones. This is a plain memory write (no
-          // MSAA), so it runs even while a request is served: a long tab walk
-          // must not keep a stale table alive.
-          // The provisional set keeps zone 1 (Browser window) while the cursor
-          // is over OUR browser - a window-scoped trigger keeps working during
-          // the move - and is empty elsewhere (nothing matches, like MV2 over a
-          // foreign window). The real zone set follows from the classification
-          // below (settle detection / 80 ms throttle).
-          //
-          // DECIDE + WRITE under engLock (2026-10-25 review): ClassifyAndCache
-          // holds engLock while it writes the REAL set, resets provOk and stores
-          // the new cachePt. Reading cachePt here without the lock let a
-          // classification complete in between, after which this block wrote
-          // the provisional [1] OVER the real set and set provOk - the `stale`
-          // check then saw the fresh cachePt, skipped the classification and the
-          // table stayed provisional until the next move / the 1.2 s tree
-          // refresh. Lock order: engLock -> zoneLock (WriteZoneFlagsFast
-          // re-locks engLock reentrantly, which is fine).
-          int[] prov = ProvisionalZones(pt);
-          lock (engLock) {
-            POINT builtPt;
-            bool builtOk;
-            lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }
-            if ((!builtOk || MovedFrom(builtPt, pt, 3)) &&
-                // Do not repeat the same provisional write on every poll of a
-                // slow move: only a further >3 px counts (reset when a real
-                // classification writes the table, see ClassifyAndCache).
-                (!provOk || MovedFrom(provPt, pt, 3))) {
-              if (WriteZoneFlagsFast(prov)) { provPt = pt; provOk = true; }
-            }
-          }
+          // NOTE (2026-10-25, live test third round): the provisional table
+          // invalidation does NOT live here any more - it runs on its OWN thread
+          // (ProvisionalWatcher). This thread blocks for hundreds of ms inside
+          // the MSAA walk, and while it did, the table kept the old zones and the
+          // engine fired a scoped combo (user log: real [12,4,1] at 43.652, the
+          // next (fast) write only at 44.372 - seven 750s in between). The
+          // heartbeat now only CLASSIFIES.
           bool stale;
           lock (zoneLock) {
             stale = !cacheOk || cachePt.X != pt.X || cachePt.Y != pt.Y ||
@@ -1566,6 +1596,15 @@ public static class ZoneHelper {
       System.Threading.Thread hb = new System.Threading.Thread(Heartbeat);
       hb.IsBackground = true;
       hb.Start();
+    } catch { }
+    // Provisional watcher: invalidates the engine zone table the moment the
+    // cursor leaves the point the table was built for. SEPARATE thread - the
+    // heartbeat blocks inside MSAA walks for hundreds of ms and must never be the
+    // one that keeps the invalidation alive (2026-10-25 live test).
+    try {
+      System.Threading.Thread pw = new System.Threading.Thread(ProvisionalWatcher);
+      pw.IsBackground = true;
+      pw.Start();
     } catch { }
     Stream stdin = Console.OpenStandardInput();
     Stream stdout = Console.OpenStandardOutput();

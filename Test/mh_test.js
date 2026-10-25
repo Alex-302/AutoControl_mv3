@@ -2328,20 +2328,46 @@ vm.runInContext(`
     /engHandle = OpenProcess\(0x438/.test(helper) &&
     /private static bool WriteTablePage\(IntPtr h, int\[\] zones, string what\)/.test(helper) &&
     /CloseEngHandle\(\)/.test(helper);
-  const hProvisional = (() => {
+  // 2026-10-25 LIVE TEST (third round) - the provisional invalidation must run on
+  // its OWN thread: the heartbeat blocks for hundreds of ms inside the MSAA walk
+  // and cannot poll for cursor movement (user log: real [12,4,1] at 43.652, the
+  // next fast write at 44.372, seven 750s in between). Pins:
+  //  (a) ProvisionalWatcher exists and Main starts it as a thread;
+  //  (b) it does NO MSAA / classification / tab walk and never looks at
+  //      servingRequest;
+  //  (c) it writes the provisional set through WriteZoneFlagsFast, with the
+  //      cachePt re-read under engLock;
+  //  (d) Heartbeat no longer writes a provisional table (the watcher owns it).
+  const hWatcherExists = /private static void ProvisionalWatcher\(\)/.test(helper) &&
+    /new System\.Threading\.Thread\(ProvisionalWatcher\)/.test(helper) &&
+    /pw\.Start\(\)/.test(helper);
+  const hWatcherNoMsaa = (() => {
+    const i0 = helper.indexOf('private static void ProvisionalWatcher()');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    return !/ZonesForPoint\(|AccessibleObjectFromPoint\(|TabUnderCursorJson\(|ClassifyAndCache\(|servingRequest|CacheStore\(/.test(fn);
+  })();
+  const hWatcherWrites = (() => {
+    const i0 = helper.indexOf('private static void ProvisionalWatcher()');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    const iRead = fn.indexOf('lock (zoneLock) { built2 = cachePt; builtOk2 = cacheOk; }');
+    const iWrite = fn.indexOf('WriteZoneFlagsFast(prov)');
+    return /int\[\] prov = ProvisionalZones\(pt\);/.test(fn) &&
+      /MovedFrom\(built2, pt, 3\)/.test(fn) && /MovedFrom\(provPt, pt, 3\)/.test(fn) &&
+      iRead > 0 && iWrite > iRead;
+  })();
+  const hHeartbeatNoProv = (() => {
     const i0 = helper.indexOf('private static void Heartbeat()');
     if (i0 < 0) return false;
-    const hb = helper.slice(i0);
-    const iProv = hb.indexOf('WriteZoneFlagsFast(prov)');
-    const iGate = hb.indexOf('!servingRequest && (settled || movingGate || keepTreeAwake)');
-    // the movement check is against the point the TABLE was built for (cachePt)
-    // and the provisional set is [1] over our own browser / empty elsewhere
-    return iProv > 0 && iGate > 0 && iProv < iGate &&
-      /MovedFrom\(builtPt, pt, 3\)/.test(hb) &&
-      /MovedFrom\(provPt, pt, 3\)/.test(hb) &&
-      /int\[\] prov = ProvisionalZones\(pt\);/.test(hb) &&
-      /OverOwnBrowser\(pt\) \? new int\[\] \{ Z_WINDOW \} : new int\[0\]/.test(helper) &&
-      /provOk/.test(hb);
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    return !/WriteZoneFlagsFast/.test(fn) && !/ProvisionalZones/.test(fn) && /ClassifyAndCache\(pt\)/.test(fn);
   })();
   // 2026-10-25 REVIEW - the provisional write must be SERIALISED with a real
   // classification. Without the lock this interleaving shipped: the heartbeat
@@ -2379,18 +2405,6 @@ vm.runInContext(`
     return /TryFastRealWriteLocked\(/.test(fast) && /CommitClassificationLocked\(pt, zones\)/.test(fast) &&
       iBindLock > 0 && iSlowLock > iBindLock && iPublish > iSlowLock && iCommit > iPublish &&
       /provOk = false;/.test(commit) && /CacheStore\(pt, JsonOfZones\(zones\)\)/.test(commit);
-  })();
-  const hProvLock = (() => {
-    const i0 = helper.indexOf('private static void Heartbeat()');
-    if (i0 < 0) return false;
-    const hb = helper.slice(i0);
-    const iLock = hb.indexOf('lock (engLock) {');
-    if (iLock < 0) return false;
-    const region = hb.slice(iLock, iLock + 1500);
-    const iRead = region.indexOf('lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }');
-    const iWrite = region.indexOf('WriteZoneFlagsFast(prov)');
-    // the decision inputs are re-read under engLock, then the write happens
-    return iRead > 0 && iWrite > iRead;
   })();
   // 2026-10-25 LIVE TEST - a classification that outlived the point it was
   // sampled at must be DISCARDED. The user log showed a real `[12,4,1]` write
@@ -2592,9 +2606,11 @@ vm.runInContext(`
   if (!hHeartbeat) bad.push('helper: a11y heartbeat');
   if (!hFastTable) bad.push('helper: fast zone-table write (10 ms poll + settle detection)');
   if (!hFastWrite) bad.push('helper: fast table writer (cached engine handle, no process scan)');
-  if (!hProvisional) bad.push('helper: provisional zone-table invalidation on cursor movement (outside the servingRequest gate)');
+  if (!hWatcherExists) bad.push('helper: the provisional watcher thread is missing / not started in Main');
+  if (!hWatcherNoMsaa) bad.push('helper: the provisional watcher does MSAA / classification / a tab walk / waits for servingRequest');
+  if (!hWatcherWrites) bad.push('helper: the provisional watcher does not write the provisional set (with cachePt re-read under engLock)');
+  if (!hHeartbeatNoProv) bad.push('helper: Heartbeat still writes provisional tables (the watcher must own the invalidation)');
   if (!hPublishSection) bad.push('helper: PublishReal does not keep the real table write + provOk reset + cache store in one engLock section (or publishes outside it)');
-  if (!hProvLock) bad.push('helper: the provisional block does not re-read cachePt under engLock before writing');
   if (!hStaleResample) bad.push('helper: a classification is not discarded when the cursor left the sampled point (re-sample after the walk + inside engLock)');
   if (!hStalePath) bad.push('helper: the stale path does not publish a provisional set / caches the stale point');
   if (!hGetZoneJson) bad.push('helper: GetZoneJson still answers from cacheBody instead of the classification result');

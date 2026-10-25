@@ -88,7 +88,12 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # Discovery + publish are one bindLock sequence (order bindLock -> engLock) and
 # the publish takes engLock only for the install + page write. A fresh page is
 # initialised to alive=1/empty before the cave points at it.
-$EXPECT_HELPER = '30D11271066F2BFF19237A10DDC89DB6E9C84CB627DC719E8DABBE8E2834961F'
+# Live test, third round (same day): the provisional invalidation runs on its OWN
+# thread (ProvisionalWatcher) - the heartbeat blocks for hundreds of ms inside the
+# MSAA walk and cannot poll for cursor movement (user log: real [12,4,1] at
+# 43.652, the next fast write at 44.372, seven 750s in between). The watcher does
+# no MSAA, no classification and no tab walk; the heartbeat only classifies.
+$EXPECT_HELPER = 'B442078DA38EC952E353C5EEA6BDBBC4424593C3E9C51BBEB99E3C2CDF56CB86'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.
