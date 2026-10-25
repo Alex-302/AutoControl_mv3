@@ -1837,9 +1837,10 @@ Helper `199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6`,
 26624 bytes. Engine unchanged (`1A10EDD1…2C3E`, `file76.dat` md5
 `2F878E9E…AB5D`).
 
-**Live run.** The user tested on their stable Chrome with real wheel input and
-reports that it looks good now. The exact Chrome build and OS were not
-recorded.
+**Live run.** The user tested on their stable Chrome with real wheel input.
+Moving the cursor away from the tab strip stops the tab action immediately;
+wheel tab switching over the strip works, and the page scrolls normally. The
+exact Chrome build and OS were not recorded.
 
 **Residual risk.** The 24 px Y threshold is a heuristic: a move from the tab
 strip to the title bar within 24 px keeps zone 12. Do not lower it without

@@ -22,9 +22,10 @@ the chat history. Read this file first, then `AGENTS.md` and
   8d0ca6e fix(helper): make the zone helper's diagnostic log opt-in
   ```
 
-- Docs commit: see the last commit on the branch (`docs: record the
-  zone-table staleness fix (2026-10-25)`).
-- Not pushed. The working tree is clean.
+- Docs commit: `38a7298` (`docs: record the zone-table staleness fix
+  (2026-10-25)`).
+- Pushed to `origin/fix/zone-table-stale-on-move`; PR #22 is open:
+  https://github.com/Alex-302/AutoControl_mv3/pull/22
 - Engine unchanged: v19
   `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`;
   `mv3-build/file76.dat` md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`.
@@ -154,9 +155,9 @@ for that run was not captured.
 
 ## 7. Live run
 
-The user tested on their stable Chrome with real wheel input and reports that
-it looks good now. The final message did not itemize the two scenarios, so the
-individual observations are not recorded.
+The user tested on their stable Chrome with real wheel input. Moving the
+cursor away from the tab strip stops the tab action immediately; wheel tab
+switching over the strip works; the page scrolls normally.
 
 The exact Chrome build and OS were NOT recorded. Record them if the next
 session repeats the live run.
@@ -189,7 +190,8 @@ session repeats the live run.
 
 ## 10. Next steps
 
-1. Push the branch and open a PR if the user wants one.
+1. PR #22 is open. Update its description to the final state if needed, then
+   merge.
 2. The helper hash did not change in the docs pass, so the binary under test
    is still `199ABE4B…19F6`.
 3. Keep `Docs/TODO-mouseover-zones.md` §8 as the chronology.
