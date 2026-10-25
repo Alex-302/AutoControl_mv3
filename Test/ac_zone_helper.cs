@@ -62,6 +62,10 @@
 //    settle / 80 ms classification.
 //  * the poll dropped from 30 ms to 10 ms: an idle helper costs one
 //    GetCursorPos per poll; the provisional write runs only on a move.
+//  * (review follow-up) the provisional decision + write and the real
+//    classification's table write + provOk reset + cache store are serialised
+//    by engLock (order: engLock -> zoneLock), so a provisional [1] can never
+//    land on top of a real zone set that was just written.
 //
 // 2026-09-20 fixes (Opera end-to-end run, user reports):
 //  * TAB (12) requires a real PAGETAB (37) - the empty strip area (60 alone)
@@ -770,12 +774,23 @@ public static class ZoneHelper {
   // demand by the request path, which stores it for the very point it was
   // computed for (cacheTabOk).
   private static int[] ClassifyAndCache(POINT pt) {
+    // The MSAA walk is the expensive part and runs WITHOUT a lock: the
+    // heartbeat must be able to keep the engine table honest while it runs.
     int[] z = OverOwnBrowser(pt) ? ZonesForPoint(pt) : new int[0];
-    WriteZoneTable(z == null ? new int[0] : z);
-    // The table now holds the REAL zone set for this point: the next move must
-    // write a fresh provisional set (see Heartbeat).
-    provOk = false;
-    CacheStore(pt, JsonOfZones(z));
+    // The REAL table write, the provisional reset and the cache update are ONE
+    // critical section against the heartbeat (2026-10-25 review). Without it
+    // this interleaving was possible: the heartbeat reads the OLD cachePt, this
+    // classification writes the real set and stores the new cachePt, and THEN
+    // the heartbeat writes its provisional [1] and sets provOk - its `stale`
+    // check now sees the fresh cachePt, does not classify, and the table stays
+    // provisional until the next move or the 1.2 s tree refresh (zone triggers
+    // over the current point dead for up to 1.2 s).
+    // Lock order: engLock -> zoneLock (CacheStore takes zoneLock).
+    lock (engLock) {
+      WriteZoneTableLocked(z == null ? new int[0] : z);
+      provOk = false;
+      CacheStore(pt, JsonOfZones(z));
+    }
     return z;
   }
 
@@ -918,7 +933,10 @@ public static class ZoneHelper {
   // this browser" (nothing matches -> all input passes through, like MV2 over
   // a foreign window). Silent on any failure (an unpatched engine is skipped).
   // The SLOW bind/refresh path: it re-scans the process list, re-validates the
-  // binding and (re)writes the cave prefix. Called from a classification only.
+  // binding and (re)writes the cave prefix. Callers that do not already hold
+  // engLock use this wrapper; ClassifyAndCache calls WriteZoneTableLocked
+  // directly so its table write + provOk reset + cache store form ONE critical
+  // section against the heartbeat (lock order: engLock -> zoneLock).
   private static void WriteZoneTable(int[] zones) {
     lock (engLock) { WriteZoneTableLocked(zones); }
   }
@@ -1103,8 +1121,10 @@ public static class ZoneHelper {
   // The PROVISIONAL table write (see Heartbeat): the point it was written for
   // and whether it happened. Reset whenever a REAL classification writes the
   // table, so the next move starts a fresh provisional write.
+  // Both fields are guarded by engLock: the decision and the write must be ONE
+  // critical section against ClassifyAndCache (2026-10-25 review - see there).
   private static POINT provPt = new POINT();
-  private static volatile bool provOk = false;
+  private static bool provOk = false;
   // Set while a request is being served. The heartbeat SKIPS its own
   // classification then: two accessibility walks (the heartbeat's zone walk and
   // the request's tab walk) compete for the same tree and both get slower -
@@ -1180,9 +1200,6 @@ public static class ZoneHelper {
       try {
         POINT pt;
         if (GetCursorPos(out pt)) {
-          POINT builtPt;
-          bool builtOk;
-          lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }
           // PROVISIONAL INVALIDATION (2026-10-25, user report: a wheel action
           // bound to "Browser tab" fired while the cursor was already over the
           // page). The engine reads THIS table when the wheel arrives, and the
@@ -1196,12 +1213,26 @@ public static class ZoneHelper {
           // the move - and is empty elsewhere (nothing matches, like MV2 over a
           // foreign window). The real zone set follows from the classification
           // below (settle detection / 80 ms throttle).
-          if (!builtOk || Math.Abs(pt.X - builtPt.X) > 3 || Math.Abs(pt.Y - builtPt.Y) > 3) {
-            // Do not repeat the same provisional write on every poll of a slow
-            // move: only a further >3 px counts (reset when a real
-            // classification writes the table, see ClassifyAndCache).
-            if (!provOk || Math.Abs(pt.X - provPt.X) > 3 || Math.Abs(pt.Y - provPt.Y) > 3) {
-              int[] prov = OverOwnBrowser(pt) ? new int[] { Z_WINDOW } : new int[0];
+          //
+          // DECIDE + WRITE under engLock (2026-10-25 review): ClassifyAndCache
+          // holds engLock while it writes the REAL set, resets provOk and stores
+          // the new cachePt. Reading cachePt here without the lock let a
+          // classification complete in between, after which this block wrote
+          // the provisional [1] OVER the real set and set provOk - the `stale`
+          // check then saw the fresh cachePt, skipped the classification and the
+          // table stayed provisional until the next move / the 1.2 s tree
+          // refresh. Lock order: engLock -> zoneLock (WriteZoneFlagsFast
+          // re-locks engLock reentrantly, which is fine).
+          int[] prov = OverOwnBrowser(pt) ? new int[] { Z_WINDOW } : new int[0];
+          lock (engLock) {
+            POINT builtPt;
+            bool builtOk;
+            lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }
+            if ((!builtOk || Math.Abs(pt.X - builtPt.X) > 3 || Math.Abs(pt.Y - builtPt.Y) > 3) &&
+                // Do not repeat the same provisional write on every poll of a
+                // slow move: only a further >3 px counts (reset when a real
+                // classification writes the table, see ClassifyAndCache).
+                (!provOk || Math.Abs(pt.X - provPt.X) > 3 || Math.Abs(pt.Y - provPt.Y) > 3)) {
               if (WriteZoneFlagsFast(prov)) { provPt = pt; provOk = true; }
             }
           }

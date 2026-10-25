@@ -64,7 +64,12 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # poll dropped from 30 ms to 10 ms. Fixes "a wheel action bound to Browser tab
 # fired when the cursor was already over the page" (the engine read a table
 # that still said zone 12). Engine patch, cave bytes and file76.dat unchanged.
-$EXPECT_HELPER = '485C9EE9CAAFCB3E5DC1EC967484661A09DD34BDD2AA6BA805DE529C1485931C'
+# Review follow-up (same day): the provisional decision + write and the real
+# classification's table write + provOk reset + cache store are serialised by
+# engLock (order engLock -> zoneLock), so a provisional [1] can never overwrite
+# a real zone set that was just written (that left zone triggers dead until the
+# next move / the 1.2 s tree refresh).
+$EXPECT_HELPER = 'B3DBB16F733663C5F148B6186B779B08DBA8DD2C74DF47BBD29FC52655C007F6'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.

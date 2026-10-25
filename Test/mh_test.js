@@ -2339,9 +2339,46 @@ vm.runInContext(`
       /OverOwnBrowser\(pt\) \? new int\[\] \{ Z_WINDOW \} : new int\[0\]/.test(hb) &&
       /provOk/.test(hb);
   })();
-  // a real classification writes the REAL set, so the next move must write a
-  // fresh provisional table (the flag is reset in ClassifyAndCache)
-  const hProvReset = /WriteZoneTable\(z == null \? new int\[0\] : z\);[\s\S]{0,200}provOk = false;/.test(helper);
+  // 2026-10-25 REVIEW - the provisional write must be SERIALISED with a real
+  // classification. Without the lock this interleaving shipped: the heartbeat
+  // reads the OLD cachePt, the request path writes the REAL set + resets provOk
+  // + stores the new cachePt, and THEN the heartbeat writes its provisional [1]
+  // over the real set - its `stale` check then sees the fresh cachePt, skips the
+  // classification and zone triggers over the current point are dead until the
+  // next move / the 1.2 s tree refresh. Pins:
+  //  (a) ClassifyAndCache: WriteZoneTableLocked + `provOk = false` + CacheStore
+  //      in the SAME `lock (engLock)` block, and NO zoneLock taken before it;
+  //  (b) Heartbeat: the provisional block re-reads cachePt/cacheOk INSIDE
+  //      `lock (engLock)` and writes after that read.
+  const hClassifyLock = (() => {
+    const i0 = helper.indexOf('private static int[] ClassifyAndCache(POINT pt)');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    const m = fn.match(/lock \(engLock\) \{([\s\S]*?)\n    \}/);
+    if (!m) return false;
+    const body = m[1];
+    // the zoneLock may only be taken INSIDE the engLock block (via CacheStore)
+    const outside = fn.replace(body, '');
+    return /WriteZoneTableLocked\(/.test(body) &&
+      /provOk = false;/.test(body) &&
+      /CacheStore\(pt, JsonOfZones\(z\)\)/.test(body) &&
+      !/lock \(zoneLock\)/.test(outside) &&
+      !/WriteZoneTable\(/.test(fn);            // must not use the locking wrapper
+  })();
+  const hProvLock = (() => {
+    const i0 = helper.indexOf('private static void Heartbeat()');
+    if (i0 < 0) return false;
+    const hb = helper.slice(i0);
+    const iLock = hb.indexOf('lock (engLock) {');
+    if (iLock < 0) return false;
+    const region = hb.slice(iLock, iLock + 1500);
+    const iRead = region.indexOf('lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }');
+    const iWrite = region.indexOf('WriteZoneFlagsFast(prov)');
+    // the decision inputs are re-read under engLock, then the write happens
+    return iRead > 0 && iWrite > iRead;
+  })();
   // the tab-zone rule must require a PAGETAB (37) and exclude the tab's own
   // BUTTONS (a 43-button under a PAGETAB is not "the tab"). The engine's own
   // region-12 check (FUN_00415570) matched ONLY a PAGETAB or an element whose
@@ -2425,7 +2462,8 @@ vm.runInContext(`
   if (!hFastTable) bad.push('helper: fast zone-table write (10 ms poll + settle detection)');
   if (!hFastWrite) bad.push('helper: fast table writer (cached engine handle, no process scan)');
   if (!hProvisional) bad.push('helper: provisional zone-table invalidation on cursor movement (outside the servingRequest gate)');
-  if (!hProvReset) bad.push('helper: provisional flag is not reset by a real classification');
+  if (!hClassifyLock) bad.push('helper: ClassifyAndCache does not serialise the real table write + provOk reset + cache store under engLock');
+  if (!hProvLock) bad.push('helper: the provisional block does not re-read cachePt under engLock before writing');
   if (!hSpeakerNoTab) bad.push('helper: speaker excludes zone 12');
   if (!hPaneClose) bad.push('helper: Opera/Vivaldi tab close button (square PANE, right part)');
   if (!hPopupGate) bad.push('helper: browser popup gate (menu/dropdown is not browser chrome)');
