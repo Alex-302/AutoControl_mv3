@@ -2324,7 +2324,9 @@ vm.runInContext(`
     !/Thread\.Sleep\(120\)/.test(helper);
   const hFastWrite = /private static bool WriteZoneFlagsFast\(int\[\] zones\)/.test(helper) &&
     /if \(engPid == 0 \|\| engTable == 0\) return false;/.test(helper) &&
+    /private static bool EnsureEngHandle\(\)/.test(helper) &&
     /engHandle = OpenProcess\(0x438/.test(helper) &&
+    /private static bool WriteTablePage\(IntPtr h, int\[\] zones, string what\)/.test(helper) &&
     /CloseEngHandle\(\)/.test(helper);
   const hProvisional = (() => {
     const i0 = helper.indexOf('private static void Heartbeat()');
@@ -2335,8 +2337,10 @@ vm.runInContext(`
     // the movement check is against the point the TABLE was built for (cachePt)
     // and the provisional set is [1] over our own browser / empty elsewhere
     return iProv > 0 && iGate > 0 && iProv < iGate &&
-      /Math\.Abs\(pt\.X - builtPt\.X\) > 3 \|\| Math\.Abs\(pt\.Y - builtPt\.Y\) > 3/.test(hb) &&
-      /OverOwnBrowser\(pt\) \? new int\[\] \{ Z_WINDOW \} : new int\[0\]/.test(hb) &&
+      /MovedFrom\(builtPt, pt, 3\)/.test(hb) &&
+      /MovedFrom\(provPt, pt, 3\)/.test(hb) &&
+      /int\[\] prov = ProvisionalZones\(pt\);/.test(hb) &&
+      /OverOwnBrowser\(pt\) \? new int\[\] \{ Z_WINDOW \} : new int\[0\]/.test(helper) &&
       /provOk/.test(hb);
   })();
   // 2026-10-25 REVIEW - the provisional write must be SERIALISED with a real
@@ -2379,6 +2383,68 @@ vm.runInContext(`
     // the decision inputs are re-read under engLock, then the write happens
     return iRead > 0 && iWrite > iRead;
   })();
+  // 2026-10-25 LIVE TEST - a classification that outlived the point it was
+  // sampled at must be DISCARDED. The user log showed a real `[12,4,1]` write
+  // landing AFTER the provisional `[1]` (42.007 / 42.024), so the engine fired
+  // the scoped "Browser tab" combo while the cursor was over the page. Pins:
+  //  (a) ClassifyAndCache re-samples the cursor after the MSAA walk AND again
+  //      inside engLock, both BEFORE the real write;
+  //  (b) the stale branch publishes a provisional table for the CURRENT point
+  //      and does NOT CacheStore for the stale point;
+  //  (c) GetZoneJson answers from the RETURNED set (cacheBody still belongs to
+  //      the older point), while the CacheFresh fast path keeps cacheBody;
+  //  (d) the slow table writer re-samples the cursor immediately before
+  //      WriteTablePage and skips the write;
+  //  (e) the steady-state real write does not run the process/module scan.
+  const hStaleResample = (() => {
+    const i0 = helper.indexOf('private static int[] ClassifyAndCache(POINT pt)');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    const iWalk = fn.indexOf('ZonesForPoint(pt)');
+    const iOuter = fn.indexOf('GetCursorPos(out now) && MovedFrom(pt, now, 3)');
+    const iInner = fn.indexOf('GetCursorPos(out now2) && MovedFrom(pt, now2, 3)');
+    const iWrite = fn.indexOf('WriteZoneTableLocked(');
+    return iWalk > 0 && iOuter > iWalk && iInner > iOuter && iWrite > iInner;
+  })();
+  const hStalePath = (() => {
+    const i0 = helper.indexOf('private static int[] ClassifyAndCache(POINT pt)');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    const iStale = fn.indexOf('if (stale) {');
+    const iRet = iStale < 0 ? -1 : fn.indexOf('return PublishProvisional(cur);', iStale);
+    if (iStale < 0 || iRet < 0) return false;
+    const branch = fn.slice(iStale, iRet);
+    return !/CacheStore/.test(branch) && /classify stale: sampled=/.test(branch);
+  })();
+  const hGetZoneJson = (() => {
+    const i0 = helper.indexOf('private static string GetZoneJson(POINT? at)');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    return /return JsonOfZones\(ClassifyAndCache\(pt\)\);/.test(fn) &&
+      /if \(CacheFresh\(pt\)\) \{ lock \(zoneLock\) \{ return cacheBody; \} \}/.test(fn) &&
+      !/ClassifyAndCache\(pt\);\s*lock \(zoneLock\) \{ return cacheBody; \}/.test(fn);
+  })();
+  const hWritePreCheck = (() => {
+    const i0 = helper.indexOf('private static bool WriteZoneTableLocked(');
+    if (i0 < 0) return false;
+    const i1 = helper.indexOf('\n  }\n', i0);
+    if (i1 < 0) return false;
+    const fn = helper.slice(i0, i1);
+    const iCheck = fn.indexOf('haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)');
+    const iWrite = fn.indexOf('WriteTablePage(h, zones, "table write")');
+    return iCheck > 0 && iWrite > iCheck && /stale = true;/.test(fn) &&
+      /table write skipped: sampled=/.test(fn);
+  })();
+  const hFastReal = /REBIND_MS = 1000/.test(helper) &&
+    /\(Environment\.TickCount - lastBindAt\) < REBIND_MS/.test(helper) &&
+    /if \(EnsureEngHandle\(\)\) \{[\s\S]{0,260}WriteTablePage\(engHandle, zones, "table write"\)[\s\S]{0,400}?CloseEngHandle\(\);\n      \}/.test(helper) &&
+    /WriteTablePage\(engHandle, zones, "table write \(fast\)"\)/.test(helper);
   // the tab-zone rule must require a PAGETAB (37) and exclude the tab's own
   // BUTTONS (a 43-button under a PAGETAB is not "the tab"). The engine's own
   // region-12 check (FUN_00415570) matched ONLY a PAGETAB or an element whose
@@ -2464,6 +2530,11 @@ vm.runInContext(`
   if (!hProvisional) bad.push('helper: provisional zone-table invalidation on cursor movement (outside the servingRequest gate)');
   if (!hClassifyLock) bad.push('helper: ClassifyAndCache does not serialise the real table write + provOk reset + cache store under engLock');
   if (!hProvLock) bad.push('helper: the provisional block does not re-read cachePt under engLock before writing');
+  if (!hStaleResample) bad.push('helper: a classification is not discarded when the cursor left the sampled point (re-sample after the walk + inside engLock)');
+  if (!hStalePath) bad.push('helper: the stale path does not publish a provisional set / caches the stale point');
+  if (!hGetZoneJson) bad.push('helper: GetZoneJson still answers from cacheBody instead of the classification result');
+  if (!hWritePreCheck) bad.push('helper: the slow table write has no pre-WriteMem cursor check');
+  if (!hFastReal) bad.push('helper: the steady-state real write still runs the slow process scan');
   if (!hSpeakerNoTab) bad.push('helper: speaker excludes zone 12');
   if (!hPaneClose) bad.push('helper: Opera/Vivaldi tab close button (square PANE, right part)');
   if (!hPopupGate) bad.push('helper: browser popup gate (menu/dropdown is not browser chrome)');
@@ -2509,7 +2580,7 @@ vm.runInContext(`
   if (!helperTable) bad.push('v19 helper table writer layout');
   if (!helperClaims) bad.push('helper claims the cave page');
   if (!keepaliveOk) bad.push('sw.js zone keepalive');
-  check('zone gate: 11 known regions (no menu), menu pass-through, set intersection, 15ms burst share (start-time bounded, keepalive noShare), helper rules (band/speaker/own-window/heartbeat/provisional table invalidation/table cave), v19 patch + keepalive (2026-09-12, burst 2026-10-25)',
+  check('zone gate: 11 known regions (no menu), menu pass-through, set intersection, 15ms burst share (start-time bounded, keepalive noShare), helper rules (band/speaker/own-window/heartbeat/provisional invalidation + stale discard/table cave), v19 patch + keepalive (2026-09-12, burst + stale 2026-10-25)',
     bad.length === 0, bad.length ? 'missing: ' + bad.join('; ') : 'all ok');
 
   // B53b. The patch builder must actually RUN and be deterministic, and its

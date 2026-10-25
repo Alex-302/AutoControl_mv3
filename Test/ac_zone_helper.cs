@@ -66,6 +66,15 @@
 //    classification's table write + provOk reset + cache store are serialised
 //    by engLock (order: engLock -> zoneLock), so a provisional [1] can never
 //    land on top of a real zone set that was just written.
+//  * (live test, same day) a classification whose MSAA walk outlived the point
+//    it was sampled at is DISCARDED: it used to write the real set for a point
+//    the cursor had LEFT, over the provisional [1] (user log: real [12,4,1] at
+//    42.007, provisional [1] at 42.024) - the engine then fired the scoped
+//    "Browser tab" combo over the page. The stale path publishes a provisional
+//    table for the CURRENT point and answers the SW with it, and the slow table
+//    write re-samples the cursor immediately before WriteMem. The steady-state
+//    real write no longer runs the process/module scan (cached handle, re-bind
+//    every 1000 ms), so engLock is not held for hundreds of ms any more.
 //
 // 2026-09-20 fixes (Opera end-to-end run, user reports):
 //  * TAB (12) requires a real PAGETAB (37) - the empty strip area (60 alone)
@@ -760,6 +769,31 @@ public static class ZoneHelper {
     return "{\"zone\":" + z[0] + ",\"zones\":[" + s + "]}";
   }
 
+  // Did the cursor move MORE than `px` from `a` to `b`? Per axis, like the
+  // engine's own 3 px hover threshold (FUN_00415bf0).
+  private static bool MovedFrom(POINT a, POINT b, int px) {
+    return Math.Abs(a.X - b.X) > px || Math.Abs(a.Y - b.Y) > px;
+  }
+
+  // The PROVISIONAL zone set for a point: zone 1 (Browser window) while the
+  // cursor is over OUR browser - a window-scoped trigger keeps working during a
+  // move - and empty elsewhere (nothing matches, like MV2 over a foreign
+  // window). Used by the heartbeat invalidation and by the stale-discard path.
+  private static int[] ProvisionalZones(POINT pt) {
+    return OverOwnBrowser(pt) ? new int[] { Z_WINDOW } : new int[0];
+  }
+
+  // Publish the PROVISIONAL table for `pt` (the CURRENT point) and return the
+  // provisional zone set. Caller holds no lock; engLock is taken here and is
+  // reentrant, so calling this from inside it is safe too.
+  private static int[] PublishProvisional(POINT pt) {
+    int[] prov = ProvisionalZones(pt);
+    lock (engLock) {
+      if (WriteZoneFlagsFast(prov)) { provPt = pt; provOk = true; }
+    }
+    return prov;
+  }
+
   // Classify ONE point and cache the COMPLETE answer for it: the zone set, the
   // engine's zone table and the tab under the cursor. Everything is sampled at
   // the SAME moment - that is the whole point of this method (see CacheStore).
@@ -777,20 +811,51 @@ public static class ZoneHelper {
     // The MSAA walk is the expensive part and runs WITHOUT a lock: the
     // heartbeat must be able to keep the engine table honest while it runs.
     int[] z = OverOwnBrowser(pt) ? ZonesForPoint(pt) : new int[0];
-    // The REAL table write, the provisional reset and the cache update are ONE
-    // critical section against the heartbeat (2026-10-25 review). Without it
-    // this interleaving was possible: the heartbeat reads the OLD cachePt, this
-    // classification writes the real set and stores the new cachePt, and THEN
-    // the heartbeat writes its provisional [1] and sets provOk - its `stale`
-    // check now sees the fresh cachePt, does not classify, and the table stays
-    // provisional until the next move or the 1.2 s tree refresh (zone triggers
-    // over the current point dead for up to 1.2 s).
-    // Lock order: engLock -> zoneLock (CacheStore takes zoneLock).
-    lock (engLock) {
-      WriteZoneTableLocked(z == null ? new int[0] : z);
-      provOk = false;
-      CacheStore(pt, JsonOfZones(z));
+    // STALE DISCARD (2026-10-25 live test): the walk takes 100+ ms under load
+    // (several tabs reloading) and the cursor can leave `pt` while it runs.
+    // Publishing that answer wrote the REAL table for a point the cursor had
+    // LEFT - over the provisional [1] the heartbeat had just published - and the
+    // engine then fired a scoped "Browser tab" combo over the page (user log:
+    // real [12,4,1] at 42.007, provisional [1] at 42.024, i.e. the real write
+    // landed AFTER the invalidation). A classification is therefore published
+    // only for the point it was sampled at; otherwise the CURRENT point gets a
+    // provisional table and the caller answers with that set.
+    POINT now;
+    bool stale = GetCursorPos(out now) && MovedFrom(pt, now, 3);
+    bool wrote = false;
+    if (!stale) {
+      // The REAL table write, the provisional reset and the cache update are ONE
+      // critical section against the heartbeat (2026-10-25 review). Lock order:
+      // engLock -> zoneLock (CacheStore takes zoneLock).
+      lock (engLock) {
+        // The cursor can move between the re-sample above and this lock (it may
+        // be contended by the request path or a slow discovery): check again.
+        POINT now2;
+        if (GetCursorPos(out now2) && MovedFrom(pt, now2, 3)) {
+          stale = true;
+        } else {
+          wrote = WriteZoneTableLocked(z == null ? new int[0] : z, true, pt, out stale);
+          if (wrote) {
+            provOk = false;
+            CacheStore(pt, JsonOfZones(z));
+          }
+        }
+      }
     }
+    if (stale) {
+      // NOTHING is cached for `pt`: cacheBody/cachePt still describe an older
+      // point, so the caller must use the set returned HERE (see GetZoneJson).
+      POINT cur;
+      if (!GetCursorPos(out cur)) cur = pt;
+      Log("classify stale: sampled=" + pt.X + "," + pt.Y +
+          " now=" + cur.X + "," + cur.Y + " -> provisional");
+      return PublishProvisional(cur);
+    }
+    if (wrote) return z;
+    // The engine is not writable right now (no engine process / not bound /
+    // the write failed): the MSAA answer is still the correct zone set for the
+    // SW - no 750 can arrive without an engine - so cache and return it.
+    CacheStore(pt, JsonOfZones(z));
     return z;
   }
 
@@ -813,6 +878,10 @@ public static class ZoneHelper {
   private static uint engPid = 0;
   private static long engTable = 0;
   private static long engCave = 0;
+  // Environment.TickCount of the last SLOW-path validation (binding + cave
+  // claim). Between two re-binds the real table write re-uses the cached handle
+  // (see WriteZoneTableLocked). Guarded by engLock.
+  private static int lastBindAt = 0;
   // Cached write handle for the FAST table path (WriteZoneFlagsFast). The fast
   // path runs on every heartbeat poll while the cursor moves, so it must not
   // re-scan the process list / open a handle each time. The handle is dropped
@@ -932,19 +1001,59 @@ public static class ZoneHelper {
   // zones: the regions that currently match; empty = "the cursor is not over
   // this browser" (nothing matches -> all input passes through, like MV2 over
   // a foreign window). Silent on any failure (an unpatched engine is skipped).
+  // Returns TRUE only when the table was actually written. `stale` is set when
+  // the write was SKIPPED because the cursor left `expected` (haveExpected) -
+  // the caller must then publish a provisional table for the current point.
+  //
   // The SLOW bind/refresh path: it re-scans the process list, re-validates the
-  // binding and (re)writes the cave prefix. Callers that do not already hold
-  // engLock use this wrapper; ClassifyAndCache calls WriteZoneTableLocked
-  // directly so its table write + provOk reset + cache store form ONE critical
-  // section against the heartbeat (lock order: engLock -> zoneLock).
+  // binding and (re)claims the cave page. It holds engLock, so the steady state
+  // does NOT run it: when the binding is fresh and the cached handle works, the
+  // page write alone is the whole job (the fast real write below). Callers that
+  // do not already hold engLock use the WriteZoneTable wrapper;
+  // ClassifyAndCache calls this directly so its table write + provOk reset +
+  // cache store form ONE critical section against the heartbeat
+  // (lock order: engLock -> zoneLock).
   private static void WriteZoneTable(int[] zones) {
-    lock (engLock) { WriteZoneTableLocked(zones); }
+    bool stale;
+    lock (engLock) { WriteZoneTableLocked(zones, false, new POINT(), out stale); }
   }
 
-  private static void WriteZoneTableLocked(int[] zones) {
+  // How often the SLOW path re-validates the binding. Between two re-binds the
+  // real write uses the cached handle: the discovery (process snapshot + module
+  // scan + cave claim) held engLock for hundreds of ms under load and blocked
+  // the heartbeat's provisional invalidation for that long (2026-10-25
+  // live-test log: 300-700 ms gaps between fast writes). A FAILED fast write
+  // still drops the handle and falls through to the slow path, so an engine
+  // restart is detected at once, not only at the next re-bind.
+  private const int REBIND_MS = 1000;
+
+  private static bool WriteZoneTableLocked(int[] zones, bool haveExpected, POINT expected, out bool stale) {
+   stale = false;
    try {
+    // FAST REAL WRITE (2026-10-25 live test): the binding is fresh, so the
+    // write itself is the whole job - and it is what keeps engLock free for the
+    // heartbeat's provisional write.
+    if (engPid != 0 && engTable != 0 && (Environment.TickCount - lastBindAt) < REBIND_MS) {
+      POINT nowF;
+      if (haveExpected && GetCursorPos(out nowF) && MovedFrom(expected, nowF, 3)) {
+        stale = true;
+        Log("table write skipped (fast): sampled=" + expected.X + "," + expected.Y +
+            " now=" + nowF.X + "," + nowF.Y);
+        return false;
+      }
+      if (EnsureEngHandle()) {
+        if (WriteTablePage(engHandle, zones, "table write")) {
+          lastBindAt = Environment.TickCount;
+          return true;
+        }
+        // A failed page write means the cached handle/table is gone (engine
+        // restarted): drop it so the slow path below re-binds.
+        CloseEngHandle();
+      }
+      // handle gone / write failed: fall through to the slow path (rebind)
+    }
     int[] pids = FindEnginePids();
-    if (pids.Length == 0) { Log("no engine process"); CloseEngHandle(); engPid = 0; engTable = 0; engCave = 0; return; }
+    if (pids.Length == 0) { Log("no engine process"); CloseEngHandle(); engPid = 0; engTable = 0; engCave = 0; return false; }
     // Pick MY engine (2026-09-13). Rule order:
     //  1. an engine already bound to me stays bound (only MY engine can pass
     //     the window test, so the binding is trustworthy - but re-check it when
@@ -972,7 +1081,7 @@ public static class ZoneHelper {
     if (pid == 0) {
       Log("waiting: none of the " + pids.Length + " engines belongs to browser " + browserPid +
           " (or the list is not ready yet) - not writing a foreign engine");
-      return;
+      return false;
     }
     // (re)initialise when the engine restarted
     if (pid != engPid || engCave == 0) {
@@ -982,17 +1091,17 @@ public static class ZoneHelper {
       CloseEngHandle();
       engPid = pid; engTable = 0; engCave = 0;
       IntPtr h0 = OpenProcess(0x438 /* QUERY|VM_OP|VM_READ|VM_WRITE */, false, pid);
-      if (h0 == IntPtr.Zero) { Log("OpenProcess failed: " + Marshal.GetLastWin32Error()); return; }
+      if (h0 == IntPtr.Zero) { Log("OpenProcess failed: " + Marshal.GetLastWin32Error()); return false; }
       try {
         long baseAddr = ModuleBaseOf(pid);
-        if (baseAddr == 0) { Log("ModuleBaseOf failed"); return; }
+        if (baseAddr == 0) { Log("ModuleBaseOf failed"); return false; }
         long cave = baseAddr + CAVE_RVA;
         Log("base=0x" + baseAddr.ToString("X") + " cave=0x" + cave.ToString("X"));
         byte[] sig = ReadMem(h0, cave, 5);
-        if (sig == null) { Log("ReadMem(cave) failed: " + Marshal.GetLastWin32Error()); return; }
+        if (sig == null) { Log("ReadMem(cave) failed: " + Marshal.GetLastWin32Error()); return false; }
         if (sig[0] != 0x83 || sig[1] != 0xFA || sig[2] != 0x28 || sig[3] != 0x73 || sig[4] != (byte)(ORIG_BLOCK - 5)) {
           Log("cave signature mismatch: " + BitConverter.ToString(sig));
-          return; // not a v19 engine
+          return false; // not a v19 engine
         }
         long tab = 0;
         // NOTE (2026-09-12): the previous version reused whatever table address
@@ -1003,7 +1112,7 @@ public static class ZoneHelper {
         // Always claim the cave for OUR page.
         {
           IntPtr page = VirtualAllocEx(h0, IntPtr.Zero, (IntPtr)4096, 0x3000 /* COMMIT|RESERVE */, 0x04 /* PAGE_READWRITE */);
-          if (page == IntPtr.Zero) return;
+          if (page == IntPtr.Zero) return false;
           tab = page.ToInt64();
           // table version of the cave prefix
           byte[] npre = new byte[ORIG_BLOCK];
@@ -1022,28 +1131,38 @@ public static class ZoneHelper {
           VirtualProtectEx(h0, (IntPtr)cave, (IntPtr)64, 0x40 /* PAGE_EXECUTE_READWRITE */, out old);
           bool ok = WriteMem(h0, cave, npre);
           VirtualProtectEx(h0, (IntPtr)cave, (IntPtr)64, old, out old);
-          if (!ok) { Log("write cave failed: " + Marshal.GetLastWin32Error()); return; }
+          if (!ok) { Log("write cave failed: " + Marshal.GetLastWin32Error()); return false; }
           Log("page=0x" + tab.ToString("X") + " cave written");
         }
         engTable = tab; engCave = cave;
       } finally { CloseHandle(h0); }
     }
-    if (engTable == 0) return;
+    if (engTable == 0) return false;
     IntPtr h = OpenProcess(0x438, false, pid);
-    if (h == IntPtr.Zero) { CloseEngHandle(); engTable = 0; engCave = 0; return; }
+    if (h == IntPtr.Zero) { CloseEngHandle(); engTable = 0; engCave = 0; return false; }
     try {
-      byte[] data = new byte[16 + TABLE_SLOTS * 4];
-      BitConverter.GetBytes(1).CopyTo(data, 0);                       // alive = 1
-      if (zones != null) {
-        for (int i = 0; i < zones.Length; i++) {
-          int z = zones[i];
-          if (z >= 0 && z < TABLE_SLOTS) BitConverter.GetBytes(1).CopyTo(data, 16 + z * 4);
-        }
+      // STALE GUARD (2026-10-25 live test): the discovery above can take
+      // hundreds of ms (process snapshot, module scan, cave claim). A table for
+      // a point the cursor has LEFT would overwrite the provisional
+      // invalidation the heartbeat published meanwhile - the engine then fires
+      // a scoped combo over the wrong point (user log: a real [12,4,1] landing
+      // AFTER the provisional [1]). Sample the cursor once more, immediately
+      // before the write.
+      POINT now;
+      if (haveExpected && GetCursorPos(out now) && MovedFrom(expected, now, 3)) {
+        stale = true;
+        Log("table write skipped: sampled=" + expected.X + "," + expected.Y +
+            " now=" + now.X + "," + now.Y);
+        return false;
       }
-      WriteMem(h, engTable, data);
-      Log("table write: alive=1 zones=[" + (zones == null ? "" : string.Join(",", Array.ConvertAll(zones, x => x.ToString()))) + "]");
+      if (!WriteTablePage(h, zones, "table write")) {
+        Log("table write failed: " + Marshal.GetLastWin32Error());
+        return false;
+      }
+      lastBindAt = Environment.TickCount;
+      return true;
     } finally { CloseHandle(h); }
-   } catch (Exception ex) { Log("EXCEPTION " + ex.GetType().Name + ": " + ex.Message); }
+   } catch (Exception ex) { Log("EXCEPTION " + ex.GetType().Name + ": " + ex.Message); return false; }
   }
 
   // Drop the cached fast-path handle (no-op when there is none). Called from
@@ -1052,6 +1171,33 @@ public static class ZoneHelper {
     if (engHandle == IntPtr.Zero) return;
     try { CloseHandle(engHandle); } catch { }
     engHandle = IntPtr.Zero;
+  }
+
+  // The cached write handle for engPid, opened on demand. Caller holds engLock.
+  private static bool EnsureEngHandle() {
+    if (engHandle != IntPtr.Zero) return true;
+    if (engPid == 0) return false;
+    engHandle = OpenProcess(0x438 /* QUERY|VM_OP|VM_READ|VM_WRITE */, false, engPid);
+    return engHandle != IntPtr.Zero;
+  }
+
+  // Write the table page through `h`: alive=1 at +0, 64 zeroed dword slots at
+  // +16, then 1 for each zone in `zones`. `what` is the log prefix, so the
+  // live-test log keeps telling the PROVISIONAL fast path ("table write
+  // (fast)") from a REAL classification ("table write").
+  private static bool WriteTablePage(IntPtr h, int[] zones, string what) {
+    byte[] data = new byte[16 + TABLE_SLOTS * 4];
+    BitConverter.GetBytes(1).CopyTo(data, 0);                       // alive = 1
+    if (zones != null) {
+      for (int i = 0; i < zones.Length; i++) {
+        int z = zones[i];
+        if (z >= 0 && z < TABLE_SLOTS) BitConverter.GetBytes(1).CopyTo(data, 16 + z * 4);
+      }
+    }
+    if (!WriteMem(h, engTable, data)) return false;
+    Log(what + ": alive=1 zones=[" +
+        (zones == null ? "" : string.Join(",", Array.ConvertAll(zones, x => x.ToString()))) + "]");
+    return true;
   }
 
   // FAST table write (2026-10-25). The heartbeat calls this while the cursor is
@@ -1067,35 +1213,21 @@ public static class ZoneHelper {
   // classification is throttled during a move, so the table still said
   // "zone 12" and the engine consumed the wheel.
   //
-  // Same page layout as WriteZoneTable: alive=1 at +0, 64 zeroed dword slots at
-  // +16, then 1 for each zone in `zones`. Returns false when no engine is bound
-  // or the write failed; a failed write drops the cached handle so the next
-  // WriteZoneTable re-binds (and re-claims the cave page if the engine died).
+  // Returns false when no engine is bound or the write failed; a failed write
+  // drops the cached handle so the next WriteZoneTable re-binds (and re-claims
+  // the cave page if the engine died).
   private static bool WriteZoneFlagsFast(int[] zones) {
     lock (engLock) {
       if (engPid == 0 || engTable == 0) return false;
-      if (engHandle == IntPtr.Zero) {
-        engHandle = OpenProcess(0x438 /* QUERY|VM_OP|VM_READ|VM_WRITE */, false, engPid);
-        if (engHandle == IntPtr.Zero) {
-          Log("fast write: OpenProcess failed: " + Marshal.GetLastWin32Error());
-          return false;
-        }
+      if (!EnsureEngHandle()) {
+        Log("fast write: OpenProcess failed: " + Marshal.GetLastWin32Error());
+        return false;
       }
-      byte[] data = new byte[16 + TABLE_SLOTS * 4];
-      BitConverter.GetBytes(1).CopyTo(data, 0);                       // alive = 1
-      if (zones != null) {
-        for (int i = 0; i < zones.Length; i++) {
-          int z = zones[i];
-          if (z >= 0 && z < TABLE_SLOTS) BitConverter.GetBytes(1).CopyTo(data, 16 + z * 4);
-        }
-      }
-      if (!WriteMem(engHandle, engTable, data)) {
+      if (!WriteTablePage(engHandle, zones, "table write (fast)")) {
         Log("fast write failed: " + Marshal.GetLastWin32Error() + " - dropping the cached handle");
         CloseEngHandle();
         return false;
       }
-      Log("table write (fast): alive=1 zones=[" +
-          (zones == null ? "" : string.Join(",", Array.ConvertAll(zones, x => x.ToString()))) + "]");
       return true;
     }
   }
@@ -1173,8 +1305,12 @@ public static class ZoneHelper {
     if (at.HasValue) pt = at.Value;
     else if (!GetCursorPos(out pt)) return "{\"zone\":-1,\"zones\":[-1]}";
     if (CacheFresh(pt)) { lock (zoneLock) { return cacheBody; } }
-    ClassifyAndCache(pt);
-    lock (zoneLock) { return cacheBody; }
+    // The answer comes from the CLASSIFICATION, not from cacheBody: a STALE
+    // classification returns the provisional set of the CURRENT point and
+    // leaves cacheBody at the older point (2026-10-25 live test) - returning
+    // cacheBody here would hand the SW the zones of the point the walk started
+    // for, which is exactly the stale answer this change removes.
+    return JsonOfZones(ClassifyAndCache(pt));
   }
   // Keeps Chrome's accessibility tree awake (the tree is what makes the
   // classification possible), refreshes the cache whenever the cursor moved
@@ -1223,16 +1359,16 @@ public static class ZoneHelper {
           // table stayed provisional until the next move / the 1.2 s tree
           // refresh. Lock order: engLock -> zoneLock (WriteZoneFlagsFast
           // re-locks engLock reentrantly, which is fine).
-          int[] prov = OverOwnBrowser(pt) ? new int[] { Z_WINDOW } : new int[0];
+          int[] prov = ProvisionalZones(pt);
           lock (engLock) {
             POINT builtPt;
             bool builtOk;
             lock (zoneLock) { builtPt = cachePt; builtOk = cacheOk; }
-            if ((!builtOk || Math.Abs(pt.X - builtPt.X) > 3 || Math.Abs(pt.Y - builtPt.Y) > 3) &&
+            if ((!builtOk || MovedFrom(builtPt, pt, 3)) &&
                 // Do not repeat the same provisional write on every poll of a
                 // slow move: only a further >3 px counts (reset when a real
                 // classification writes the table, see ClassifyAndCache).
-                (!provOk || Math.Abs(pt.X - provPt.X) > 3 || Math.Abs(pt.Y - provPt.Y) > 3)) {
+                (!provOk || MovedFrom(provPt, pt, 3))) {
               if (WriteZoneFlagsFast(prov)) { provPt = pt; provOk = true; }
             }
           }

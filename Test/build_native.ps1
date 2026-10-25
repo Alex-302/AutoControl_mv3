@@ -69,7 +69,15 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # engLock (order engLock -> zoneLock), so a provisional [1] can never overwrite
 # a real zone set that was just written (that left zone triggers dead until the
 # next move / the 1.2 s tree refresh).
-$EXPECT_HELPER = 'B3DBB16F733663C5F148B6186B779B08DBA8DD2C74DF47BBD29FC52655C007F6'
+# Live test (same day): a classification whose MSAA walk outlived the point it
+# was sampled at is DISCARDED - it used to write the real set for a point the
+# cursor had LEFT, over the provisional [1] (user log: real [12,4,1] at 42.007,
+# provisional [1] at 42.024), and the engine fired the scoped "Browser tab"
+# combo over the page. The stale path publishes a provisional table for the
+# CURRENT point, the slow write re-samples the cursor right before WriteMem,
+# and the steady-state real write uses the cached engine handle (re-bind every
+# 1000 ms) so engLock is no longer held during the process/module scan.
+$EXPECT_HELPER = '933A8C13CABB586F4C7C6E06C55BEC958FA73DBCD8C137160672E267995599CA'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.
