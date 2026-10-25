@@ -63,9 +63,10 @@
     while its accessibility tree is awake (a background heartbeat keeps it
     awake; the tree sleeps after ~30 s of inactivity and everything then looked
     like the title area).
-  - All 750s of ONE input burst now share a single helper answer (120 ms
-    cache): Chrome can scroll the tab strip between them, and the burst used
-    to see different regions for one physical wheel.
+  - All 750s of ONE input burst share a single helper answer only for 15 ms
+    from the burst start; later notches re-ask the helper, so a cursor move
+    between them is seen. Chrome can scroll the tab strip between them, and
+    the burst used to see different regions for one physical wheel.
   - ⚠ Testing note: restarting the browser makes the extension import
     `settings.dat` into storage (original behaviour), replacing live test
     triggers with the file's content.
@@ -244,6 +245,14 @@
 
 #### Triggers & actions
 
+- **Occasional tab switching when the wheel was used over the page right after
+  moving the cursor from the tab strip (2026-10-25).** The zone helper could
+  leave the old tab-strip zone visible to the engine after the cursor had
+  already moved to the page, so the tab-switch action fired instead of the
+  page scrolling. The helper now invalidates its zone table from a dedicated
+  thread, and the service worker no longer reuses a zone answer across wheel
+  events. The helper also keeps the tab-strip zone valid while the cursor
+  moves along the strip, so wheel tab switching no longer misses a notch.
 - **The gesture direction preview works again (2026-10-15).** The on-screen
   indicator that follows the mouse while a gesture is drawn never appeared
   when the option had never been saved: the settings page showed the checkbox

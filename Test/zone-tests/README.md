@@ -30,7 +30,7 @@ zone.
      v18 behaviour (helper-down) while you run it. For zone work use the v19
      build above.
    - original pristine: `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` = sha256 `8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09`.
-1b. **Helper build**: deployed since 2026-10-18 is `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (22528 bytes,
+1b. **Helper build**: deployed since 2026-10-25 is `199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6` (26624 bytes,
     deterministic Roslyn build). Two things about it matter for testing:
     * with **several browsers** running there are several engines, and the
       helper writes only into the engine that tracks **its own** browser's

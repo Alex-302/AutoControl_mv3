@@ -19,12 +19,12 @@
   compilation (wheel/gesture entries), global visibility (free-variable
   `_Yh` vs `self._Yh`), XHR-shim headers smoke, `_Yh` callback-style smoke,
   and userAPI dispatch (must be exactly 1 answering listener), the mouse-over
-  zone gate (11 known regions / menu pass-through / 120 ms burst cache /
+  zone gate (11 known regions / menu pass-through / 15 ms burst share /
   helper rules / the v19 patch builder + the table layout in the helper —
   B53), the removed donation/rating UI (file2.js / main.html / CSS — B54).
   Output
   `[PASS]`/`[FAIL]`/`[GAP ]`/`[FIXED?]`; exit 1 on FAIL. Path-independent
-  (`__dirname`). Current: 102 pass / 0 gaps / 0 FAIL.
+  (`__dirname`). Current: 123 pass / 0 gaps / 0 FAIL.
 - **`Test/SCRIPTING-API-TEST.js`** — in-browser self-test of the whole ACtl
   API (23 tests), run via RUN SCRIPT on a normal page. 23/23 stable. Every
   failure prints an unmissable banner (`[AC-API-TEST: FAIL]`) + a final

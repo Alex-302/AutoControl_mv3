@@ -5,9 +5,9 @@ components** of this port from their inputs:
 
 | Component | Input | Output (deployed) |
 |---|---|---|
-| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **22528**, sha256 `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (deterministic build, 2026-10-18) |
+| **Zone helper** (`ac_zone_helper.exe`) | our C# source `Test/ac_zone_helper.cs` | size **26624**, sha256 `199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6` (deterministic build, 2026-10-25) |
 | **Patched engine** (`AutoCtrl_2025.4.22.0.v19.exe`) | `AutoControl_native/original/AutoCtrl_2025.4.22.0.exe` (untouched upstream) | size **695296**, sha256 `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
-| **Bundled payloads** (what the extension actually deploys) | the two builds above, encoded with the `.dat` codec | `mv3-build/file76.dat` (695296, md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`) + `mv3-build/ac_zone_helper.dat` (22528, sha256 `A478AE2AA029C7A497460D88B5321945306F846294B19977A9F24FCF8F2B4312`) |
+| **Bundled payloads** (what the extension actually deploys) | the two builds above, encoded with the `.dat` codec | `mv3-build/file76.dat` (695296, md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`) + `mv3-build/ac_zone_helper.dat` (26624, sha256 `D896167D927D8FE15F1E7FA37ED2E2C2A06A3E79C9CF716841032665C93D2457`) |
 
 Everything below was verified on 2026-09-12 by rebuilding and comparing hashes
 (the engine: **bit-identical**; the helper: bit-identical with the Roslyn recipe
@@ -62,7 +62,7 @@ dotnet $csc /nologo /optimize+ /deterministic+ /nostdlib+ `
   /r:"$fw\mscorlib.dll" /r:"$fw\System.dll" /r:"$fw\Accessibility.dll" `
   /out:"$out" Test\ac_zone_helper.cs
 
-Get-FileHash $out -Algorithm SHA256      # must print 2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F (see the table above)
+Get-FileHash $out -Algorithm SHA256      # must print 199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6 (see the table above)
 ```
 
 Notes:
@@ -496,7 +496,7 @@ found. The requirement is therefore enforced, not trusted.
 
 ```powershell
 $EXPECT_ENGINE  = '1A10EDD1…2C3E'   # engine, 695296 bytes
-$EXPECT_HELPER  = '2ADF3898…FA4F'   # helper, 22528 bytes
+$EXPECT_HELPER  = '199ABE4B…19F6'   # helper, 26624 bytes
 $EXPECT_DAT_MD5 = '2F878E9E…AB5D'   # mv3-build/file76.dat (encoded engine payload)
 ```
 
@@ -564,7 +564,7 @@ payloads and deploys them itself; no manual copying is part of the user flow.
 | Payload | Decodes to | Verification |
 |---|---|---|
 | `mv3-build/file76.dat` (695296 B, md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D`) | the patched engine (v19) | `node Test/dat_codec.js verify mv3-build/file76.dat --exe AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe --sha256 1A10EDD1…2C3E --dat-md5 2F878E9E…AB5D` |
-| `mv3-build/ac_zone_helper.dat` (22528 B, sha256 `A478AE2AA029C7A497460D88B5321945306F846294B19977A9F24FCF8F2B4312`) | the zone helper | `node Test/dat_codec.js verify mv3-build/ac_zone_helper.dat --exe AutoControl_native/ac_zone_helper.exe --sha256 2ADF3898…FA4F` |
+| `mv3-build/ac_zone_helper.dat` (26624 B, sha256 `D896167D927D8FE15F1E7FA37ED2E2C2A06A3E79C9CF716841032665C93D2457`) | the zone helper | `node Test/dat_codec.js verify mv3-build/ac_zone_helper.dat --exe AutoControl_native/ac_zone_helper.exe --sha256 199ABE4B…19F6` |
 
 The codec is `file13.js` `_7g` (reversible, size-preserving); `Test/dat_codec.js`
 is its standalone implementation. `ext-mv2/` keeps the ORIGINAL distro blob

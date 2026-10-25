@@ -151,7 +151,7 @@ AutoControl-Keyboard-shortcuts-Mouse-gestures-Chrome/
 │   ├── README.md           #   ← structure explained (original / patched / patches)
 │   ├── AutoControl.manifest                  # engine host manifest (path = Zero)
 │   ├── com.autocontrol.zonehelper.json       # zone-helper host manifest template
-│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, 2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F)
+│   ├── ac_zone_helper.exe                    # zone-classifier helper (ours, 199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6)
 │   ├── original/           #   untouched upstream files — NEVER edited
 │   │   ├── AutoControlZero.exe        # proxy/launcher (= installer)  994E14D2BB306607C158C6799E0661C90EE1A480378ACA969C9397E4712A4C38
 │   │   └── AutoCtrl_2025.4.22.0.exe   # engine (global hooks)         8AE9A669086BEA5C4344007AC4CA9797E5814285E03B6B04E5F8336329CB7E09
@@ -335,8 +335,9 @@ helper is a **required component**, installed and kept in sync automatically
 The answer is a **set** because several zones can match one point (the
 omnibox is inside the toolbar band, the page is inside the browser window) —
 the original engine evaluated every trigger region independently. All 750s
-of ONE input burst share a single helper answer (120 ms cache) — Chrome can
-scroll the tab strip between them.
+of ONE input burst share a single helper answer only for 15 ms from the burst
+start; later notches re-ask, so a cursor move between them is seen — Chrome
+can scroll the tab strip between them.
 
 **Supported zones — ALL 12 areas verified by the user on a live browser,
 2026-09-12:** 1 Browser window · 3 Web page · 4 Title area (the title bar /
@@ -431,7 +432,7 @@ component and is installed automatically (§4.2).
 ```
 powershell -ExecutionPolicy Bypass -File Test/build_native.ps1
 # === 1/3  ENGINE (original + byte patch)  ... 695296 bytes  1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E  OK
-# === 2/3  HELPER (our C# source)         ...  22528 bytes  2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F  OK
+# === 2/3  HELPER (our C# source)         ...  26624 bytes  199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6  OK
 # === 3/3  BUNDLE (file76.dat + ac_zone_helper.dat) ... both payloads verify OK
 # (add -UpdatePatched to refresh AutoControl_native/patched/, -UpdateBundle for the .dat payloads)
 ```
