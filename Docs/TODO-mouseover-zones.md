@@ -174,7 +174,8 @@ was used as the evidence (`zones=[...] ∩ [...] → executing`). Verified sets:
 Negative controls (all silent): page / tab strip / toolbar with a menu-item
 trigger armed, the close button with a tab trigger, the page with a title-area
 trigger, etc. The SW gate still logs `… ∩ [N] → skipped` when the engine emits
-from a stale (120 ms) burst snapshot — it re-asks the helper and cancels.
+from a stale burst snapshot — one answer is shared for 15 ms only, so the gate
+re-asks the helper and cancels.
 
 The helper answers the whole SET of matching zones per point
 (`{zones:[...]}`); the SW gate fires a trigger when the sets INTERSECT.
@@ -609,7 +610,7 @@ is bound to wheel rotation without a modifier key"**.
 > definition) was wrong. The helper now answers 4 for the tab strip
 > (chain-based: `stripNear || isTabBtn`) plus the window-frame PANE outside
 > the toolbar (`roles[0]==16 && !inToolbar`); the toolbar and the omnibox are
-> excluded. Helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
+> excluded. Helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (retired 2026-10-25).
 
 The 2026-09-12 implementation was chain-based: `inToolbar || stripNear ||
 isTabBtn` → zone 4, plus the unnamed-PANE rule for the frame. Points
@@ -744,7 +745,7 @@ accepts 60 so the empty strip keeps its title-area coverage. The tab's own
 buttons were already excluded (a 43-button under a PAGETAB is handled by
 `TabButtonZone` → 15/17). Same day as the title-area narrowing (§2f(a)) and
 the "+"-exclusion fix; helper
-`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (retired 2026-10-25).
 
 ### (h) Bookmark zone (33) — a button inside the omnibox GROUP, or the heart BY NAME (2026-09-20)
 
@@ -785,7 +786,7 @@ first; user correction the same day). The heart itself was always there.
 **Verified (probe against the deployed helper):** heart `[33,20,1]`, the five
 neighbour buttons `[20,1]`, address field `[21,20,1]`, tabs `[12,4,1]`
 (no regression). Helper
-`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (retired 2026-10-25).
 
 ⚠ **Known edge (unchanged by this fix):** the rule cannot tell one
 omnibox-group button from another by structure, so in Chrome every `43` inside
@@ -822,7 +823,7 @@ them is it the browser menu.
 **Verified (probe against the deployed helper):** the extensions button
 `[20,1]` (was `[30,20,1]`), the Opera menu (110/130,553) `[30,4,1]` ✅, the
 heart `[33,20,1]` ✅, the extension icons `[20,1]` ✅. Helper
-`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (retired 2026-10-25).
 
 ### (j) Tab's close button (15) in Opera — a square PANE, not a button (2026-09-20)
 
@@ -894,7 +895,7 @@ case, so no chrome rule can fire.
 **Verified (probe):** with the menu open — the close button and the tab
 `[1]` (no false 4), the page outside the menu still `[3,1]`; menu closed —
 close `[15,4,1]`, tab `[12,4,1]` ✅. Helper
-`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (retired 2026-10-25).
 
 ⚠ **Testing note:** do NOT use `zone_fg_wheel.ps1`'s Alt foreground trick
 when a stray Opera menu would confuse the measurement — close it with Esc
@@ -937,7 +938,7 @@ widens the window.)
 cursor SETTLES (position unchanged between two polls) and a continuous move is
 throttled to 80 ms. Measured: write latency ~0 ms; CPU during a continuous drag
 22.7% → 11.6% of one core. Helper
-`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`.
+`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (retired 2026-10-25).
 
 ⚠ The engine-side cache remains (it is the original engine's logic) — the fix
 only shrinks the window in which the table can be stale. If a report of a
@@ -979,7 +980,7 @@ the cursor was moved onto tab 2 while `_ys()` still returned tab 1's id.
 1. The zone helper reports the tab under the cursor — `TabIndexOf` counts the
    PAGETAB siblings to the left of the hovered one, `TabUnderCursorJson`
    returns `,"hWnd":N,"index":I,"title":"…"` for a request with `"tab":1`
-   (helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`).
+   (helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`, retired 2026-10-25).
 2. `sw.js` wraps `window._Vy` (the bundle's callback-native bridge): type 485
    is answered from the helper instead of the engine (falling back to the
    native when the helper is down or the cursor is not over a tab).
@@ -1177,7 +1178,7 @@ single-threaded, so the walks QUEUED and the answers arrived 180-360 ms late
 longer calls the original when it has an answer (see 1) — measured after the
 change: **one** tab request per event.
 
-**Verified (Canary 156, helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`):**
+**Verified (Canary 156, helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`, retired 2026-10-25):**
 `_ys()` returns the helper's tab even with a deliberately poisoned `_kg`
 (`_ys() -> [61304275]` while `_kg=[61304272]`); the log shows
 `_ys ret=[61304458] kg=[61304464]` (stale cache overridden) and the reload always
@@ -1219,7 +1220,7 @@ Chrome: `PAGETAB(37) → body PANE(16) → button(43)`. Neither rule matched:
 * `IsPaneCloseButton(chain[0], chain[1], pt)` — that rule expects the hovered
   element to BE a square PANE, but the hovered element is the 43 button.
 
-**Fix (helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`, 22528 bytes):**
+**Fix (helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`, 22528 bytes; retired 2026-10-25):**
 1. the tab-button rule now accepts a PAGETAB at ANY depth within d0..d3
    (`isTabBtn = ui && roles[0] == 43 && tabDepth >= 1`) and calls
    `TabButtonZone(chain[tabDepth], …)`. It still cannot catch the "+" (a 43 under
@@ -1411,7 +1412,7 @@ heartbeat classification, which starved the zone query (60-104 ms answers,
 real cases (`currentTab` → no, `hoveredTabs` → yes, `eventTabs` → yes,
 `disabled` → no) and the gate test asserts that NO dispatch pays for the refresh
 when the map says it is not needed (both eval the REAL sw.js source). Helper
-`2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (22528 bytes),
+`199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6` (26624 bytes),
 `build_native.ps1` reproduces both components bit-for-bit.
 
 ⚠ **The first version of the check was wrong and the test caught it:** the
@@ -1639,7 +1640,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | File | Role | state (2026-09-13) |
 |---|---|---|
 | `Test/ac_zone_helper.cs` | helper source (`Classify()`, `WriteZoneTable`) | ✅ 11 zones + DPI + `zones[]` + pill→30 rule + a11y heartbeat + own-browser gate |
-| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F` (deterministic Roslyn build, 2026-10-18) |
+| `AutoControl_native/ac_zone_helper.exe` | repo copy of the helper binary | ✅ `199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6` (deterministic Roslyn build, 2026-10-25) |
 | `%LOCALAPPDATA%\AutoControl\ac_zone_helper.exe` | **the deployed binary Chrome runs** | ✅ same hash (Chrome picks it up without an extension reload) |
 | `AutoControl_native/patches/patch_zones_v19.js` | engine patch builder (zone table) | ✅ **CURRENT** — see `patches/README.md` |
 | `AutoControl_native/patched/AutoCtrl_2025.4.22.0.v19.exe` | repo copy of the built engine | ✅ `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E` |
@@ -1647,7 +1648,7 @@ trigger. The older 750 watchers and SW tails (`zone_watch750.js`,
 | `Test/patch_zones_v18.js` | previous patch (always match below 60) | ⚠️ history only — it also broke wheel consumption |
 | `Test/patch_zones_v19diag.js` | diagnostic variant (records the asked-for regions) | needs the accName build; not for zone work |
 | `AutoControl_native/com.autocontrol.zonehelper.json` | host manifest (`path` = the LOCALAPPDATA exe) | unchanged |
-| `mv3-build/sw.js` | zone gate (`__acZoneAsk` / `__acDispatchTrigger750` / `__acBuildZoneMap`) | ✅ multi-zone intersect + menu pass-through + 120 ms burst cache + 2.5 s helper keepalive + `_Sk` re-sync |
+| `mv3-build/sw.js` | zone gate (`__acZoneAsk` / `__acDispatchTrigger750` / `__acBuildZoneMap`) | ✅ multi-zone intersect + menu pass-through + 15 ms burst share (re-asks after a cursor move) + 2.5 s helper keepalive + `_Sk` re-sync |
 | `Test/mh_test.js` | smoke tests | ✅ B53 (zone gate + patch/helper layout), B53b–B53g (patch CLI, docs vs bytes, the byte proof + its teeth test, helper writer, Ghidra listing) |
 | `C:\Work\AutoControl-…-Chrome\mv3-build\sw.js` | **the copy Chrome actually loads** | ⚠ must be updated too (load-path gotcha, §2d) |
 | `Test/patch_bytes_verify.js` | **proof**: decode the injected bytes, assert every branch target, diff vs the original | ✅ new 2026-09-13 |
@@ -1746,4 +1747,103 @@ input for its hover cache — see §4). For each browser:
 
 The browser matrix to verify: Chrome (reference), Brave (should be 11/11),
 Opera (8/11 + quirk A), Vivaldi (7/11 + quirk B).
+
+---
+
+## 8. 2026-10-25 — stale zone table on a fast cursor move
+
+**Symptom.** The user scrolled the wheel over the page immediately after moving
+the cursor from the tab strip. Occasionally the "wheel over Browser tab" action
+switched tabs instead of scrolling the page. The action has two combos:
+`Alt+wheel` (no mouse-over condition) and `wheel over Browser tab` (region 12).
+
+**Root cause.** Five things combined:
+
+1. The engine (v19 cave) recomputes its region verdict only when more than
+   300 ms passed or the cursor moved more than 3 px, then reads the helper's
+   zone table.
+2. The helper wrote the real table asynchronously. A real `[12,4,1]` write
+   could land after the cursor had left the tab strip. The engine then read
+   `[12,4,1]` over the page and fired the 750.
+3. The SW gate could not reject it: the unscoped `Alt+wheel` sibling marks the
+   whole action `__acZoneFree`, so the SW dispatches without the zone check.
+   The engine's table is the only filter.
+4. The SW had a 120 ms time-only zone-answer cache. It could reuse an answer
+   across a cursor move.
+5. The helper's provisional invalidation (`[1]`/`[]` on movement) ran on the
+   heartbeat thread, which blocks for hundreds of ms inside the MSAA walk.
+
+**Evidence.** Helper and SW logs for the same second:
+
+```text
+19:36:43.652  table write: alive=1 zones=[12,4,1]
+19:36:43.844  SW 750 trigger 5 -> activateTabs
+19:36:43.904  SW 750 trigger 5 -> activateTabs
+19:36:43.988  SW 750 trigger 5 -> activateTabs
+19:36:44.069  SW 750 trigger 5 -> activateTabs
+19:36:44.123  SW 750 trigger 5 -> activateTabs
+19:36:44.182  SW 750 trigger 5 -> activateTabs
+19:36:44.242  SW 750 trigger 5 -> activateTabs
+19:36:44.372  table write (fast): alive=1 zones=[1]
+```
+
+Seven 750s fired while the table was still `[12,4,1]`; the next fast write came
+720 ms later.
+
+**Fix — service worker (`mv3-build/sw.js`).**
+
+- Removed `__AC_ZONE_CACHE_MS` (the 120 ms time-only TTL).
+- Added `__AC_ZONE_BURST_MS = 15`: one input burst shares the first helper
+  answer only for 15 ms from the burst START, guarded by a generation counter.
+  Later 750s re-ask, so a cursor move between notches is seen.
+- Keepalive uses `__acZoneAsk(300, true)` (`noShare`).
+
+**Fix — helper (`Test/ac_zone_helper.cs`).**
+
+- `WriteZoneFlagsFast`: cached-handle table write.
+- `ProvisionalWatcher`: a dedicated thread. Every 10 ms it reads the cursor and
+  writes only the provisional table. It does NO MSAA, no classification, no tab
+  walk, and never waits for `servingRequest` or `bindLock`.
+- The heartbeat now only classifies and warms the tab cache.
+- Stale classifications are discarded: the point is re-sampled after the MSAA
+  walk and again inside `engLock` (`classify stale`, `table write skipped`).
+- `cacheHasTab` + `StaleFor`: for tab-related zones (12/15/17) a classification
+  is stale only when `|now.Y - sampled.Y| > 24` px. Horizontal movement along
+  the strip does not invalidate. Other zones keep the 3 px rule. The watcher
+  uses the same rule.
+- Provisional writes are serialized with the real classification under
+  `engLock` (order `engLock -> zoneLock`).
+- The periodic 1000 ms engine re-bind now runs (`lastBindAt` moved only by the
+  slow bind path). Discovery no longer holds `engLock`; `bindLock` added.
+
+**False negative found during the fix.** The first invalidation used 3 px on
+both axes. A horizontal move along the tab strip cleared zone 12, so some wheel
+notches were ignored:
+
+```text
+19:46:54.065  table write: alive=1 zones=[12,4,1]
+19:46:54.120  table write (fast): alive=1 zones=[1]
+19:46:54.151  table write (fast): alive=1 zones=[1]
+19:46:54.195  table write: alive=1 zones=[12,4,1]
+```
+
+The 24 px Y-only rule for tab zones fixed it. A move to the page still changes
+Y by about 100 px, so the false positive stays fixed.
+
+**Validation.** `patch_bytes_verify.js` → `PROOF HOLDS`; `build_native.ps1
+-UpdateBundle` → all hashes OK; `engine_abi_dump.js` → `ABI AUDIT: OK`;
+`mh_test.js` → 123 pass, 0 known gaps, 0 FAIL; `verify_all.js` → verdict line.
+Helper `199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6`,
+26624 bytes. Engine unchanged (`1A10EDD1…2C3E`, `file76.dat` md5
+`2F878E9E…AB5D`).
+
+**Live run.** The user tested on their stable Chrome with real wheel input.
+Moving the cursor away from the tab strip stops the tab action immediately;
+wheel tab switching over the strip works, and the page scrolls normally. The
+exact Chrome build and OS were not recorded.
+
+**Residual risk.** The 24 px Y threshold is a heuristic: a move from the tab
+strip to the title bar within 24 px keeps zone 12. Do not lower it without
+re-testing the false positive. The watcher polls every 10 ms; CPU is
+negligible. Do not move the provisional write back to the heartbeat.
 

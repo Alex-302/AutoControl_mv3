@@ -675,12 +675,14 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   (a) only regions the helper can verify are checked (`__AC_ZONE_KNOWN`);
   a trigger whose regions are ALL menu-item regions passes with the ENGINE's
   verdict — before this fix every menu-item trigger was silently skipped by
-  the gate; (b) **burst cache** `__AC_ZONE_CACHE_MS = 120`: one physical event
+  the gate; (b) **burst share** `__AC_ZONE_BURST_MS = 15`: one physical event
   makes the engine emit a 750 per matching trigger and each used to re-ask the
   helper — the UI can change in between (Chrome scrolls the tab strip on
   wheel!) so the burst saw different zones (zone 15 → 12 → skipped, "wheel
-  over the close button does nothing"). One helper answer is now shared per
-  burst.
+  over the close button does nothing"). One helper answer is now shared only
+  for 15 ms from the burst START (generation-guarded); later 750s re-ask, so a
+  cursor move between notches is seen. The old 120 ms time-only cache was
+  removed on 2026-10-25 — it could reuse an answer across a cursor move.
   (c) **an action whose combos DIFFER must not be judged by its siblings'
   zones** (2026-09-13): the native's 750 names the ACTION, not the combo that
   matched (`Docs/NATIVE_PROTOCOL.md` §5), so regions collected from ALL combos
@@ -735,6 +737,24 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   CPU during a continuous drag 22.7% → 11.6% of one core. Probe:
   `Test/_probe_tablecheck.ps1` (reads the cave + table, verifies the cursor did
   not move in the same instant — the user's hand otherwise fakes a mismatch).
+  ⚠ **ZONE TABLE STALE ON A FAST CURSOR MOVE (FIXED 2026-10-25, helper +
+  sw.js)** — a real `[12,4,1]` write could land after the cursor had left the
+  tab strip; the engine then read it over the page and fired the tab action.
+  The SW could not reject it because the unscoped `Alt+wheel` sibling marks
+  the action `__acZoneFree`. Two rules keep it fixed:
+  (a) the provisional `[1]`/`[]` invalidation runs on its OWN thread
+  (`ProvisionalWatcher`) that does no MSAA and never waits for
+  `servingRequest` — the heartbeat blocks for hundreds of ms in the MSAA walk
+  (live log: real `[12,4,1]` at 19:36:43.652, next fast `[1]` at 44.372,
+  seven 750s in between), so it must not own the invalidation;
+  (b) for tab zones (12/15/17) a classification is stale only when the cursor
+  moved more than **24 px in Y** — horizontal movement along the strip must
+  not clear zone 12, or wheel tab switching misses notches (live log:
+  `[12,4,1]` at 19:46:54.065, fast `[1]` at .120/.151, `[12,4,1]` at .195).
+  Other zones keep the 3 px rule. Decision tree when the false switch returns:
+  fast `[1]` before the 750 → the ENGINE cache is stale (v20); no fast `[1]` →
+  the watcher is not running (check the helper hash); real `[12,4,1]` over the
+  page → check the 24 px threshold and the sampled point.
   ⚠ **HELPER: speaker icon is NOT hit-testable** — AOP over it returns the
   PAGETAB, and the tab's own a11y rect is unreliable (tab reported `97px` wide
   while its close button sits 320 px to the right). Rules now: scan the tab's
@@ -876,7 +896,7 @@ intentionally). Full round-by-round narratives live in `Docs/archive/`
   tab). **Second half:** `_kg` is only cleared by `_wd()` (runs when the TAB LIST
   changed), so even a resolved tab STUCK — the user's "it sticks on the tabs where I
   scrolled". Fix: the helper answers the tab under the cursor
-  (`TabIndexOf`/`TabUnderCursorJson`, request `"tab":1`, helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`),
+  (`TabIndexOf`/`TabUnderCursorJson`, request `"tab":1`, helper `199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6`),
   `sw.js` wraps `window._Vy` so 485 is answered from the helper, and
   `__acSetHoveredTab()` refreshes `_kg` before EVERY dispatch. Do not remove either
   half — the wrapper alone still leaves the stale cache, the cache refresh alone has

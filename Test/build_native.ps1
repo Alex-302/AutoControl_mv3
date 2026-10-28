@@ -57,7 +57,49 @@ $EXPECT_ENGINE = '1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C
 # deployed copy is in %LOCALAPPDATA%\AutoControl\). With the marker every
 # write is logged unchanged, repeats included. Zone/protocol behaviour is
 # unchanged; only the %TEMP%\ac_zone_helper.log output differs.
-$EXPECT_HELPER = '2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F'
+# 2026-10-25: the engine zone table is INVALIDATED while the cursor moves - the
+# heartbeat writes a provisional set ([1] over our own browser, empty
+# elsewhere) through a fast path (cached engine handle, no process scan) as
+# soon as the cursor is >3 px from the point the table was built for, and the
+# poll dropped from 30 ms to 10 ms. Fixes "a wheel action bound to Browser tab
+# fired when the cursor was already over the page" (the engine read a table
+# that still said zone 12). Engine patch, cave bytes and file76.dat unchanged.
+# Review follow-up (same day): the provisional decision + write and the real
+# classification's table write + provOk reset + cache store are serialised by
+# engLock (order engLock -> zoneLock), so a provisional [1] can never overwrite
+# a real zone set that was just written (that left zone triggers dead until the
+# next move / the 1.2 s tree refresh).
+# Live test (same day): a classification whose MSAA walk outlived the point it
+# was sampled at is DISCARDED - it used to write the real set for a point the
+# cursor had LEFT, over the provisional [1] (user log: real [12,4,1] at 42.007,
+# provisional [1] at 42.024), and the engine fired the scoped "Browser tab"
+# combo over the page. The stale path publishes a provisional table for the
+# CURRENT point, the slow write re-samples the cursor right before WriteMem,
+# and the steady-state real write uses the cached engine handle (re-bind every
+# 1000 ms) so engLock is no longer held during the process/module scan.
+# Review follow-up (same day): only a successful SLOW bind/refresh moves
+# lastBindAt - resetting it in the fast branch made the re-bind window never
+# expire, so the periodic re-bind (and with it the engine-restart / multi-engine
+# re-validation) never ran.
+# Live test, second round (same day): the SLOW DISCOVERY (FindEnginePids /
+# EngineIsMine / ModuleBaseOf / cave claim) no longer holds engLock - it took
+# ~928 ms under load and blocked the heartbeat's provisional invalidation for
+# that long (user log: real [12,4,1] at 42.343, provisional [1] at 43.271).
+# Discovery + publish are one bindLock sequence (order bindLock -> engLock) and
+# the publish takes engLock only for the install + page write. A fresh page is
+# initialised to alive=1/empty before the cave points at it.
+# Live test, third round (same day): the provisional invalidation runs on its OWN
+# thread (ProvisionalWatcher) - the heartbeat blocks for hundreds of ms inside the
+# MSAA walk and cannot poll for cursor movement (user log: real [12,4,1] at
+# 43.652, the next fast write at 44.372, seven 750s in between). The watcher does
+# no MSAA, no classification and no tab walk; the heartbeat only classifies.
+# Live test, fourth round (same day): the invalidation is ZONE-AWARE - a
+# TAB-related classification (12/15/17) is only discarded/invalidated when the
+# cursor leaves the strip VERTICALLY (>24 px in Y), because a wheel along the
+# strip moves the cursor horizontally (that is how tabs are switched) and the
+# 3 px rule cleared the table to [1] so the next notch missed zone 12. A move to
+# the page changes Y by ~100 px, so the tab -> page false positive stays fixed.
+$EXPECT_HELPER = '199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6'
 # The bundled engine payload (mv3-build/file76.dat): MD5 of the ENCODED blob
 # (the README table quotes this form). The decoded content must equal the
 # patched engine ($EXPECT_ENGINE) byte-for-byte - step 3/3 proves both.

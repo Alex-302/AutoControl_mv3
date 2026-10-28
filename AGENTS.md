@@ -173,7 +173,7 @@ This includes comments, log strings, and error messages in `sw.js`,
      (`--orig <pristine.exe>` for another original, `--no-diff` only if you
      deliberately accept `PROOF HOLDS (PARTIAL)`).
   2. `powershell -File Test/build_native.ps1` → all hashes OK (engine
-     `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `2ADF3898A2DC2948FC4CD2AF0C04586B28FB2C23D250B198A1D2F56CED84FA4F`,
+     `1A10EDD191B80A806DF66558B2B1E78BE8D6AD81E93EEAC772D13F222E212C3E`, helper `199ABE4BF6999578DDB432E25DFC0339061A3925B3A035A060B120910C8119F6`,
      payloads `file76.dat` md5 `2F878E9EB062C57D8B5C7FFBC91EAB5D` + `ac_zone_helper.dat`; step 3/3 verifies the repo copies too).
   3. `node Test/mh_test.js` → B53b–B53g `[PASS]`: CLI + determinism,
      docs == bytes, the decoder proof, its mutation (teeth) test, the helper

@@ -895,6 +895,15 @@ window — the engine evaluated each trigger region independently).
 Sentinels: `-1` = cursor/AccessibleObjectFromPoint error, `-2` = SW-side
 timeout (the SW uses 250 ms).
 
+Table invalidation (2026-10-25): the helper may publish a PROVISIONAL table
+(`[1]` over its own browser, `[]` elsewhere) while the cursor moves, from a
+dedicated watcher thread that does no MSAA. A real classification is published
+only for the point it sampled. A classification for a tab-related zone
+(12/15/17) is discarded only when the cursor moved more than 24 px in Y, so
+horizontal movement along the tab strip does not invalidate it. Other zones
+keep the 3 px rule. The engine reads the table when it recomputes its region
+verdict (more than 300 ms passed or the cursor moved more than 3 px).
+
 Supported regions and their MSAA signatures live in
 `Docs/TODO-mouseover-zones.md` §1/§2 (11 of 20; the 9 menu-item regions are
 still open). The SW gate (`sw.js __acDispatchTrigger750`) asks this host

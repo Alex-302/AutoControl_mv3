@@ -3696,13 +3696,20 @@
   // deliberately absent: the native menu has no MSAA signature, the engine
   // classifies those itself (engine zone ids 60-71 = UI 40-51 + 20).
   const __AC_ZONE_KNOWN = [1, 3, 4, 12, 15, 16, 17, 20, 21, 30, 33];
-  // Zone answers are shared for this long (one input burst — see __acZoneAsk).
-  // Long enough to cover the engine's multi-trigger 750 burst, short enough
-  // that two deliberate wheel notches get fresh answers.
-  const __AC_ZONE_CACHE_MS = 120;
-  let __acZoneCacheZones = null;
-  let __acZoneCacheAt = 0;
-  let __acZoneCachePend = null;
+  // Zone answers are SHARED across the 750s of ONE physical wheel, but only for
+  // a very short window measured from the REQUEST START (see __acZoneAsk):
+  // one wheel makes the engine emit a 750 per matching trigger, those arrive
+  // within a few ms and must see the SAME helper answer. A new wheel notch
+  // must start a new request - the answer is only valid for the point it was
+  // classified for (the helper's own point-keyed cache covers "the UI changed
+  // under a stationary cursor"). A 120 ms time-only TTL used to be here and it
+  // was WRONG: it froze the answer across a cursor move, so the gate could see
+  // the OLD zone (user report 2026-10-25: a "Browser tab" wheel action fired
+  // when the cursor was already over the page).
+  const __AC_ZONE_BURST_MS = 15;
+  let __acZoneShared = null;           // in-flight/shared query of the current burst
+  let __acZoneSharedAt = 0;            // its START time (Date.now()), not the answer time
+  let __acZoneSharedGen = 0;           // so an older promise cannot clear a newer one
   let __acZoneMap = null;              // {trigId: [regions]} from trigActList
   let __acZoneFree = {};               // {trigId: true} — some combo has NO mouse-over
   let __acZoneMapBuilt = false;
@@ -3793,23 +3800,34 @@
     });
   } catch (e) {} // listener registration only — safe to ignore
 
-  function __acZoneAsk(timeoutMs) {
+  // Ask the helper for the zones under the cursor.
+  // `noShare` = this request must neither reuse nor seed the burst share: the
+  // 2.5 s keepalive pings with it, because its answer is not the dispatch
+  // answer for the wheel the user is performing right now (it still opens /
+  // keeps alive the native port and lets the helper refresh its own cache and
+  // engine zone table - that is the keepalive's whole job).
+  function __acZoneAsk(timeoutMs, noShare) {
     // released for uninstall: do not reconnect (would respawn the helper)
     if (Date.now() < __acZoneReleasedUntil) return Promise.resolve([-3]);
-    // BURST CACHE (2026-09-12): one physical input event makes the engine emit
-    // a 750 for EVERY trigger that matches its key — those arrive within a few
-    // ms, and each one used to re-ask the helper. Between two of those queries
-    // the UI can CHANGE under the cursor (Chrome scrolls the tab strip on
-    // wheel, a tab opens, ...), so the burst saw DIFFERENT zones: the zone-15
-    // trigger's 750 arrived just after the strip scrolled and got zone 12 →
-    // skipped ("wheel over the tab's close button does nothing"). Share ONE
-    // answer per burst instead: a short TTL cache + a shared in-flight promise.
+    // BURST SHARE (2026-09-12, rebuilt 2026-10-25): one physical input event
+    // makes the engine emit a 750 for EVERY trigger that matches its key —
+    // those arrive within a few ms, and each one used to re-ask the helper.
+    // Between two of those queries the UI can CHANGE under the cursor (Chrome
+    // scrolls the tab strip on wheel, a tab opens, ...), so the burst saw
+    // DIFFERENT zones: the zone-15 trigger's 750 arrived just after the strip
+    // scrolled and got zone 12 → skipped ("wheel over the tab's close button
+    // does nothing"). Share ONE answer per burst instead — but bounded by the
+    // REQUEST START time and only for a few ms: the helper's answer belongs to
+    // the point it classified, so a new wheel notch (or the same notch after a
+    // cursor move) must ask again. The old 120 ms TTL was time-only and
+    // therefore also froze the answer across a cursor move.
     const now = Date.now();
-    if (__acZoneCacheZones && now - __acZoneCacheAt < __AC_ZONE_CACHE_MS) {
-      return Promise.resolve(__acZoneCacheZones);
+    if (!noShare && __acZoneShared && (now - __acZoneSharedAt) <= __AC_ZONE_BURST_MS) {
+      return __acZoneShared;
     }
-    if (__acZoneCachePend) return __acZoneCachePend;   // reuse the in-flight query
-    __acZoneCachePend = new Promise(res => {
+    let gen = 0;
+    if (!noShare) { gen = ++__acZoneSharedGen; __acZoneSharedAt = now; }
+    const p = new Promise(res => {
       const id = ++__acZoneSeq;
       __acZonePend[id] = res;
       const t = setTimeout(() => { delete __acZonePend[id]; res([-2]); }, timeoutMs || 250);
@@ -3852,14 +3870,16 @@
         res([-1]);
       }
     }).then(zs => {
-      if (Array.isArray(zs) && zs.length && zs[0] >= 0) {   // cache real answers only
-        __acZoneCacheZones = zs;
-        __acZoneCacheAt = Date.now();
+      // Clear the share ONLY if it is still THIS promise's generation: a newer
+      // request may already have replaced it (an older .then must not wipe it).
+      if (!noShare && gen === __acZoneSharedGen) {
+        __acZoneShared = null;
+        __acZoneSharedAt = 0;
       }
-      __acZoneCachePend = null;
       return zs;
     });
-    return __acZoneCachePend;
+    if (!noShare) __acZoneShared = p;
+    return p;
   }
 
   // --- native type 485: "which tab is under the mouse" ---------------------
@@ -3880,7 +3900,9 @@
       const id = ++__acZoneSeq;
       const t = setTimeout(() => { delete __acZoneTabPend[id]; res(null); }, timeoutMs || 400);
       try {
-        if (!__acZonePort) __acZoneAsk(1);      // opens the port (and the helper)
+        // Opens the port (and the helper). `noShare`: a 1 ms port-opening ping
+        // must never become the answer the zone gate sees.
+        if (!__acZonePort) __acZoneAsk(1, true);
         if (!__acZonePort) { clearTimeout(t); return res(null); }
         __acZoneTabPend[id] = v => { clearTimeout(t); res(v); };
         __acZonePort.postMessage({ __id: id, tab: 1 });
@@ -4116,6 +4138,9 @@
   //   2. the table must stay fresh while the cursor moves.
   // A periodic request solves both: it starts the helper after an SW restart,
   // keeps its background heartbeat alive and re-spawns it if it dies.
+  // `noShare` (2026-10-25): the keepalive's answer must NOT seed or be shared
+  // with the zone gate - a dispatch has to ask for the cursor position of ITS
+  // OWN event, not reuse a ping that happened to be in flight.
   setInterval(() => {
     if (Date.now() < __acZoneReleasedUntil) return;   // released for uninstall
     // AC-MV3 (2026-10-11): the helper only matters while the engine is
@@ -4126,7 +4151,7 @@
     // Specified native messaging host not found" each time (user log A,
     // 2026-10-11). The helper is reconnected on demand by the next real ask.
     if (!connected) return;
-    try { __acZoneAsk(300); } catch (e) {}
+    try { __acZoneAsk(300, true); } catch (e) {}
   }, 2500);
 
   // ======== NATIVE BUNDLE SYNC (2026-10-10): patched engine + zone helper ========
@@ -4291,7 +4316,10 @@
   /** Wait until the zone helper answers; warns (and reloads once) when it never does. */
   function __acHelperVerify() {
     let tries = 0;
-    const attempt = () => __acZoneAsk(1500).then(zs => {
+    // `noShare`: this is a health ping, not the answer for a wheel the user is
+    // performing - a dead helper must not make the zone gate wait for THIS
+    // 1500 ms timeout (the gate has its own, shorter one).
+    const attempt = () => __acZoneAsk(1500, true).then(zs => {
       const ok = Array.isArray(zs) && zs.length && zs[0] >= 0;
       if (ok) { console.log('[AC-MV3-NATIVE] zone helper connected:', JSON.stringify(zs)); return true; }
       if (++tries >= 3) {
